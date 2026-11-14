@@ -1,4 +1,4 @@
-# online-certification-monitoring — System design
+# ICU (I Caught You) — System design
 
 How the product is built to satisfy [PRD.md](PRD.md), consistent with [DSD.md](DSD.md).
 Updated: 2026-11-14
@@ -225,16 +225,16 @@ The weights are fixed in code (Q13: no per-event weight editing). Only the thres
 
 ### Database RPCs
 
-These are Postgres functions called with `supabase.rpc`, all `security definer` with an empty `search_path` and fully qualified names (R25). The row-level-security helper functions (`is_session_admin`, `can_write_attempt`, etc.) live in a `private` schema that the Data API doesn't expose, so they aren't callable as endpoints (migration 002, decision D5). Each checks `auth.uid()` and the caller's role first and raises a coded error (`OCM_*`) on failure.
+These are Postgres functions called with `supabase.rpc`, all `security definer` with an empty `search_path` and fully qualified names (R25). The row-level-security helper functions (`is_session_admin`, `can_write_attempt`, etc.) live in a `private` schema that the Data API doesn't expose, so they aren't callable as endpoints (migration 002, decision D5). Each checks `auth.uid()` and the caller's role first and raises a coded error (`ICU_*`) on failure.
 
 | Function | Caller | Input | Output | Errors | R# |
 | --- | --- | --- | --- | --- | --- |
-| `create_session` | admin | `{ name, url_patterns[], starts_at, ends_at, warning_limit?, threshold_medium?, threshold_high? }` | `{ id, code }` | `OCM_NOT_ADMIN`, `OCM_INVALID_INPUT` | R4 |
-| `join_session` | student | `{ code }` | `{ attempt_id, status, session: { id, name, admin_name, admin_email, starts_at, ends_at, url_patterns, warning_limit } }`; creates the attempt if it doesn't exist. An unknown code returns `{ error: 'OCM_CODE_NOT_FOUND' }` as a result (not an exception), so the failure recorded for the rate limit isn't rolled back (D7) | `OCM_NOT_STUDENT`, `OCM_RATE_LIMITED`, `OCM_SESSION_ENDED` | R6 |
-| `start_attempt` | student | `{ attempt_id, consent_version, age_confirmed }` | `{ started_at, ends_at, uninstall_token, server_now }`. The extension uses `server_now` to correct its clock, and event times must fall within the attempt window ±2 min. Idempotent: starting an active attempt again returns the same values. It also closes the caller's attempts whose session window has passed | `OCM_NOT_OWNER`, `OCM_NOT_OPEN_YET`, `OCM_SESSION_ENDED`, `OCM_CONSENT_REQUIRED`, `OCM_ALREADY_ACTIVE` (another attempt is active) | R7, R8 |
-| `end_attempt` | student | `{ attempt_id, reason: 'student'\|'time_window' }` | `{ ended_at }`; clears `uninstall_token` | `OCM_NOT_OWNER` | R8 |
-| `set_verdict` | admin | `{ attempt_id, verdict, note? }` | `{ verdict_at }` | `OCM_NOT_SESSION_ADMIN`, `OCM_INVALID_INPUT` | R22 |
-| `delete_attempt_rows` | admin | `{ attempt_id }` | `{ deleted_events, deleted_heartbeats, deleted_screenshots }`; sets `data_deleted_at` | `OCM_NOT_SESSION_ADMIN` | R23 |
+| `create_session` | admin | `{ name, url_patterns[], starts_at, ends_at, warning_limit?, threshold_medium?, threshold_high? }` | `{ id, code }` | `ICU_NOT_ADMIN`, `ICU_INVALID_INPUT` | R4 |
+| `join_session` | student | `{ code }` | `{ attempt_id, status, session: { id, name, admin_name, admin_email, starts_at, ends_at, url_patterns, warning_limit } }`; creates the attempt if it doesn't exist. An unknown code returns `{ error: 'ICU_CODE_NOT_FOUND' }` as a result (not an exception), so the failure recorded for the rate limit isn't rolled back (D7) | `ICU_NOT_STUDENT`, `ICU_RATE_LIMITED`, `ICU_SESSION_ENDED` | R6 |
+| `start_attempt` | student | `{ attempt_id, consent_version, age_confirmed }` | `{ started_at, ends_at, uninstall_token, server_now }`. The extension uses `server_now` to correct its clock, and event times must fall within the attempt window ±2 min. Idempotent: starting an active attempt again returns the same values. It also closes the caller's attempts whose session window has passed | `ICU_NOT_OWNER`, `ICU_NOT_OPEN_YET`, `ICU_SESSION_ENDED`, `ICU_CONSENT_REQUIRED`, `ICU_ALREADY_ACTIVE` (another attempt is active) | R7, R8 |
+| `end_attempt` | student | `{ attempt_id, reason: 'student'\|'time_window' }` | `{ ended_at }`; clears `uninstall_token` | `ICU_NOT_OWNER` | R8 |
+| `set_verdict` | admin | `{ attempt_id, verdict, note? }` | `{ verdict_at }` | `ICU_NOT_SESSION_ADMIN`, `ICU_INVALID_INPUT` | R22 |
+| `delete_attempt_rows` | admin | `{ attempt_id }` | `{ deleted_events, deleted_heartbeats, deleted_screenshots }`; sets `data_deleted_at` | `ICU_NOT_SESSION_ADMIN` | R23 |
 | `record_uninstall` | service role only (Edge Function) | `{ token }` | void; inserts `extension_uninstalled` if the token matches an active attempt, then nulls the token | — (always silent) | R15 |
 
 ### Direct table access under RLS (R25)
@@ -298,7 +298,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 1. The admin fills in the form, and the dashboard validates it with the same rules as the database constraints.
 2. The dashboard calls `rpc('create_session')`. The function generates a code, retries up to 5 times on a unique-key clash, and inserts the row.
 3. The dashboard shows the code in large monospace with a Copy button.
-4. Error path: a validation error shows inline. `OCM_NOT_ADMIN` signs the user out with the wrong-role message (R3).
+4. Error path: a validation error shows inline. `ICU_NOT_ADMIN` signs the user out with the wrong-role message (R3).
 
 ### F2. Student joins and starts (R6–R9, R13)
 1. In the popup, the student enters the code, and the popup sends `attempt.join`. The worker calls `join_session` and stores `{ attempt_id, session }` in `chrome.storage.local` with state `joined`.
@@ -306,7 +306,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 3. Continue opens the notice page. The student ticks both boxes and clicks Start, which sends `attempt.start`. The worker calls `start_attempt` and then:
    - sets state `active`;
    - calls `chrome.runtime.setUninstallURL(<fn-url>?t=<token>)`;
-   - creates alarms `ocm-heartbeat` (every 0.5 min), `ocm-screenshot` (every 1 min) and `ocm-end` (at `ends_at`);
+   - creates alarms `icu-heartbeat` (every 0.5 min), `icu-screenshot` (every 1 min) and `icu-end` (at `ends_at`);
    - looks for a tab matching `url_patterns` (the active tab first, then any tab) and binds it as `examTabId`;
    - starts the 120 s `exam-page-not-detected` timer, which is persisted as an alarm.
 4. The fullscreen prompt depends on OQ1:
@@ -315,8 +315,8 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 
    **Chosen: option A** (decision D6, 2026-11-14). Google Forms reloads the page between sections, and DOM fullscreen ends on every reload, which would cause false `fullscreen_exit` events. Browser-window fullscreen needs no click and survives reloads. Exits are detected with `windows.onBoundsChanged` and `windows.onFocusChanged` by comparing the window's `state`. At End, the extension restores the window to `normal`. E2E T31 passes; the real-Form check is spike 6a.
 5. Error paths:
-   - `OCM_NOT_OPEN_YET`: the countdown stays.
-   - `OCM_ALREADY_ACTIVE`: the message "You already have an exam in progress."
+   - `ICU_NOT_OPEN_YET`: the countdown stays.
+   - `ICU_ALREADY_ACTIVE`: the message "You already have an exam in progress."
    - Network failure: the message "Couldn't start. Check your connection." Nothing is collected (R8).
 
 ### F3. Monitoring loop (R9–R14, R16, R17)
@@ -324,7 +324,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 - **Content script:** on load it sends `cs.hello`. Only the exam tab gets `isExamTab: true`. There, the top frame starts `setInterval(15 s)` sending `cs.heartbeat`, and every frame attaches clipboard listeners (`capture: true, passive: true`).
 - **Heartbeat:**
   - The worker inserts each heartbeat row with source `content`.
-  - The `ocm-heartbeat` alarm (every 30 s) sends a heartbeat with source `alarm` if the last one was more than 20 s ago **and** the exam tab still exists. This covers Chrome slowing timers in background tabs: Chrome's intensive throttling of hidden tabs can reduce `setInterval` to once a minute (known Chrome behaviour, **not verified in RESEARCH.md**, checked in M1).
+  - The `icu-heartbeat` alarm (every 30 s) sends a heartbeat with source `alarm` if the last one was more than 20 s ago **and** the exam tab still exists. This covers Chrome slowing timers in background tabs: Chrome's intensive throttling of hidden tabs can reduce `setInterval` to once a minute (known Chrome behaviour, **not verified in RESEARCH.md**, checked in M1).
   - With no exam tab, no heartbeats are sent, so closing the exam tab produces a gap (Q22).
 - **Event recording:** each detected event:
   1. is given a client UUID and `occurred_at`;
@@ -349,7 +349,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 ### F4. End of attempt (R8, R15)
 1. **Triggers:**
    - The student clicks End exam and sends `attempt.end`.
-   - Or the `ocm-end` alarm fires at `ends_at`.
+   - Or the `icu-end` alarm fires at `ends_at`.
 2. The worker flushes the queue and calls `end_attempt` with the matching reason (`student` or `time_window`).
 3. It clears the alarms and calls `setUninstallURL('')` to clear the uninstall URL.
 4. It tells the content script to go dormant, and the popup shows "Exam ended".
@@ -376,10 +376,21 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 3. It is best effort only ([F12](RESEARCH.md#findings)). The heartbeat gap remains the main evidence.
 
 ### F8. Retention (R24)
-1. A daily scheduled job at 03:00 Asia/Manila calls `retention-cleanup` with the header `x-ocm-cron-secret`.
+1. A daily scheduled job at 03:00 Asia/Manila calls `retention-cleanup` with the header `x-icu-cron-secret`.
 2. For each expired attempt, the function runs the same removal as F6 step 5 using the service role.
 3. It logs counts with `console.log`, which appear in the Supabase function logs.
 4. **Scheduler mechanism:** `pg_cron` runs a daily job that calls the function with `pg_net`, reading the project URL and secret key from Vault. This is the pattern in the Supabase docs ([schedule-functions](https://supabase.com/docs/guides/functions/schedule-functions)). All three extensions were verified available on the free plan on 2026-11-14 (OQ3).
+
+### F9. AI suggestion (R32, decision D8)
+1. **Trigger:** an update of `attempts.status` to `ended` fires `private.on_attempt_ended()`, which inserts `ai_analyses(status = 'pending')` and calls the `ai-analyze` Edge Function asynchronously through `pg_net`, with the same Vault secrets and `x-icu-cron-secret` header as the retention job. It runs only when `app_settings.ai_auto` is true, which is false in icu-test so test runs don't spend model credits.
+2. **Missed ends:** attempts closed by the time window, or whose browser never reached End, are picked up by the `icu-ai-sweep` job (every 5 minutes, `ai_sweep_candidates`).
+3. **Re-analyze:** the admin calls `request_ai_analysis(attempt_id)`, which checks admin rights and allows at most one pending request per 30 s.
+4. **Function:**
+   1. It loads the attempt with the service role.
+   2. `_shared/analysis.ts` builds the anonymous state: times as mm:ss from the start, plain event names, `site` (host + path), `screenshot_shows` (the site the screenshot showed), monitoring gaps with durations, and counts. The timeline is capped at 200 rows, keeping all important ones.
+   3. It sends one `POST https://api.typesafe.ai/v1/systemone` with model `jev-latest` and the single Choice question.
+   4. It stores the suggestion, probabilities, confidence, model and input tokens. On error it stores `failed` with a short reason.
+5. **Dashboard:** the candidate review shows the card (option, %, confidence High ≥ 0.7, Medium ≥ 0.4, otherwise Low; bars; Re-analyze; "your verdict is the decision"), and session detail shows an AI suggestion column.
 
 ## Technology choices
 
@@ -395,6 +406,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 | Focus detection | Worker `chrome.tabs` and `chrome.windows` events | Content-script `blur` and `visibilitychange` | Not fooled by in-page iframes taking focus, and works when the content script is throttled (inference; checked in M1, A5) |
 | Screenshot pipeline | `captureVisibleTab` JPEG, downscaled with `OffscreenCanvas` in the worker | A full-size PNG; an offscreen document | Stays within the 2-per-second limit and the 10 MB per hour budget ([F6](RESEARCH.md#findings), R29); no offscreen document is needed now that the webcam is gone (Q21) |
 | Monorepo | npm workspaces | pnpm, Turborepo | No extra tooling to install |
+| AI suggestion | TypeSafe Jev (System One) through its HTTP API from an Edge Function: one request, one Choice question | Rule-based suggestion only; a general LLM generating free text | Returns calibrated probabilities for every option plus a confidence, so no text parsing is needed. Accepts structured JSON state ([RESEARCH F26–F28](RESEARCH.md#findings)). Test call 2026-11-14: about 690 input tokens for a short timeline |
 | Unit and integration tests | Vitest | Jest | Native to Vite and TypeScript |
 | End-to-end tests | Playwright with a persistent Chromium context loading the unpacked extension | Puppeteer | Playwright documents loading extensions in Chromium; it works with axe (`@axe-core/playwright`) for R28 |
 
@@ -428,6 +440,7 @@ Legal basis: consent under RA 10173, following the NPC education-sector advisory
 | Heartbeat times | Detecting monitoring gaps | `heartbeats` | The session admin | 30 days | R14, R24 |
 | Screenshots of the focused browser tab | Visual evidence | Storage | The session admin, through signed URLs | 30 days, or earlier on admin delete | R16, R21, R23, R24 |
 | Verdict and note | Review outcome | `attempts` | The session admin | With the attempt | R22 |
+| Anonymous activity timeline (no name, email or IDs) | AI suggestion | Sent to the analysis model (TypeSafe); the result is stored in `ai_analyses` | The session admin sees the result | Result deleted with the data (30 days or earlier). The provider's own retention isn't documented ([RESEARCH F28](RESEARCH.md#findings)) | R32 |
 
 - **Not collected:** webcam, microphone, keystrokes, clipboard content, form answers, page text, query strings, and anything outside an active attempt (R26).
 - **Data subject rights:** the notice names the session admin's email for access, correction and erasure requests. The admin fulfils erasure with R23.
@@ -459,7 +472,7 @@ The baseline is the free tier: 1 GB Storage, 500 MB database, 5 GB egress and 2 
 
 ## Observability
 
-- **Extension:** structured `console` logs (`[ocm] <area> <message>`) in the worker, visible at `chrome://extensions` → Inspect. The popup's status screen shows state, the warning count, queue size and the last heartbeat time (the `attempt.status` message). There's no third-party telemetry (R26).
+- **Extension:** structured `console` logs (`[icu] <area> <message>`) in the worker, visible at `chrome://extensions` → Inspect. The popup's status screen shows state, the warning count, queue size and the last heartbeat time (the `attempt.status` message). There's no third-party telemetry (R26).
 - **Server-visible signals:** `screenshot_failed` and `queue_overflow` events. Heartbeat `source` shows how often the alarm backup is doing the work.
 - **Supabase:** the API, Postgres and Edge Function logs in the Supabase dashboard. `retention-cleanup` logs the number of attempts and objects it deleted.
 - **Alerting:** none for v1. The admin checks the Supabase dashboard before the demo, including the paused-project state ([F7](RESEARCH.md#findings)).

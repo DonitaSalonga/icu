@@ -1,4 +1,4 @@
-# online-certification-monitoring — Deep search record
+# ICU (I Caught You) — Deep search record
 
 Research findings answering the open questions in [IDEA.md](IDEA.md).
 Updated: 2026-11-14
@@ -47,6 +47,9 @@ Published shows the date the source states; "not stated" means none was found. V
 | F22 | The US GAO reported that a disability organisation said some proctoring systems didn't work with screen readers. | https://www.gao.gov/assets/gao-22-104430.pdf | 2022 | 2026-11-14 | High | Fact |
 | F23 | Philippine education-sector privacy guidance calls for explicit student consent (a parent or guardian's for minors), notices, and human validation of automated proctoring where possible. It applies only if the institution falls under it. | https://privacy.gov.ph/wp-content/uploads/2023/05/DP-Council-Education-Sector-Advisory-No.-2020-1.pdf | 2020 | 2026-11-14 | High | Fact |
 | F24 | US educational use may raise FERPA questions depending on the facts. | https://studentprivacy.ed.gov/faq/i-want-use-online-tool-or-application-part-my-course-however-i-am-worried-it-violation-ferpa | Not stated | 2026-11-14 | Medium | Fact |
+| F26 | ✔ TypeSafe Jev ("System One") answers questions about a `state` (text, a JSON object, or images per the overview) through one HTTP call with several questions. Question types: Choice (one of several options; returns `choice`, `probabilities` for every option summing to 1, and `confidence` 0–1), Score, Noul (a yes-probability 0–1) and Box. Up to 255 Choice options | https://docs.typesafe.ai/introduction/quickstart ; https://docs.typesafe.ai/primitives/choice.md ; https://docs.typesafe.ai/primitives/noul.md | Not stated | 2026-11-14 | High | Fact |
+| F27 | ✔ A real call with a JSON-object `state` and one Choice question returned `jev-1.14.0`, choice `cheating_ai_or_web` at 0.82, confidence 0.77, and about 690 input / 73 output tokens | (test call from this project) | 2026-11-14 | 2026-11-14 | High | Fact |
+| F28 | The TypeSafe docs don't state pricing, rate limits, data retention, training on customer data, processing region, or image input limits. Treat these as unknown; the privacy notice describes automated analysis generically | https://docs.typesafe.ai/ | Not stated | 2026-11-14 | High | Fact (absence) |
 | F25 | **Estimate, unverified:** about 100 KB per JPEG × 60 per hour ≈ 6 MB per candidate-hour, so 1 GB holds about 160 candidate-hours. Real capacity is lower because of violation screenshots, deletion delays and other files. Storage and egress are separate limits. | F7 sources | — | 2026-11-14 | Low | Inference |
 
 ## Answers to the open questions
