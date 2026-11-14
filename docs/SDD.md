@@ -278,7 +278,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 - `findGaps(heartbeatTimes: Date[], start: Date, end: Date, thresholdMs = 60_000): Gap[]`. Includes the leading and trailing gaps.
 - `scoreAttempt(events, gaps, session): { score, level, breakdown }`
 - `createWarningPolicy({ limit, cooldownMs = 10_000 })` returns `{ onEvent(type, at): Decision }`, where Decision is `none` (not a warning type, or within the cool-down), `warn(n)`, `warn_and_limit(n)` (the first time n reaches the limit) or `limit_reminder` (a warning after the limit: the banner repeats the limit-reached message and `warning_shown` is still recorded, but no second `warning_limit_reached`).
-- `createCoalescer({ windowMs = 3_000, minSpacingMs = 600 })` returns `{ onTrigger(at): 'capture'|'attach', currentShotId }`. It keeps captures at or below 2 per second ([F6](RESEARCH.md#findings)).
+- `decideCapture(state, at, windowMs = 3_000)` returns `capture` or `attach(shotId)`: a warning event within 3 s of the last capture shares its screenshot. `shouldCaptureInterval` skips an interval capture in that window. Captures are therefore at least 3 s apart, far below Chrome's 2 per second ([F6](RESEARCH.md#findings)). This replaced the planned 600 ms spacing rule, which became redundant.
 - `generateSessionCode(random: () => number): string`
 - `EVENT_TYPES`, `WEIGHTS`, `WARNING_TYPES`, `NOTICE_VERSION`
 
