@@ -1,5 +1,6 @@
 // Join, start and end an attempt (R6–R8). SDD.md § Key flows F2, F4.
 import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@ocm/core';
+import { SCREENSHOT_PERIOD_MIN } from './env';
 import { OcmError } from './errors';
 import { ALARM_NOT_DETECTED, bindExamTab, sendToTab, startMonitoring } from './monitor';
 import { flush, isUploadFailing, queueSize } from './queue';
@@ -8,6 +9,7 @@ import { getSupabase } from './supabase';
 
 export const ALARM_HEARTBEAT = 'ocm-heartbeat';
 export const ALARM_END = 'ocm-end';
+export const ALARM_SCREENSHOT = 'ocm-screenshot';
 
 export async function joinSession(code: string): Promise<JoinResult> {
   const current = await loadAttempt();
@@ -31,6 +33,9 @@ export async function openNotice(): Promise<void> {
 export async function ensureAlarms(endsAtLocalMs: number): Promise<void> {
   if (!(await browser.alarms.get(ALARM_HEARTBEAT))) {
     await browser.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 0.5 });
+  }
+  if (!(await browser.alarms.get(ALARM_SCREENSHOT))) {
+    await browser.alarms.create(ALARM_SCREENSHOT, { periodInMinutes: SCREENSHOT_PERIOD_MIN });
   }
   if (!(await browser.alarms.get(ALARM_END))) {
     await browser.alarms.create(ALARM_END, { when: Math.max(endsAtLocalMs, Date.now() + 1000) });
@@ -66,6 +71,7 @@ export async function endAttempt(reason: 'student' | 'time_window'): Promise<{ e
   await browser.alarms.clear(ALARM_HEARTBEAT);
   await browser.alarms.clear(ALARM_END);
   await browser.alarms.clear(ALARM_NOT_DETECTED);
+  await browser.alarms.clear(ALARM_SCREENSHOT);
   if (attempt.exam_tab_id !== undefined) await sendToTab(attempt.exam_tab_id, { type: 'sw.deactivate' });
   // Leave the fullscreen the extension switched on at Start (R13).
   if (attempt.exam_window_id !== undefined && attempt.fullscreen_requested) {

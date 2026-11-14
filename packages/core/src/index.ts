@@ -5,3 +5,4 @@ export * from './code';
 export * from './notice';
 export * from './messages';
 export * from './warnings';
+export * from './coalescer';

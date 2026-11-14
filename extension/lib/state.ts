@@ -1,6 +1,6 @@
 // Attempt state machine persisted in chrome.storage.local, because the service worker may stop
 // after 30 s idle and lose memory (RESEARCH F9). SDD.md § Components (service worker).
-import type { SessionSummary, WarningState } from '@ocm/core';
+import type { CaptureState, SessionSummary, WarningState } from '@ocm/core';
 
 export interface StoredAttempt {
   attempt_id: string;
@@ -23,6 +23,8 @@ export interface StoredAttempt {
   fullscreen_requested?: boolean;
   not_detected_recorded?: boolean;
   warnings?: WarningState;
+  /** Screenshot coalescing (R16). */
+  shot?: CaptureState;
   last_heartbeat_at?: string;
 }
 

@@ -74,8 +74,27 @@ export async function resetData(): Promise<void> {
     db.from('heartbeats').delete().gte('id', 0),
   ];
   for (const { error } of await Promise.all(deletes)) if (error) throw new Error(`reset: ${error.message}`);
-  for (const table of ['attempts', 'exam_sessions']) {
+  await emptyScreenshotBucket();
+  for (const table of ['screenshots', 'attempts', 'exam_sessions']) {
     const { error } = await db.from(table).delete().not('id', 'is', null);
     if (error) throw new Error(`reset ${table}: ${error.message}`);
+  }
+}
+
+/** Removes every object in the screenshots bucket (session/attempt/file.jpg layout). */
+async function emptyScreenshotBucket(): Promise<void> {
+  const bucket = serviceClient().storage.from('screenshots');
+  const { data: sessions, error } = await bucket.list('', { limit: 1000 });
+  if (error) {
+    if (/not found/i.test(error.message)) return; // bucket not created yet (before migration 003)
+    throw error;
+  }
+  for (const s of sessions) {
+    const { data: attempts } = await bucket.list(s.name, { limit: 1000 });
+    for (const a of attempts ?? []) {
+      const { data: files } = await bucket.list(`${s.name}/${a.name}`, { limit: 1000 });
+      const paths = (files ?? []).map((f) => `${s.name}/${a.name}/${f.name}`);
+      if (paths.length) await bucket.remove(paths);
+    }
   }
 }

@@ -10,3 +10,6 @@ export const TEST_TIMINGS = import.meta.env.WXT_OCM_TEST_TIMINGS === '1';
 
 /** R9: exam_page_not_detected delay. Chrome alarms can't fire sooner than 30 s (RESEARCH F9). */
 export const NOT_DETECTED_DELAY_MS = TEST_TIMINGS ? 30_000 : 120_000;
+
+/** R16: interval screenshot period in minutes (alarms allow ≥ 0.5). */
+export const SCREENSHOT_PERIOD_MIN = TEST_TIMINGS ? 0.5 : 1;

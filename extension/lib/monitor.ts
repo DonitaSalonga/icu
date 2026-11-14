@@ -2,18 +2,22 @@
 // and fullscreen events, visited URLs, live warnings, and heartbeats.
 // All state changes run under one lock. Functions named *Locked assume the lock is held.
 import {
+  decideCapture,
   decideWarning,
   initialWarningState,
   LIMIT_REACHED_TEXT,
   matchExamUrl,
   sanitizeUrl,
+  shouldCaptureInterval,
   WARNING_TEXT,
+  WARNING_TYPES,
   type EventType,
   type SwMessage,
 } from '@ocm/core';
 import { NOT_DETECTED_DELAY_MS } from './env';
 import { createLock } from './lock';
-import { enqueue, flush } from './queue';
+import { captureVisible, blobToBase64 } from './capture';
+import { enqueue, enqueueShot, flush } from './queue';
 import { loadAttempt, serverNow, updateAttempt, type StoredAttempt } from './state';
 import { getSupabase } from './supabase';
 
@@ -62,15 +66,44 @@ async function showWarning(attempt: StoredAttempt, n: number, type: EventType, l
     .catch((e) => console.warn('[ocm] notification failed', e));
 }
 
-async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Record<string, unknown>, at: number) {
-  await enqueue({ id: crypto.randomUUID(), attempt_id: attempt.attempt_id, type, occurred_at: new Date(at).toISOString(), details });
+async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Record<string, unknown>, at: number, screenshot_id?: string) {
+  await enqueue({ id: crypto.randomUUID(), attempt_id: attempt.attempt_id, type, occurred_at: new Date(at).toISOString(), details, screenshot_id });
+}
+
+/** R16: captures and queues a screenshot; returns its id, or undefined after recording screenshot_failed. */
+async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' | 'violation', at: number): Promise<string | undefined> {
+  const result = await captureVisible();
+  if (!result.ok) {
+    await enqueueEvent(attempt, 'screenshot_failed', { error: result.error.slice(0, 200) }, at);
+    return undefined;
+  }
+  const id = crypto.randomUUID();
+  await enqueueShot({
+    id,
+    attempt_id: attempt.attempt_id,
+    session_id: attempt.session.id,
+    captured_at: new Date(at).toISOString(),
+    reason,
+    bytes: result.blob.size,
+    data: await blobToBase64(result.blob),
+    failures: 0,
+  });
+  await updateAttempt({ shot: { lastCaptureAt: at, lastShotId: id } });
+  return id;
 }
 
 async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}): Promise<void> {
   const attempt = await activeAttempt();
   if (!attempt) return;
   const at = serverNow(attempt);
-  await enqueueEvent(attempt, type, details, at);
+
+  // Warning-triggering events get a screenshot; events within 3 s share one (R16).
+  let screenshotId: string | undefined;
+  if (WARNING_TYPES.includes(type)) {
+    const capture = decideCapture(attempt.shot ?? {}, at);
+    screenshotId = capture.kind === 'attach' ? capture.shotId : await takeScreenshotLocked(attempt, 'violation', at);
+  }
+  await enqueueEvent(attempt, type, details, at, screenshotId);
 
   const limit = attempt.session.warning_limit;
   const { decision, next } = decideWarning(attempt.warnings ?? initialWarningState(), type, at, limit);
@@ -140,6 +173,18 @@ export async function startMonitoring(): Promise<void> {
   if ((await loadAttempt())?.exam_tab_id === undefined) {
     await browser.alarms.create(ALARM_NOT_DETECTED, { when: Date.now() + NOT_DETECTED_DELAY_MS });
   }
+}
+
+/** R16: periodic screenshot, skipped right after another capture. */
+export function onScreenshotAlarm(): Promise<void> {
+  return withLock(async () => {
+    const attempt = await activeAttempt();
+    if (!attempt) return;
+    const at = serverNow(attempt);
+    if (!shouldCaptureInterval(attempt.shot ?? {}, at)) return;
+    await takeScreenshotLocked(attempt, 'interval', at);
+    void flush();
+  });
 }
 
 export function onNotDetectedAlarm(): Promise<void> {

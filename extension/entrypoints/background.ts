@@ -1,7 +1,7 @@
 // Service worker: the only part of the extension that talks to Supabase (SDD.md § Components).
 // Listeners are registered synchronously so Chrome can wake the worker for them (RESEARCH F9).
 import type { Message, Response } from '@ocm/core';
-import { ALARM_END, ALARM_HEARTBEAT, attemptStatus, endAttempt, joinSession, openNotice, recover, resetAttempt, startAttempt } from '../lib/attempt';
+import { ALARM_END, ALARM_HEARTBEAT, ALARM_SCREENSHOT, attemptStatus, endAttempt, joinSession, openNotice, recover, resetAttempt, startAttempt } from '../lib/attempt';
 import { authState, signIn, signOut, signUp } from '../lib/auth';
 import { isConfigured } from '../lib/env';
 import { toErrorResponse } from '../lib/errors';
@@ -11,6 +11,7 @@ import {
   heartbeat,
   onContentEvent,
   onNotDetectedAlarm,
+  onScreenshotAlarm,
   onPopupConnected,
   onTabActivated,
   onTabCreated,
@@ -88,6 +89,7 @@ export default defineBackground(() => {
       void flush(); // safety net for the offline queue (R30)
     }
     if (alarm.name === ALARM_NOT_DETECTED) void onNotDetectedAlarm();
+    if (alarm.name === ALARM_SCREENSHOT) void onScreenshotAlarm();
     if (alarm.name === ALARM_END) void endAttempt('time_window').catch((e) => console.warn('[ocm] auto-end failed', e));
   });
 
