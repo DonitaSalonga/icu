@@ -1,47 +1,111 @@
 # Online Certification Monitoring
 
-A university project. A Chrome extension records what a student does in their browser during an online exam on a third-party site (tab switches, pasting, other sites visited). An admin dashboard shows that evidence for **human review**; the tool never decides that someone cheated.
+A university project. A Chrome extension records what a student does in their browser during an online exam on a third-party site such as Google Forms or Coursera. It records tab switches, other sites visited, copy and paste, leaving fullscreen, screenshots, and gaps in monitoring. An admin dashboard shows that evidence for **human review**. The tool warns and flags; it never ends an exam or decides that someone cheated.
 
-- What and why: [docs/IDEA.md](docs/IDEA.md) · Requirements: [docs/PRD.md](docs/PRD.md) · Design: [docs/SDD.md](docs/SDD.md), [docs/DSD.md](docs/DSD.md) · Tests: [docs/QAD.md](docs/QAD.md) · Plan: [docs/BUILD.md](docs/BUILD.md)
-- Status: **milestone M1 (walking skeleton) in progress.** The full README arrives in M6 (R31).
+| | |
+| --- | --- |
+| Why and what | [docs/IDEA.md](docs/IDEA.md) · research: [docs/RESEARCH.md](docs/RESEARCH.md) |
+| Requirements (R1–R31) | [docs/PRD.md](docs/PRD.md) |
+| Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
+| Tests (T1–T51) | [docs/QAD.md](docs/QAD.md) |
+| Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
 
-## Layout
+## How it works
 
 ```text
-extension/         Chrome MV3 extension (WXT + React + TypeScript)
-dashboard/         Admin dashboard (Vite + React + Tailwind)
-packages/core/     Shared rules: event catalogue, URL matching, gap detection, session codes
-packages/ui-tokens Design tokens (CSS variables + Tailwind preset)
-supabase/          Migrations, integration tests, seed/reset scripts
+Student's Chrome                         Supabase Cloud (free tier)                 Admin's browser
+┌───────────────────────────┐   HTTPS   ┌──────────────────────────────┐   HTTPS   ┌───────────────────┐
+│ Extension (MV3)            │ ────────▶ │ Auth · Postgres + RLS        │ ◀──────── │ Dashboard (React) │
+│  service worker: events,   │           │ Storage (private screenshots)│           │  sessions, risk,  │
+│  screenshots, heartbeat    │           │ Edge Functions: uninstall    │           │  timeline,        │
+│  content script: clipboard,│           │  beacon, 30-day retention    │           │  verdicts         │
+│  warning banner            │           │ pg_cron: daily cleanup       │           └───────────────────┘
+└───────────────────────────┘           └──────────────────────────────┘
 ```
 
-## Setup (M1)
+- The admin creates an **exam session** (name, exam URL pattern, time window, warning limit) and gives students its 6-character **code**.
+- The student signs in to the extension, enters the code, reads and accepts the privacy notice (Philippine Data Privacy Act, RA 10173), and clicks **Start**. Monitoring runs only on matching exam pages and only until End or the session's end time.
+- Events and screenshots upload to Supabase. A heartbeat every 15 s means that silence of more than 60 s shows up as **monitoring lost**, for example when the extension is disabled or the exam tab is closed.
+- The admin sees each candidate's risk level (Low/Medium/High), a timeline with screenshots, and records a verdict. Data is deleted automatically after 30 days, or earlier by the admin.
 
-Prerequisites: Node 20 or later (developed on Node 26) and a Supabase account. Supabase Cloud's free tier only; there's no Docker or local Supabase.
+## Repository layout
 
-1. `npm install`
-2. Create two Supabase projects: `ocm-main` (development and demo) and `ocm-test` (automated tests).
-3. Copy `.env.example` to `.env` and fill it in from `ocm-main` → Project Settings → API. Use only the **publishable (anon)** key.
-4. Copy `.env.test.example` to `.env.test` and fill it in from `ocm-test`. This file holds the test project's **secret** key; it's gitignored and used only by the test runner.
-5. Apply the schema to each project:
+```text
+extension/          Chrome MV3 extension (WXT + React + TypeScript)
+dashboard/          Admin dashboard (Vite + React + Tailwind)
+packages/core/      Shared rules: event catalogue, URL matching, gaps, risk scoring, warnings, coalescing
+packages/ui-tokens/ Design tokens (CSS variables + Tailwind preset)
+supabase/           migrations/, functions/ (Edge Functions), tests/ (integration), scripts/ (seed/reset)
+e2e/                Playwright tests that load the extension, plus a fixture exam site
+scripts/            check-secrets.mjs (T44)
+```
+
+## Setup
+
+**Prerequisites:** Node 20 or later (developed on Node 26), Chrome 120 or later, and a Supabase account (free tier). There's no Docker or local Supabase; everything runs against Supabase Cloud.
+
+1. **Install:** `npm install`
+2. **Sign in to the Supabase CLI** in a normal terminal (it opens a browser): `npx supabase login`
+3. **Create two projects** (or use the dashboard): `ocm-main` for development and the demo, and `ocm-test` for automated tests.
    ```sh
-   npx supabase login
-   npx supabase link --project-ref <ocm-test-ref> && npm run db:push
-   npx supabase link --project-ref <ocm-main-ref> && npm run db:push
+   npx supabase orgs list
+   npx supabase projects create ocm-main --org-id <org-id> --region ap-southeast-1 --db-password '<strong password>'
+   npx supabase projects create ocm-test --org-id <org-id> --region ap-southeast-1 --db-password '<another password>'
    ```
-6. For a quick demo, in `ocm-main` → Authentication → Sign In / Providers → Email, you can turn off **Confirm email**. Otherwise new users must click the email link before signing in.
+4. **Environment files** (all gitignored):
+   - `.env` comes from `.env.example`, filled in from **ocm-main**: the URL and the **publishable** key only (`npx supabase projects api-keys --project-ref <ref>`).
+   - `.env.test` comes from `.env.test.example`, filled in from **ocm-test**. It includes the **secret** key (`… api-keys --reveal`), which only the test runner uses.
+   - `.env.db.main` and `.env.db.test` each hold `SUPABASE_DB_PASSWORD=` and `OCM_CRON_SECRET=` for that project.
+5. **Database, functions and schedule**, for each project:
+   ```sh
+   npx supabase link --project-ref <ref>
+   npx supabase db push --remote -p '<db password>'
+   # Vault secrets read by the daily retention job (never commit these values):
+   npx supabase db query --remote "select vault.create_secret('https://<ref>.supabase.co', 'ocm_project_url'); select vault.create_secret('<cron secret>', 'ocm_cron_secret');"
+   npx supabase secrets set --project-ref <ref> OCM_CRON_SECRET='<cron secret>'
+   npx supabase functions deploy uninstall-beacon --project-ref <ref> --no-verify-jwt --use-api
+   npx supabase functions deploy retention-cleanup --project-ref <ref> --no-verify-jwt --use-api
+   ```
+6. **Optional, for a quick demo:** in ocm-main → Authentication → Sign In / Providers → Email, turn off **Confirm email**. Otherwise new users must click the email link before they can sign in.
 
 ## Run
 
-- Dashboard: `npm run dev:dashboard`, then open http://localhost:5173
-- Extension: `npm run build -w extension`, then in Chrome go to `chrome://extensions`, turn on Developer mode, choose **Load unpacked**, and pick `extension/.output/chrome-mv3`. For live reload use `npm run dev:extension`.
+- **Dashboard:** `npm run dev:dashboard`, then open http://localhost:5173. Choose "I'm an admin" and create an account.
+- **Extension:** `npm run build -w extension`. In Chrome open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select `extension/.output/chrome-mv3`. Click the extension icon, choose "I'm a student", and sign up. For live reload while developing, use `npm run dev:extension`.
+- To use a deployed dashboard, set `WXT_DASHBOARD_URL` in `.env` before building the extension.
 
 ## Test
 
-- `npm test`: unit tests for `packages/core` (no network)
-- `npm run seed:test`, then `npm run test:integration`: RLS and RPC tests against `ocm-test` (skipped while `.env.test` is missing)
-- `npm run typecheck`
+| Command | What | Needs |
+| --- | --- | --- |
+| `npm test` | Unit tests for `packages/core` (T1–T9) | nothing |
+| `npm run seed:test` then `npm run test:integration` | Access rules, RPCs, Storage, Edge Functions on ocm-test (T10–T24) | `.env.test`, `.env.db.test` |
+| `npx playwright install chromium` then `npm run test:e2e` | Browser tests with the real extension and dashboard against ocm-test (T25–T41) | as above |
+| `npm run build` then `npm run check:secrets` | No secret keys in built bundles (T44) | a build |
+| `npm run typecheck` | TypeScript across the workspaces | nothing |
+
+One E2E test (the window-focus part of T28) runs headed, so a Chromium window appears briefly. Manual checks (T43, T45–T49) are listed in [docs/QAD.md](docs/QAD.md).
+
+## Demo checklist
+
+1. **The day before:** open both Supabase projects in the dashboard and **resume** them if paused. Free projects pause after 7 days of low activity.
+2. Create a Google Form to act as the exam.
+3. **Admin laptop:** run the dashboard, sign in, create a session with pattern `https://docs.google.com/forms/*`, and note the code.
+4. **Student laptop:** load the extension, sign in as a student, open the Form, then join with the code, read the notice, and click Start. The window goes fullscreen.
+5. **Act out the scenario:** switch to ChatGPT, paste into the Form, and leave fullscreen. Then disable the extension at `chrome://extensions` for about 70 s and turn it back on.
+6. **Admin:** open the session; the candidate shows as **High**. Open the timeline to see each event, the screenshots and the red "Monitoring lost" bar, then set the verdict to "Cheating confirmed".
 
 ## Known limitations
 
-See [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations). The extension can't see phones, other devices or other browsers. Tampering is detected (as monitoring gaps), not prevented.
+- The extension can't see phones, other people, other devices, other browsers or incognito windows. There's no webcam, by design.
+- Tampering is **detected** (as monitoring gaps), not prevented. A determined student controls their own machine, so the evidence supports a human decision and doesn't prove cheating.
+- Screenshots show the visible browser tab. If the student switches to another app, the screenshot shows the browser.
+- Anyone can sign up as an admin, but an admin sees only the sessions they created.
+- The extension uses permission on all websites (needed for screenshots), so it's meant to be loaded unpacked, not published to the Chrome Web Store.
+- Supabase's "leaked password protection" isn't enabled. It may require a paid plan (not verified).
+
+More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations).
+
+## Licences
+
+All production dependencies are MIT or 0BSD (checked 2026-11-14).

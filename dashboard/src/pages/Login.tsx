@@ -1,6 +1,6 @@
-// Admin sign-in / sign-up (R2). M1: sign-up always creates an admin; the role chooser (R1) is M5.
+// Admin sign-in / sign-up (R2). Accounts created here are always admins; students use the extension (R1).
 import { useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { supabase } from '../supabase';
 import { Alert, Button, Field } from '../ui';
@@ -43,6 +43,7 @@ export function Login() {
       <button type="button" className="self-start text-sm text-primary underline" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'Create an admin account' : 'I already have an account'}
       </button>
+      <Link to="/" className="self-start text-sm text-primary underline">Back</Link>
     </form>
   );
 }

@@ -63,7 +63,8 @@ describe.skipIf(!testEnvConfigured)('M1 backend (ocm-test)', () => {
   });
 
   it('T14: join_session cases', async () => {
-    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).error?.message).toMatch(/OCM_CODE_NOT_FOUND/);
+    // Since migration 005 an unknown code is a result, not an error, so the failure is recorded (R6 rate limit).
+    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).data).toEqual({ error: 'OCM_CODE_NOT_FOUND' });
     const ended = await createSession(adminA, -120, -60);
     expect((await student.rpc('join_session', { p_code: ended.code })).error?.message).toMatch(/OCM_SESSION_ENDED/);
     const future = await createSession(adminA, 60, 120);

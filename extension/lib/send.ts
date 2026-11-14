@@ -23,6 +23,7 @@ export function errorText(code: string, fallback: string): string {
     OCM_CONSENT_REQUIRED: 'Confirm you are 18 or older and agree to the notice to start.',
     OCM_NOT_STUDENT: 'This is an admin account. Use the dashboard.',
     OCM_NO_RESPONSE: 'The extension did not respond. Try again.',
+    OCM_RATE_LIMITED: 'Too many wrong codes. Wait 10 minutes, then try again.',
   };
   return texts[code] ?? (fallback || 'Something went wrong. Check your connection and try again.');
 }

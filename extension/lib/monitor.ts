@@ -36,10 +36,18 @@ async function activeAttempt(): Promise<StoredAttempt | undefined> {
 export async function sendToTab(tabId: number, message: SwMessage): Promise<void> {
   try {
     await browser.tabs.sendMessage(tabId, message);
-  } catch {
-    // No content script in that tab yet (e.g. the page loaded before install). Re-injection is M5;
-    // the heartbeat alarm backup still runs meanwhile.
-    console.warn('[ocm] could not reach content script in tab', tabId);
+    return;
+  } catch (e) {
+    // Inject only when no live content script exists, so a tab never runs two copies.
+    if (message.type !== 'sw.activate' || !/Receiving end does not exist/i.test(String(e))) return;
+  }
+  // No content script in the tab: the page loaded before the extension was installed or re-enabled
+  // (SDD F5). Inject it into every frame, then activate.
+  try {
+    await browser.scripting.executeScript({ target: { tabId, allFrames: true }, files: ['/content-scripts/content.js'] });
+    await browser.tabs.sendMessage(tabId, message);
+  } catch (e) {
+    console.warn('[ocm] could not reach or inject the content script in tab', tabId, e);
   }
 }
 

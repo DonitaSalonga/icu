@@ -1,9 +1,10 @@
-// Dashboard routes (SDD.md § Dashboard routes). M1: login, sessions, session detail, raw attempt view.
+// Dashboard routes (SDD.md § Dashboard routes).
 import type { ReactNode } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { AttemptReview } from './pages/AttemptReview';
 import { Login } from './pages/Login';
+import { RoleChooser } from './pages/RoleChooser';
 import { SessionDetail } from './pages/SessionDetail';
 import { Sessions } from './pages/Sessions';
 import { isConfigured, supabase } from './supabase';
@@ -33,7 +34,7 @@ function Shell({ children }: { children: ReactNode }) {
 function AdminOnly({ children }: { children: ReactNode }) {
   const { loading, session, profile } = useAuth();
   if (loading) return <p className="text-sm text-muted">Loading…</p>;
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/" replace />;
   if (profile?.role !== 'admin') {
     return (
       <div className="flex max-w-md flex-col gap-3">
@@ -57,11 +58,12 @@ export function App() {
     <BrowserRouter>
       <Shell>
         <Routes>
+          <Route path="/" element={<RoleChooser />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sessions" element={<AdminOnly><Sessions /></AdminOnly>} />
           <Route path="/sessions/:id" element={<AdminOnly><SessionDetail /></AdminOnly>} />
           <Route path="/sessions/:id/attempts/:attemptId" element={<AdminOnly><AttemptReview /></AdminOnly>} />
-          <Route path="*" element={<Navigate to="/sessions" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Shell>
     </BrowserRouter>

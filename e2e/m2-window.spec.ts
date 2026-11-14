@@ -5,6 +5,9 @@ import { resetData } from '../supabase/scripts/testEnv';
 import { count, events, expect, OTHER_URL, startExam, test, waitForEvents } from './fixtures';
 
 test.use({ headless: false });
+// Real OS window focus can be taken by any other app during a long suite run; it failed once in a
+// full run (2026-11-14) and passed 3/3 alone. Retries apply to this file only.
+test.describe.configure({ retries: 2 });
 
 const examIds = (worker: Worker) =>
   worker.evaluate(async () => {

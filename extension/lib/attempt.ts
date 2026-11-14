@@ -1,6 +1,6 @@
 // Join, start and end an attempt (R6–R8). SDD.md § Key flows F2, F4.
 import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@ocm/core';
-import { SCREENSHOT_PERIOD_MIN } from './env';
+import { SCREENSHOT_PERIOD_MIN, SUPABASE_URL } from './env';
 import { OcmError } from './errors';
 import { ALARM_NOT_DETECTED, bindExamTab, sendToTab, startMonitoring } from './monitor';
 import { flush, isUploadFailing, queueSize } from './queue';
@@ -16,6 +16,8 @@ export async function joinSession(code: string): Promise<JoinResult> {
   if (current?.state === 'active') throw new OcmError('OCM_ALREADY_ACTIVE');
   const { data, error } = await getSupabase().rpc('join_session', { p_code: normalizeSessionCode(code) });
   if (error) throw error;
+  // An unknown code is returned as a result so the server can count failures (R6 rate limit).
+  if ((data as { error?: string }).error) throw new OcmError((data as { error: string }).error);
   const result = data as JoinResult;
   await saveAttempt({
     attempt_id: result.attempt_id,
@@ -52,8 +54,10 @@ export async function startAttempt(ageConfirmed: boolean, consentVersion: string
     p_age_confirmed: ageConfirmed,
   });
   if (error) throw error;
-  const result = data as { started_at: string; ends_at: string; server_now: string };
+  const result = data as { started_at: string; ends_at: string; server_now: string; uninstall_token: string };
   const clock_offset_ms = Date.parse(result.server_now) - (sentAt + Date.now()) / 2;
+  // R15: best-effort signal if the extension is removed mid-exam. The token is opaque and single-use.
+  await browser.runtime.setUninstallURL(`${SUPABASE_URL}/functions/v1/uninstall-beacon?t=${result.uninstall_token}`);
   await saveAttempt({ ...attempt, state: 'active', started_at: result.started_at, clock_offset_ms, warnings: initialWarningState() });
   await ensureAlarms(Date.parse(result.ends_at) - clock_offset_ms);
   await startMonitoring();
@@ -72,6 +76,7 @@ export async function endAttempt(reason: 'student' | 'time_window'): Promise<{ e
   await browser.alarms.clear(ALARM_END);
   await browser.alarms.clear(ALARM_NOT_DETECTED);
   await browser.alarms.clear(ALARM_SCREENSHOT);
+  await browser.runtime.setUninstallURL('');
   if (attempt.exam_tab_id !== undefined) await sendToTab(attempt.exam_tab_id, { type: 'sw.deactivate' });
   // Leave the fullscreen the extension switched on at Start (R13).
   if (attempt.exam_window_id !== undefined && attempt.fullscreen_requested) {

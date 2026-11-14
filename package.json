@@ -17,7 +17,8 @@
     "seed:test": "node supabase/scripts/seed.ts seed",
     "reset:test": "node supabase/scripts/seed.ts reset",
     "db:push": "supabase db push --remote",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

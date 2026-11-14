@@ -8,7 +8,7 @@ export default async function globalSetup() {
   execSync('npx wxt build --mode e2e', {
     cwd: join(import.meta.dirname, '../extension'),
     stdio: 'inherit',
-    env: { ...process.env, WXT_SUPABASE_URL: TEST_URL, WXT_SUPABASE_PUBLISHABLE_KEY: TEST_PUBLISHABLE_KEY, WXT_OCM_TEST_TIMINGS: '1' },
+    env: { ...process.env, WXT_SUPABASE_URL: TEST_URL, WXT_SUPABASE_PUBLISHABLE_KEY: TEST_PUBLISHABLE_KEY, WXT_OCM_TEST_TIMINGS: '1', WXT_DASHBOARD_URL: 'http://localhost:5174' },
   });
   await seedUsers();
 }

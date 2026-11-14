@@ -10,7 +10,7 @@ export default defineConfig({
     name: 'Online Certification Monitoring',
     description: 'Records browser activity during an online exam you joined, for your examiner to review.',
     minimum_chrome_version: '120',
-    permissions: ['tabs', 'alarms', 'storage', 'notifications'],
+    permissions: ['tabs', 'alarms', 'storage', 'notifications', 'scripting'],
     icons: { 16: 'icon/16.png', 32: 'icon/32.png', 48: 'icon/48.png', 128: 'icon/128.png' },
     // <all_urls>: the content script runs on any exam site, and M3 screenshots need it (RESEARCH F6).
     host_permissions: ['<all_urls>'],

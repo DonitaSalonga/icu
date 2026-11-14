@@ -1,7 +1,7 @@
 // Popup screens (DSD.md § Layout: sign-in → join → session summary → monitoring status).
-// M1: plain sign-up with a role field; the role chooser (R1) arrives in M5.
+// R1: signed-out users first choose Student or Admin; admins are sent to the dashboard.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import type { AttemptStatus, AuthState, JoinResult, Role } from '@ocm/core';
+import type { AttemptStatus, AuthState, JoinResult } from '@ocm/core';
 import { DASHBOARD_URL } from '../../lib/env';
 import { errorText, send } from '../../lib/send';
 import { Alert, Button, Field, formatTime } from '../../lib/ui';
@@ -55,7 +55,7 @@ export function App() {
       ) : !auth.configured ? (
         <Alert>{errorText('OCM_NOT_CONFIGURED', '')}</Alert>
       ) : !auth.signedIn ? (
-        <SignIn run={run} />
+        <RoleChooser run={run} />
       ) : auth.role === 'admin' ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm">This is an admin account. Use the dashboard.</p>
@@ -70,12 +70,31 @@ export function App() {
 
 type Run = (fn: () => Promise<{ ok: boolean; code?: string; message?: string }>) => Promise<boolean>;
 
-function SignIn({ run }: { run: Run }) {
+/** R1: the first screen when signed out. Admins don't use the extension, so Admin opens the dashboard. */
+function RoleChooser({ run }: { run: Run }) {
+  const [student, setStudent] = useState(false);
+  if (student) return <SignIn run={run} onBack={() => setStudent(false)} />;
+  const option = 'flex flex-col items-start gap-1 rounded-md border border-border p-4 text-left hover:bg-surface';
+  return (
+    <div className="flex flex-col gap-3" role="group" aria-labelledby="chooser-heading">
+      <h2 id="chooser-heading" className="text-base font-semibold">Sign up or sign in as</h2>
+      <button className={option} onClick={() => setStudent(true)}>
+        <span className="font-semibold">I'm a student</span>
+        <span className="text-sm text-muted">Take an exam with monitoring.</span>
+      </button>
+      <button className={option} onClick={() => void browser.tabs.create({ url: DASHBOARD_URL })}>
+        <span className="font-semibold">I'm an admin</span>
+        <span className="text-sm text-muted">Opens the dashboard to create and review exams.</span>
+      </button>
+    </div>
+  );
+}
+
+function SignIn({ run, onBack }: { run: Run; onBack: () => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<Role>('student');
   const [info, setInfo] = useState<string>();
 
   const submit = async (e: FormEvent) => {
@@ -85,26 +104,17 @@ function SignIn({ run }: { run: Run }) {
       await run(() => send({ type: 'auth.signIn', email, password }));
       return;
     }
-    const res = await send<{ needsConfirmation?: boolean }>({ type: 'auth.signUp', email, password, full_name: fullName, role });
+    // Accounts created in the extension are always students (R1, R2).
+    const res = await send<{ needsConfirmation?: boolean }>({ type: 'auth.signUp', email, password, full_name: fullName, role: 'student' });
     await run(async () => res);
     if (res.ok && res.data.needsConfirmation) setInfo('Check your email to confirm your account, then sign in.');
   };
 
   return (
     <form className="flex flex-col gap-3" onSubmit={(e) => void submit(e)}>
+      <h2 className="text-base font-semibold">{mode === 'signin' ? 'Student sign in' : 'Create a student account'}</h2>
       {mode === 'signup' && (
-        <>
-          <Field id="name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} autoComplete="name" />
-          <fieldset className="flex flex-col gap-1">
-            <legend className="text-sm font-semibold">Sign up as</legend>
-            {(['student', 'admin'] as const).map((r) => (
-              <label key={r} className="flex items-center gap-2 text-sm">
-                <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} />
-                {r === 'student' ? 'Student' : 'Admin'}
-              </label>
-            ))}
-          </fieldset>
-        </>
+        <Field id="name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} autoComplete="name" />
       )}
       <Field id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
       <Field id="password" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
@@ -113,6 +123,7 @@ function SignIn({ run }: { run: Run }) {
       <button type="button" className="text-sm text-primary underline" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'Create an account' : 'I already have an account'}
       </button>
+      <button type="button" className="text-sm text-primary underline" onClick={onBack}>Back</button>
     </form>
   );
 }
