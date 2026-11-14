@@ -1,7 +1,7 @@
 // Sign-up / sign-in in the service worker (R2). The role is stored at sign-up and fixed afterwards.
-import type { AuthState, Role } from '@ocm/core';
+import type { AuthState, Role } from '@icu/core';
 import { isConfigured } from './env';
-import { OcmError } from './errors';
+import { IcuError } from './errors';
 import { loadAttempt } from './state';
 import { getSupabase } from './supabase';
 
@@ -11,7 +11,7 @@ async function profileState(): Promise<AuthState> {
   const user = sessionData.session?.user;
   if (!user) return { configured: true, signedIn: false };
   const { data: profile, error } = await supabase.from('profiles').select('role, full_name, email').eq('id', user.id).single();
-  if (error || !profile) throw error ?? new OcmError('OCM_PROFILE_MISSING');
+  if (error || !profile) throw error ?? new IcuError('ICU_PROFILE_MISSING');
   return { configured: true, signedIn: true, role: profile.role as Role, full_name: profile.full_name, email: profile.email };
 }
 
@@ -35,6 +35,6 @@ export async function signIn(email: string, password: string): Promise<AuthState
 }
 
 export async function signOut(): Promise<void> {
-  if ((await loadAttempt())?.state === 'active') throw new OcmError('OCM_ATTEMPT_ACTIVE');
+  if ((await loadAttempt())?.state === 'active') throw new IcuError('ICU_ATTEMPT_ACTIVE');
   await getSupabase().auth.signOut();
 }

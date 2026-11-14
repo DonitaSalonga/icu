@@ -1,11 +1,11 @@
-// M2 signal tests (QAD.md T28–T32, T35). Headless Chromium with the extension against ocm-test.
+// M2 signal tests (QAD.md T28–T32, T35). Headless Chromium with the extension against icu-test.
 import type { Worker } from '@playwright/test';
 import { resetData } from '../supabase/scripts/testEnv';
 import { count, EXAM_URL, expect, OTHER_URL, startExam, test, waitForEvents } from './fixtures';
 
 const examIds = (worker: Worker) =>
   worker.evaluate(async () => {
-    const a = (await chrome.storage.local.get('ocm-attempt'))['ocm-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
     return { tabId: a.exam_tab_id, windowId: a.exam_window_id };
   });
 
@@ -35,9 +35,9 @@ test('T28 (tabs) + T29: tab switch, new tab, visited URL, navigate off exam; war
   expect(count(rows, 'warning_shown')).toBe(1);
 
   // Banner host element exists on the exam page; a notification was created.
-  await expect(exam.locator('ocm-warning-banner')).toHaveCount(1);
+  await expect(exam.locator('icu-warning-banner')).toHaveCount(1);
   const notifications = await worker.evaluate(() => chrome.notifications.getAll());
-  expect(Object.keys(notifications).some((k) => k.startsWith('ocm-warning-'))).toBe(true);
+  expect(Object.keys(notifications).some((k) => k.startsWith('icu-warning-'))).toBe(true);
 
   // T29: navigate the exam tab itself to another site.
   await exam.goto(`${OTHER_URL}?q=answers#x`);

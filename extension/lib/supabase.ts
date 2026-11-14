@@ -22,7 +22,7 @@ let client: SupabaseClient | undefined;
 
 export class NotConfiguredError extends Error {
   constructor() {
-    super('OCM_NOT_CONFIGURED');
+    super('ICU_NOT_CONFIGURED');
   }
 }
 
@@ -31,7 +31,7 @@ export function getSupabase(): SupabaseClient {
   client ??= createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       storage: chromeStorageAdapter,
-      storageKey: 'ocm-auth',
+      storageKey: 'icu-auth',
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,

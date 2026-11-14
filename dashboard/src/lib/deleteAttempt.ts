@@ -12,7 +12,7 @@ export async function deleteAttemptData(db: SupabaseClient, sessionId: string, a
     if (!files.length) break;
     const { data: removed, error: removeError } = await bucket.remove(files.map((f) => `${prefix}/${f.name}`));
     if (removeError) throw removeError;
-    if (!removed?.length) throw new Error('OCM_STORAGE_DELETE_FAILED');
+    if (!removed?.length) throw new Error('ICU_STORAGE_DELETE_FAILED');
   }
   const { error } = await db.rpc('delete_attempt_rows', { p_attempt_id: attemptId });
   if (error) throw error;

@@ -6,8 +6,8 @@ import { admin, events, ExtensionDriver, expect, test } from './fixtures';
 
 const PAGE = 'https://en.wikipedia.org/wiki/Philippines';
 
-// Slow (5 min) and needs the public internet: run with OCM_E2E_SLOW=1 npm run test:e2e.
-test.skip(!process.env.OCM_E2E_SLOW, 'set OCM_E2E_SLOW=1 to run');
+// Slow (5 min) and needs the public internet: run with ICU_E2E_SLOW=1 npm run test:e2e.
+test.skip(!process.env.ICU_E2E_SLOW, 'set ICU_E2E_SLOW=1 to run');
 
 test('T43/T49 proxy: real-page screenshot sizes and no warnings during normal reading', async ({ context, ext }) => {
   test.setTimeout(600_000);

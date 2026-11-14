@@ -1,6 +1,6 @@
-# Online Certification Monitoring
+# ICU: I Caught You
 
-A university project. A Chrome extension records what a student does in their browser during an online exam on a third-party site such as Google Forms or Coursera. It records tab switches, other sites visited, copy and paste, leaving fullscreen, screenshots, and gaps in monitoring. An admin dashboard shows that evidence for **human review**. The tool warns and flags; it never ends an exam or decides that someone cheated.
+**ICU** ("I Caught You") is a university project. A Chrome extension records what a student does in their browser during an online exam on a third-party site such as Google Forms or Coursera. It records tab switches, other sites visited, copy and paste, leaving fullscreen, screenshots, and gaps in monitoring. An admin dashboard shows that evidence for **human review**. The tool warns and flags; it never ends an exam or decides that someone cheated.
 
 | | |
 | --- | --- |
@@ -46,27 +46,27 @@ scripts/            check-secrets.mjs (T44)
 
 1. **Install:** `npm install`
 2. **Sign in to the Supabase CLI** in a normal terminal (it opens a browser): `npx supabase login`
-3. **Create two projects** (or use the dashboard): `ocm-main` for development and the demo, and `ocm-test` for automated tests.
+3. **Create two projects** (or use the dashboard): `icu-main` for development and the demo, and `icu-test` for automated tests.
    ```sh
    npx supabase orgs list
-   npx supabase projects create ocm-main --org-id <org-id> --region ap-southeast-1 --db-password '<strong password>'
-   npx supabase projects create ocm-test --org-id <org-id> --region ap-southeast-1 --db-password '<another password>'
+   npx supabase projects create icu-main --org-id <org-id> --region ap-southeast-1 --db-password '<strong password>'
+   npx supabase projects create icu-test --org-id <org-id> --region ap-southeast-1 --db-password '<another password>'
    ```
 4. **Environment files** (all gitignored):
-   - `.env` comes from `.env.example`, filled in from **ocm-main**: the URL and the **publishable** key only (`npx supabase projects api-keys --project-ref <ref>`).
-   - `.env.test` comes from `.env.test.example`, filled in from **ocm-test**. It includes the **secret** key (`… api-keys --reveal`), which only the test runner uses.
-   - `.env.db.main` and `.env.db.test` each hold `SUPABASE_DB_PASSWORD=` and `OCM_CRON_SECRET=` for that project.
+   - `.env` comes from `.env.example`, filled in from **icu-main**: the URL and the **publishable** key only (`npx supabase projects api-keys --project-ref <ref>`).
+   - `.env.test` comes from `.env.test.example`, filled in from **icu-test**. It includes the **secret** key (`… api-keys --reveal`), which only the test runner uses.
+   - `.env.db.main` and `.env.db.test` each hold `SUPABASE_DB_PASSWORD=` and `ICU_CRON_SECRET=` for that project.
 5. **Database, functions and schedule**, for each project:
    ```sh
    npx supabase link --project-ref <ref>
    npx supabase db push --remote -p '<db password>'
    # Vault secrets read by the daily retention job (never commit these values):
-   npx supabase db query --remote "select vault.create_secret('https://<ref>.supabase.co', 'ocm_project_url'); select vault.create_secret('<cron secret>', 'ocm_cron_secret');"
-   npx supabase secrets set --project-ref <ref> OCM_CRON_SECRET='<cron secret>'
+   npx supabase db query --remote "select vault.create_secret('https://<ref>.supabase.co', 'icu_project_url'); select vault.create_secret('<cron secret>', 'icu_cron_secret');"
+   npx supabase secrets set --project-ref <ref> ICU_CRON_SECRET='<cron secret>'
    npx supabase functions deploy uninstall-beacon --project-ref <ref> --no-verify-jwt --use-api
    npx supabase functions deploy retention-cleanup --project-ref <ref> --no-verify-jwt --use-api
    ```
-6. **Optional, for a quick demo:** in ocm-main → Authentication → Sign In / Providers → Email, turn off **Confirm email**. Otherwise new users must click the email link before they can sign in.
+6. **Optional, for a quick demo:** in icu-main → Authentication → Sign In / Providers → Email, turn off **Confirm email**. Otherwise new users must click the email link before they can sign in.
 
 ## Run
 
@@ -79,9 +79,9 @@ scripts/            check-secrets.mjs (T44)
 | Command | What | Needs |
 | --- | --- | --- |
 | `npm test` | Unit tests for `packages/core` (T1–T9) | nothing |
-| `npm run seed:test` then `npm run test:integration` | Access rules, RPCs, Storage, Edge Functions on ocm-test (T10–T24) | `.env.test`, `.env.db.test` |
-| `npx playwright install chromium` then `npm run test:e2e` | Browser tests with the real extension and dashboard against ocm-test (T25–T41) | as above |
-| `OCM_E2E_SLOW=1 npx playwright test e2e/m6-storage-proxy.spec.ts` | 5-minute real-page run: screenshot sizes and no false warnings (T43/T49 proxy) | as above, plus internet |
+| `npm run seed:test` then `npm run test:integration` | Access rules, RPCs, Storage, Edge Functions on icu-test (T10–T24) | `.env.test`, `.env.db.test` |
+| `npx playwright install chromium` then `npm run test:e2e` | Browser tests with the real extension and dashboard against icu-test (T25–T41) | as above |
+| `ICU_E2E_SLOW=1 npx playwright test e2e/m6-storage-proxy.spec.ts` | 5-minute real-page run: screenshot sizes and no false warnings (T43/T49 proxy) | as above, plus internet |
 | `npm run build` then `npm run check:secrets` | No secret keys in built bundles (T44) | a build |
 | `npm run typecheck` | TypeScript across the workspaces | nothing |
 

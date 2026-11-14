@@ -16,7 +16,9 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3">
-          <Link to="/sessions" className="text-lg font-semibold">Exam monitoring</Link>
+          <Link to="/sessions" className="text-lg font-semibold" aria-label="ICU, I Caught You, home">
+            ICU <span className="text-sm font-normal text-muted">I Caught You</span>
+          </Link>
           {profile && (
             <div className="flex items-center gap-3 text-sm">
               <span>{profile.full_name}</span>

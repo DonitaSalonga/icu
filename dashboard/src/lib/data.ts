@@ -1,5 +1,5 @@
 // Dashboard data access. Risk is always computed with packages/core (R18), never stored.
-import { scoreFromCounts, type RiskLevel, type Score } from '@ocm/core';
+import { scoreFromCounts, type RiskLevel, type Score } from '@icu/core';
 import { supabase } from '../supabase';
 
 export interface SessionRow {

@@ -1,7 +1,7 @@
 // Candidate review (R18, R20–R23; DSD § Layout "Candidate review").
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { findGaps, scoreAttempt, type Gap, type Score } from '@ocm/core';
+import { findGaps, scoreAttempt, type Gap, type Score } from '@icu/core';
 import { deleteAttemptData } from '../lib/deleteAttempt';
 import { attemptStatus, SESSION_COLUMNS, type SessionRow } from '../lib/data';
 import { eventLabel, TYPE_NAMES } from '../lib/labels';

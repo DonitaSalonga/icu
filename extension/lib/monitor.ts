@@ -13,7 +13,7 @@ import {
   WARNING_TYPES,
   type EventType,
   type SwMessage,
-} from '@ocm/core';
+} from '@icu/core';
 import { NOT_DETECTED_DELAY_MS } from './env';
 import { createLock } from './lock';
 import { captureVisible, blobToBase64 } from './capture';
@@ -23,7 +23,7 @@ import { getSupabase } from './supabase';
 
 const withLock = createLock();
 const ALARM_HEARTBEAT_MIN_GAP_MS = 20_000;
-export const ALARM_NOT_DETECTED = 'ocm-not-detected';
+export const ALARM_NOT_DETECTED = 'icu-not-detected';
 
 const isExamUrl = (attempt: StoredAttempt, url: string | undefined) =>
   url !== undefined && matchExamUrl(url, attempt.session.url_patterns);
@@ -47,7 +47,7 @@ export async function sendToTab(tabId: number, message: SwMessage): Promise<void
     await browser.scripting.executeScript({ target: { tabId, allFrames: true }, files: ['/content-scripts/content.js'] });
     await browser.tabs.sendMessage(tabId, message);
   } catch (e) {
-    console.warn('[ocm] could not reach or inject the content script in tab', tabId, e);
+    console.warn('[icu] could not reach or inject the content script in tab', tabId, e);
   }
 }
 
@@ -64,14 +64,14 @@ async function showWarning(attempt: StoredAttempt, n: number, type: EventType, l
   }
   // The notification shows even when the exam tab isn't visible (SDD F3).
   await browser.notifications
-    .create(`ocm-warning-${attempt.attempt_id}-${n}`, {
+    .create(`icu-warning-${attempt.attempt_id}-${n}`, {
       type: 'basic',
       iconUrl: browser.runtime.getURL('/icon/128.png'),
       title: limitReached ? 'Exam warning limit reached' : `Exam warning ${Math.min(n, limit)} of ${limit}`,
       message: text,
       priority: 2,
     })
-    .catch((e) => console.warn('[ocm] notification failed', e));
+    .catch((e) => console.warn('[icu] notification failed', e));
 }
 
 async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Record<string, unknown>, at: number, screenshot_id?: string) {
@@ -140,7 +140,7 @@ export function recordEvent(type: EventType, details: Record<string, unknown> = 
 async function requestFullscreenLocked(attempt: StoredAttempt): Promise<void> {
   if (attempt.fullscreen_requested || attempt.exam_window_id === undefined) return;
   await updateAttempt({ fullscreen_requested: true });
-  await browser.windows.update(attempt.exam_window_id, { state: 'fullscreen' }).catch((e) => console.warn('[ocm] fullscreen failed', e));
+  await browser.windows.update(attempt.exam_window_id, { state: 'fullscreen' }).catch((e) => console.warn('[icu] fullscreen failed', e));
 }
 
 async function bindExamTabLocked(): Promise<void> {
@@ -338,7 +338,7 @@ export async function heartbeat(source: 'content' | 'alarm', senderTabId?: numbe
   }
   const { error } = await getSupabase().from('heartbeats').insert({ attempt_id: attempt.attempt_id, source });
   if (error) {
-    console.warn('[ocm] heartbeat failed', error.message);
+    console.warn('[icu] heartbeat failed', error.message);
     return;
   }
   await updateAttempt({ last_heartbeat_at: new Date().toISOString() });

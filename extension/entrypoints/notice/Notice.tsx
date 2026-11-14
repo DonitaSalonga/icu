@@ -2,7 +2,7 @@
 // and the NPC education-sector advisory (RESEARCH F23). Every item listed here must match what the
 // extension actually collects (QAD T45). Bump NOTICE_VERSION in packages/core on any wording change.
 import { useEffect, useState } from 'react';
-import { NOTICE_VERSION, type AttemptStatus } from '@ocm/core';
+import { NOTICE_VERSION, type AttemptStatus } from '@icu/core';
 import { errorText, send } from '../../lib/send';
 import { Alert, Button, formatTime } from '../../lib/ui';
 
@@ -38,7 +38,7 @@ export function Notice() {
 
   return (
     <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6 text-base">
-      <h1 className="text-xl font-semibold">Privacy notice: exam monitoring</h1>
+      <h1 className="text-xl font-semibold">ICU privacy notice: exam monitoring</h1>
       {session && (
         <p className="text-sm text-muted">
           Exam: {session.name} · {formatTime(session.starts_at)} – {formatTime(session.ends_at)} · Examiner: {examiner}

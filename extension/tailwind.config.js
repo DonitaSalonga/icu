@@ -1,4 +1,4 @@
-import preset from '@ocm/ui-tokens/tailwind-preset';
+import preset from '@icu/ui-tokens/tailwind-preset';
 
 /** @type {import('tailwindcss').Config} */
 export default {

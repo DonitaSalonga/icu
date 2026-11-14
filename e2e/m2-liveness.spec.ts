@@ -1,12 +1,12 @@
 // M2 liveness tests (QAD.md T33, T38). The T28 window part is in m2-window.spec.ts (headed). T33 uses real timing (15 s heartbeat, 60 s gap).
 import type { Worker } from '@playwright/test';
-import { findGaps } from '@ocm/core';
+import { findGaps } from '@icu/core';
 import { resetData, serviceClient, TEST_URL } from '../supabase/scripts/testEnv';
 import { count, events, EXAM_URL, expect, heartbeats, startExam, test, waitForEvents } from './fixtures';
 
 const examIds = (worker: Worker) =>
   worker.evaluate(async () => {
-    const a = (await chrome.storage.local.get('ocm-attempt'))['ocm-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
     return { tabId: a.exam_tab_id, windowId: a.exam_window_id };
   });
 

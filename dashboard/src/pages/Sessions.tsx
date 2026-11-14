@@ -1,7 +1,7 @@
 // Sessions list and Create session dialog (R4, R5; DSD § Layout "Sessions list").
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { isValidExamPattern } from '@ocm/core';
+import { isValidExamPattern } from '@icu/core';
 import { loadSummaries, SESSION_COLUMNS, sessionStatus, type SessionRow } from '../lib/data';
 import { errorText, supabase } from '../supabase';
 import { Alert, Button, Dialog, Field, formatDateTime } from '../ui';

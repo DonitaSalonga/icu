@@ -1,7 +1,7 @@
 // Popup screens (DSD.md § Layout: sign-in → join → session summary → monitoring status).
 // R1: signed-out users first choose Student or Admin; admins are sent to the dashboard.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import type { AttemptStatus, AuthState, JoinResult } from '@ocm/core';
+import type { AttemptStatus, AuthState, JoinResult } from '@icu/core';
 import { DASHBOARD_URL } from '../../lib/env';
 import { errorText, send } from '../../lib/send';
 import { Alert, Button, Field, formatTime } from '../../lib/ui';
@@ -42,7 +42,7 @@ export function App() {
   return (
     <main className="flex min-h-[200px] flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Exam monitoring</h1>
+        <h1 className="text-lg font-semibold">ICU <span className="text-sm font-normal text-muted">I Caught You</span></h1>
         {auth?.signedIn && status?.state !== 'active' && (
           <button className="text-sm text-primary underline" onClick={() => void run(() => send({ type: 'auth.signOut' }))}>
             Sign out
@@ -53,7 +53,7 @@ export function App() {
       {!auth ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : !auth.configured ? (
-        <Alert>{errorText('OCM_NOT_CONFIGURED', '')}</Alert>
+        <Alert>{errorText('ICU_NOT_CONFIGURED', '')}</Alert>
       ) : !auth.signedIn ? (
         <RoleChooser run={run} />
       ) : auth.role === 'admin' ? (

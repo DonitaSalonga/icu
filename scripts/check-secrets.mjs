@@ -15,7 +15,7 @@ if (!dirs.length) {
 const secretValues = [];
 for (const file of readdirSync(root).filter((f) => f === '.env.test' || f.startsWith('.env.db.'))) {
   for (const line of readFileSync(join(root, file), 'utf8').split('\n')) {
-    const m = /^(SUPABASE_TEST_SECRET_KEY|SUPABASE_DB_PASSWORD|OCM_CRON_SECRET|TEST_USER_PASSWORD)=(.+)$/.exec(line.trim());
+    const m = /^(SUPABASE_TEST_SECRET_KEY|SUPABASE_DB_PASSWORD|ICU_CRON_SECRET|TEST_USER_PASSWORD)=(.+)$/.exec(line.trim());
     if (m && m[2].length >= 12) secretValues.push({ name: `${file}:${m[1]}`, value: m[2] });
   }
 }

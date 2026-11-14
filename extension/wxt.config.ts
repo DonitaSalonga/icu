@@ -7,7 +7,8 @@ export default defineConfig({
   // Read WXT_* variables from the repository-root .env (see .env.example).
   vite: () => ({ envDir: '..' }),
   manifest: {
-    name: 'Online Certification Monitoring',
+    name: 'ICU: I Caught You',
+    short_name: 'ICU',
     description: 'Records browser activity during an online exam you joined, for your examiner to review.',
     minimum_chrome_version: '120',
     permissions: ['tabs', 'alarms', 'storage', 'notifications', 'scripting'],

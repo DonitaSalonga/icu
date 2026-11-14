@@ -1,4 +1,4 @@
-// M3 integration tests against ocm-test (QAD.md T18): screenshot rows and Storage policies.
+// M3 integration tests against icu-test (QAD.md T18): screenshot rows and Storage policies.
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -8,7 +8,7 @@ const minutes = (n: number) => new Date(Date.now() + n * 60_000).toISOString();
 // Smallest valid JPEG header bytes; Storage only checks the declared content type.
 const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 0xff, 0xd9])], { type: 'image/jpeg' });
 
-describe.skipIf(!testEnvConfigured)('M3 screenshots (ocm-test)', () => {
+describe.skipIf(!testEnvConfigured)('M3 screenshots (icu-test)', () => {
   let adminA: SupabaseClient;
   let adminB: SupabaseClient;
   let student: SupabaseClient;

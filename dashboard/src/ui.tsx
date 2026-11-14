@@ -1,6 +1,6 @@
 // Shared dashboard UI pieces (DSD.md § Components).
 import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
-import type { RiskLevel } from '@ocm/core';
+import type { RiskLevel } from '@icu/core';
 
 type Variant = 'primary' | 'secondary' | 'danger';
 

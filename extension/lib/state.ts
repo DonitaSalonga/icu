@@ -1,6 +1,6 @@
 // Attempt state machine persisted in chrome.storage.local, because the service worker may stop
 // after 30 s idle and lose memory (RESEARCH F9). SDD.md § Components (service worker).
-import type { CaptureState, SessionSummary, WarningState } from '@ocm/core';
+import type { CaptureState, SessionSummary, WarningState } from '@icu/core';
 
 export interface StoredAttempt {
   attempt_id: string;
@@ -28,7 +28,7 @@ export interface StoredAttempt {
   last_heartbeat_at?: string;
 }
 
-const KEY = 'ocm-attempt';
+const KEY = 'icu-attempt';
 
 export async function loadAttempt(): Promise<StoredAttempt | undefined> {
   const got = await browser.storage.local.get(KEY);

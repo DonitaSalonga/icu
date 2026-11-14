@@ -1,12 +1,12 @@
 // Headed liveness tests: T33 (extension disabled mid-exam, via chrome://extensions) and T51
-// (hidden-tab timer throttling over 6+ minutes). Slow; run with OCM_E2E_SLOW=1. A browser window
+// (hidden-tab timer throttling over 6+ minutes). Slow; run with ICU_E2E_SLOW=1. A browser window
 // appears while these run.
-import { findGaps } from '@ocm/core';
+import { findGaps } from '@icu/core';
 import { resetData, serviceClient } from '../supabase/scripts/testEnv';
 import { EXAM_URL, expect, heartbeats, OTHER_URL, startExam, test } from './fixtures';
 
 test.use({ headless: false });
-test.skip(!process.env.OCM_E2E_SLOW, 'set OCM_E2E_SLOW=1 to run');
+test.skip(!process.env.ICU_E2E_SLOW, 'set ICU_E2E_SLOW=1 to run');
 
 test.beforeEach(async () => {
   await resetData();
@@ -50,7 +50,7 @@ test('T51: the exam tab hidden for 6.5 minutes leaves no gap (page heartbeats, w
   test.setTimeout(600_000);
   const { exam, attemptId } = await startExam(context, ext);
   await exam.waitForTimeout(5_000);
-  const ids = await worker.evaluate(async () => (await chrome.storage.local.get('ocm-attempt'))['ocm-attempt'] as { exam_window_id: number });
+  const ids = await worker.evaluate(async () => (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { exam_window_id: number });
   await worker.evaluate(({ url, windowId }) => chrome.tabs.create({ url, windowId, active: true }), { url: OTHER_URL, windowId: ids.exam_window_id });
   await new Promise((r) => setTimeout(r, 390_000));
 

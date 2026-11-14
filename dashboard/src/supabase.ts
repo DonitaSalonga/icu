@@ -8,12 +8,12 @@ export const isConfigured = Boolean(url && key);
 // Only the publishable key ships to the browser; RLS enforces access (R25).
 export const supabase = isConfigured ? createClient(url!, key!) : undefined;
 
-/** Maps RPC errors raised as OCM_* to user-facing text (DSD.md § Content and voice). */
+/** Maps RPC errors raised as ICU_* to user-facing text (DSD.md § Content and voice). */
 export function errorText(error: { message: string } | null | undefined): string {
-  const code = /^OCM_[A-Z_]+/.exec(error?.message ?? '')?.[0];
+  const code = /^ICU_[A-Z_]+/.exec(error?.message ?? '')?.[0];
   const texts: Record<string, string> = {
-    OCM_INVALID_INPUT: 'Check the form: every field is required and the end must be after the start.',
-    OCM_NOT_ADMIN: 'This is a student account. Use the Chrome extension.',
+    ICU_INVALID_INPUT: 'Check the form: every field is required and the end must be after the start.',
+    ICU_NOT_ADMIN: 'This is a student account. Use the Chrome extension.',
   };
   return (code && texts[code]) || error?.message || 'Something went wrong. Check your connection and try again.';
 }

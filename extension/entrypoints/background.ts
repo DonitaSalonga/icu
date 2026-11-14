@@ -1,6 +1,6 @@
 // Service worker: the only part of the extension that talks to Supabase (SDD.md § Components).
 // Listeners are registered synchronously so Chrome can wake the worker for them (RESEARCH F9).
-import type { Message, Response } from '@ocm/core';
+import type { Message, Response } from '@icu/core';
 import { ALARM_END, ALARM_HEARTBEAT, ALARM_SCREENSHOT, attemptStatus, endAttempt, joinSession, openNotice, recover, resetAttempt, startAttempt } from '../lib/attempt';
 import { authState, signIn, signOut, signUp } from '../lib/auth';
 import { isConfigured } from '../lib/env';
@@ -57,7 +57,7 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
 }
 
 export default defineBackground(() => {
-  void restrictStorageToTrustedContexts().catch((e) => console.warn('[ocm] setAccessLevel failed', e));
+  void restrictStorageToTrustedContexts().catch((e) => console.warn('[icu] setAccessLevel failed', e));
 
   browser.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
     handle(message, sender)
@@ -90,9 +90,9 @@ export default defineBackground(() => {
     }
     if (alarm.name === ALARM_NOT_DETECTED) void onNotDetectedAlarm();
     if (alarm.name === ALARM_SCREENSHOT) void onScreenshotAlarm();
-    if (alarm.name === ALARM_END) void endAttempt('time_window').catch((e) => console.warn('[ocm] auto-end failed', e));
+    if (alarm.name === ALARM_END) void endAttempt('time_window').catch((e) => console.warn('[icu] auto-end failed', e));
   });
 
   browser.runtime.onStartup.addListener(() => void recover());
-  if (isConfigured()) void recover().catch((e) => console.warn('[ocm] recover failed', e));
+  if (isConfigured()) void recover().catch((e) => console.warn('[icu] recover failed', e));
 });

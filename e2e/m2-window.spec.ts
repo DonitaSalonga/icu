@@ -11,7 +11,7 @@ test.describe.configure({ retries: 2 });
 
 const examIds = (worker: Worker) =>
   worker.evaluate(async () => {
-    const a = (await chrome.storage.local.get('ocm-attempt'))['ocm-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { exam_tab_id?: number; exam_window_id?: number };
     return { tabId: a.exam_tab_id, windowId: a.exam_window_id };
   });
 

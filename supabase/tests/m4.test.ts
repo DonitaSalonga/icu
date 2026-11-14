@@ -1,15 +1,15 @@
-// M4 integration tests against ocm-test (QAD.md T12, T19, T20, T22).
+// M4 integration tests against icu-test (QAD.md T12, T19, T20, T22).
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { findGaps } from '@ocm/core';
+import { findGaps } from '@icu/core';
 import { deleteAttemptData } from '../../dashboard/src/lib/deleteAttempt';
 import { clientAs, resetData, seedUsers, serviceClient, testEnvConfigured } from '../scripts/testEnv';
 
 const minutes = (n: number) => new Date(Date.now() + n * 60_000).toISOString();
 const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
 
-describe.skipIf(!testEnvConfigured)('M4 review (ocm-test)', () => {
+describe.skipIf(!testEnvConfigured)('M4 review (icu-test)', () => {
   let adminA: SupabaseClient;
   let adminB: SupabaseClient;
   let student: SupabaseClient;
@@ -36,7 +36,7 @@ describe.skipIf(!testEnvConfigured)('M4 review (ocm-test)', () => {
       { p_name: 'x', p_url_patterns: ['https://a.com/*'], p_starts_at: minutes(0), p_ends_at: minutes(5), p_warning_limit: 0 },
       { p_name: 'x', p_url_patterns: ['https://a.com/*'], p_starts_at: minutes(0), p_ends_at: minutes(5), p_warning_limit: 11 },
     ];
-    for (const args of bad) expect((await adminA.rpc('create_session', args)).error?.message).toMatch(/OCM_INVALID_INPUT/);
+    for (const args of bad) expect((await adminA.rpc('create_session', args)).error?.message).toMatch(/ICU_INVALID_INPUT/);
     const codes = await Promise.all(
       Array.from({ length: 50 }, (_, i) => adminA.rpc('create_session', { p_name: `S${i}`, p_url_patterns: ['https://a.com/*'], p_starts_at: minutes(0), p_ends_at: minutes(5) })),
     );
@@ -51,8 +51,8 @@ describe.skipIf(!testEnvConfigured)('M4 review (ocm-test)', () => {
     const { data: row } = await adminA.from('attempts').select('verdict, verdict_note, verdict_by, verdict_at').eq('id', attemptId).single();
     expect(row).toMatchObject({ verdict: 'suspicious', verdict_note: 'Left the tab twice' });
     expect(row!.verdict_by && row!.verdict_at).toBeTruthy();
-    expect((await adminB.rpc('set_verdict', { p_attempt_id: attemptId, p_verdict: 'cleared' })).error?.message).toMatch(/OCM_NOT_SESSION_ADMIN/);
-    expect((await adminA.rpc('set_verdict', { p_attempt_id: attemptId, p_verdict: 'guilty' })).error?.message).toMatch(/OCM_INVALID_INPUT/);
+    expect((await adminB.rpc('set_verdict', { p_attempt_id: attemptId, p_verdict: 'cleared' })).error?.message).toMatch(/ICU_NOT_SESSION_ADMIN/);
+    expect((await adminA.rpc('set_verdict', { p_attempt_id: attemptId, p_verdict: 'guilty' })).error?.message).toMatch(/ICU_INVALID_INPUT/);
     expect((await student.from('attempts').select('verdict')).data).toEqual([]);
   });
 
@@ -69,7 +69,7 @@ describe.skipIf(!testEnvConfigured)('M4 review (ocm-test)', () => {
     await student.from('heartbeats').insert({ attempt_id: attemptId });
 
     // Rows can't be deleted while objects remain.
-    expect((await adminA.rpc('delete_attempt_rows', { p_attempt_id: attemptId })).error?.message).toMatch(/OCM_STORAGE_NOT_EMPTY/);
+    expect((await adminA.rpc('delete_attempt_rows', { p_attempt_id: attemptId })).error?.message).toMatch(/ICU_STORAGE_NOT_EMPTY/);
     await expect(deleteAttemptData(adminB, session.id, attemptId)).rejects.toThrow();
 
     await deleteAttemptData(adminA, session.id, attemptId);

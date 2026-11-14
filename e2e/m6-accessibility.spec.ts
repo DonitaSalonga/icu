@@ -56,7 +56,7 @@ test('T41: extension popup and notice screens have no serious axe violations', a
   await popup.getByRole('button', { name: 'Continue' }).waitFor();
   await scan(popup, 'popup: session summary');
   const [notice] = await Promise.all([context.waitForEvent('page'), popup.getByRole('button', { name: 'Continue' }).click()]);
-  await notice.getByRole('heading', { name: /Privacy notice/ }).waitFor();
+  await notice.getByRole('heading', { name: /privacy notice/i }).waitFor();
   await scan(notice, 'notice page');
   await notice.getByLabel('I am 18 or older').check();
   await notice.getByLabel(/I have read this notice/).check();

@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import { TEST_PUBLISHABLE_KEY, TEST_URL } from './supabase/scripts/testEnv';
 
-// E2E tests load the unpacked extension built against ocm-test (QAD.md § Test strategy).
+// E2E tests load the unpacked extension built against icu-test (QAD.md § Test strategy).
 export default defineConfig({
   testDir: 'e2e',
   timeout: 180_000,
@@ -17,7 +17,7 @@ export default defineConfig({
       reuseExistingServer: true,
     },
     {
-      // Dashboard against ocm-test on its own port (process env overrides .env in Vite).
+      // Dashboard against icu-test on its own port (process env overrides .env in Vite).
       command: 'npm run dev -w dashboard -- --port 5174',
       url: 'http://localhost:5174',
       reuseExistingServer: false,

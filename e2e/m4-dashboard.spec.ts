@@ -1,4 +1,4 @@
-// M4 dashboard tests (QAD.md T39, T40) against ocm-test. Data is seeded through the API as a student.
+// M4 dashboard tests (QAD.md T39, T40) against icu-test. Data is seeded through the API as a student.
 import { test as base, expect } from '@playwright/test';
 import { serviceClient } from '../supabase/scripts/testEnv';
 import { DASH, login, seed } from './dashboard-helpers';

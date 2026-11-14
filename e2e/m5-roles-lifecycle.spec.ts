@@ -65,7 +65,7 @@ test('T27 + R15: student flow through the popup and notice; uninstall token work
   await expect(popup.getByText(/Examiner: Admin A/)).toBeVisible();
 
   const [notice] = await Promise.all([context.waitForEvent('page'), popup.getByRole('button', { name: 'Continue' }).click()]);
-  await expect(notice.getByRole('heading', { name: 'Privacy notice: exam monitoring' })).toBeVisible();
+  await expect(notice.getByRole('heading', { name: 'ICU privacy notice: exam monitoring' })).toBeVisible();
   await expect(notice.getByText(/Data Privacy Act of 2012/)).toBeVisible();
   await expect(notice.getByText(/admin-a@test.local/).first()).toBeVisible();
   const start = notice.getByRole('button', { name: 'Start exam monitoring' });
@@ -111,7 +111,7 @@ test('T36: the attempt ends automatically at the session end time', async ({ con
 
 test('T37: monitoring resumes after the browser restarts; the downtime is a gap', async () => {
   test.setTimeout(240_000);
-  const userDataDir = mkdtempSync(join(tmpdir(), 'ocm-restart-'));
+  const userDataDir = mkdtempSync(join(tmpdir(), 'icu-restart-'));
   let context = await launch(userDataDir);
   const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
   const { ExtensionDriver } = await import('./fixtures');

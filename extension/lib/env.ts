@@ -6,7 +6,7 @@ export const DASHBOARD_URL: string = import.meta.env.WXT_DASHBOARD_URL ?? 'http:
 export const isConfigured = (): boolean => SUPABASE_URL !== '' && SUPABASE_PUBLISHABLE_KEY !== '';
 
 /** E2E builds shorten slow timers (QAD.md § Test strategy). Heartbeat and gap timings never change. */
-export const TEST_TIMINGS = import.meta.env.WXT_OCM_TEST_TIMINGS === '1';
+export const TEST_TIMINGS = import.meta.env.WXT_ICU_TEST_TIMINGS === '1';
 
 /** R9: exam_page_not_detected delay. Chrome alarms can't fire sooner than 30 s (RESEARCH F9). */
 export const NOT_DETECTED_DELAY_MS = TEST_TIMINGS ? 30_000 : 120_000;

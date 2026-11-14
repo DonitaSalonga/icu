@@ -1,7 +1,7 @@
 // Session and profile state for the dashboard (R2, R3).
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import type { Role } from '@ocm/core';
+import type { Role } from '@icu/core';
 import { supabase } from './supabase';
 
 export interface Profile {

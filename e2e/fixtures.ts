@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Message, Response } from '@ocm/core';
+import type { Message, Response } from '@icu/core';
 import { clientAs, serviceClient, TEST_PASSWORD, TEST_USERS } from '../supabase/scripts/testEnv';
 
 export const EXAM_URL = 'http://localhost:4173/exam/form.html';
@@ -59,7 +59,7 @@ export class ExtensionDriver {
 
 export const test = base.extend<Fixtures>({
   userDataDir: async ({}, use) => {
-    await use(mkdtempSync(join(tmpdir(), 'ocm-e2e-')));
+    await use(mkdtempSync(join(tmpdir(), 'icu-e2e-')));
   },
   // Uses Playwright's built-in `headless` option; window-focus tests run headed (focus-return
   // events are not emitted in headless Chromium, verified 2026-11-14).
@@ -82,7 +82,7 @@ export const test = base.extend<Fixtures>({
 export { expect };
 
 // ---------------------------------------------------------------------------
-// Backend helpers (ocm-test)
+// Backend helpers (icu-test)
 // ---------------------------------------------------------------------------
 
 let adminClient: SupabaseClient | undefined;

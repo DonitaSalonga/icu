@@ -1,5 +1,5 @@
 {
-  "name": "@ocm/core",
+  "name": "@icu/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",

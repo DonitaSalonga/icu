@@ -1,4 +1,4 @@
-// M1 integration tests against the ocm-test project (QAD.md T10, T11 backend part, T13–T17).
+// M1 integration tests against the icu-test project (QAD.md T10, T11 backend part, T13–T17).
 // Skipped until .env.test exists. Run: npm run test:integration
 import { randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -26,7 +26,7 @@ const event = (attempt_id: string, occurred_at = new Date().toISOString()) => ({
   details: {},
 });
 
-describe.skipIf(!testEnvConfigured)('M1 backend (ocm-test)', () => {
+describe.skipIf(!testEnvConfigured)('M1 backend (icu-test)', () => {
   let adminA: SupabaseClient;
   let adminB: SupabaseClient;
   let student: SupabaseClient;
@@ -49,9 +49,9 @@ describe.skipIf(!testEnvConfigured)('M1 backend (ocm-test)', () => {
 
   it('T11 (backend): wrong roles are rejected by the RPCs', async () => {
     const s = await createSession(adminA);
-    expect((await adminA.rpc('join_session', { p_code: s.code })).error?.message).toMatch(/OCM_NOT_STUDENT/);
+    expect((await adminA.rpc('join_session', { p_code: s.code })).error?.message).toMatch(/ICU_NOT_STUDENT/);
     const r = await student.rpc('create_session', { p_name: 'x', p_url_patterns: ['https://a.com/*'], p_starts_at: minutes(0), p_ends_at: minutes(10) });
-    expect(r.error?.message).toMatch(/OCM_NOT_ADMIN/);
+    expect(r.error?.message).toMatch(/ICU_NOT_ADMIN/);
     expect((await student.from('exam_sessions').select('id')).data).toEqual([]);
   });
 
@@ -64,14 +64,14 @@ describe.skipIf(!testEnvConfigured)('M1 backend (ocm-test)', () => {
 
   it('T14: join_session cases', async () => {
     // Since migration 005 an unknown code is a result, not an error, so the failure is recorded (R6 rate limit).
-    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).data).toEqual({ error: 'OCM_CODE_NOT_FOUND' });
+    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).data).toEqual({ error: 'ICU_CODE_NOT_FOUND' });
     const ended = await createSession(adminA, -120, -60);
-    expect((await student.rpc('join_session', { p_code: ended.code })).error?.message).toMatch(/OCM_SESSION_ENDED/);
+    expect((await student.rpc('join_session', { p_code: ended.code })).error?.message).toMatch(/ICU_SESSION_ENDED/);
     const future = await createSession(adminA, 60, 120);
     const joinedFuture = await student.rpc('join_session', { p_code: future.code });
     expect(joinedFuture.error).toBeNull();
     const startFuture = await student.rpc('start_attempt', { p_attempt_id: joinedFuture.data.attempt_id, p_consent_version: 'test', p_age_confirmed: true });
-    expect(startFuture.error?.message).toMatch(/OCM_NOT_OPEN_YET/);
+    expect(startFuture.error?.message).toMatch(/ICU_NOT_OPEN_YET/);
     const open = await createSession(adminA);
     const j1 = await student.rpc('join_session', { p_code: open.code });
     const j2 = await student.rpc('join_session', { p_code: open.code.toLowerCase() });
@@ -90,14 +90,14 @@ describe.skipIf(!testEnvConfigured)('M1 backend (ocm-test)', () => {
 
     // T15
     const noConsent = await student.rpc('start_attempt', { p_attempt_id: a1, p_consent_version: 'test', p_age_confirmed: false });
-    expect(noConsent.error?.message).toMatch(/OCM_CONSENT_REQUIRED/);
+    expect(noConsent.error?.message).toMatch(/ICU_CONSENT_REQUIRED/);
     const started = await student.rpc('start_attempt', { p_attempt_id: a1, p_consent_version: 'test', p_age_confirmed: true });
     expect(started.error).toBeNull();
     const row = (await serviceClient().from('attempts').select('consent_at, consent_version, age_confirmed, started_at, status').eq('id', a1).single()).data!;
     expect(row).toMatchObject({ consent_version: 'test', age_confirmed: true, status: 'active' });
     expect(row.consent_at && row.started_at).toBeTruthy();
     const second = await student.rpc('start_attempt', { p_attempt_id: a2, p_consent_version: 'test', p_age_confirmed: true });
-    expect(second.error?.message).toMatch(/OCM_ALREADY_ACTIVE/);
+    expect(second.error?.message).toMatch(/ICU_ALREADY_ACTIVE/);
 
     // T16: during the attempt; duplicate ids; outside the window; no read/update/delete
     const ev = event(a1);

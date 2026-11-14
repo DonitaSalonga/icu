@@ -1,23 +1,23 @@
 // Join, start and end an attempt (R6–R8). SDD.md § Key flows F2, F4.
-import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@ocm/core';
+import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@icu/core';
 import { SCREENSHOT_PERIOD_MIN, SUPABASE_URL } from './env';
-import { OcmError } from './errors';
+import { IcuError } from './errors';
 import { ALARM_NOT_DETECTED, bindExamTab, sendToTab, startMonitoring } from './monitor';
 import { flush, isUploadFailing, queueSize } from './queue';
 import { clearAttempt, loadAttempt, saveAttempt, updateAttempt } from './state';
 import { getSupabase } from './supabase';
 
-export const ALARM_HEARTBEAT = 'ocm-heartbeat';
-export const ALARM_END = 'ocm-end';
-export const ALARM_SCREENSHOT = 'ocm-screenshot';
+export const ALARM_HEARTBEAT = 'icu-heartbeat';
+export const ALARM_END = 'icu-end';
+export const ALARM_SCREENSHOT = 'icu-screenshot';
 
 export async function joinSession(code: string): Promise<JoinResult> {
   const current = await loadAttempt();
-  if (current?.state === 'active') throw new OcmError('OCM_ALREADY_ACTIVE');
+  if (current?.state === 'active') throw new IcuError('ICU_ALREADY_ACTIVE');
   const { data, error } = await getSupabase().rpc('join_session', { p_code: normalizeSessionCode(code) });
   if (error) throw error;
   // An unknown code is returned as a result so the server can count failures (R6 rate limit).
-  if ((data as { error?: string }).error) throw new OcmError((data as { error: string }).error);
+  if ((data as { error?: string }).error) throw new IcuError((data as { error: string }).error);
   const result = data as JoinResult;
   await saveAttempt({
     attempt_id: result.attempt_id,
@@ -46,7 +46,7 @@ export async function ensureAlarms(endsAtLocalMs: number): Promise<void> {
 
 export async function startAttempt(ageConfirmed: boolean, consentVersion: string): Promise<{ started_at: string; ends_at: string }> {
   const attempt = await loadAttempt();
-  if (!attempt || attempt.state !== 'joined') throw new OcmError('OCM_NO_JOINED_ATTEMPT');
+  if (!attempt || attempt.state !== 'joined') throw new IcuError('ICU_NO_JOINED_ATTEMPT');
   const sentAt = Date.now();
   const { data, error } = await getSupabase().rpc('start_attempt', {
     p_attempt_id: attempt.attempt_id,
@@ -66,7 +66,7 @@ export async function startAttempt(ageConfirmed: boolean, consentVersion: string
 
 export async function endAttempt(reason: 'student' | 'time_window'): Promise<{ ended_at: string | null }> {
   const attempt = await loadAttempt();
-  if (!attempt || attempt.state !== 'active') throw new OcmError('OCM_NO_ACTIVE_ATTEMPT');
+  if (!attempt || attempt.state !== 'active') throw new IcuError('ICU_NO_ACTIVE_ATTEMPT');
   await flush();
   const { data, error } = await getSupabase().rpc('end_attempt', { p_attempt_id: attempt.attempt_id, p_reason: reason });
   // A student-initiated End must reach the server; at the time-window end the server caps the attempt anyway (F4).
@@ -103,7 +103,7 @@ export async function attemptStatus(): Promise<AttemptStatus> {
 }
 
 export async function resetAttempt(): Promise<void> {
-  if ((await loadAttempt())?.state === 'active') throw new OcmError('OCM_ATTEMPT_ACTIVE');
+  if ((await loadAttempt())?.state === 'active') throw new IcuError('ICU_ATTEMPT_ACTIVE');
   await clearAttempt();
 }
 

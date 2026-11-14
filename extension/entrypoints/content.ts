@@ -1,7 +1,7 @@
 // Content script: dormant unless this tab is the bound exam tab (SDD.md § Components).
 // All frames: copy / cut / paste / context-menu events, type only, never clipboard content (R12, R26).
 // Top frame only: the 15 s heartbeat (R14) and the warning banner (R17).
-import type { EventType, Message, Response, SwMessage } from '@ocm/core';
+import type { EventType, Message, Response, SwMessage } from '@icu/core';
 import { createBanner, type Banner } from '../lib/banner';
 
 const HEARTBEAT_MS = 15_000;

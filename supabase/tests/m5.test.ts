@@ -1,4 +1,4 @@
-// M5 integration tests against ocm-test (QAD.md T21, T23, T24). Edge Functions must be deployed.
+// M5 integration tests against icu-test (QAD.md T21, T23, T24). Edge Functions must be deployed.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -11,13 +11,13 @@ const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
 const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
 const cronSecret = (() => {
   try {
-    return /^OCM_CRON_SECRET=(.+)$/m.exec(readFileSync(join(import.meta.dirname, '../../.env.db.test'), 'utf8'))?.[1] ?? '';
+    return /^ICU_CRON_SECRET=(.+)$/m.exec(readFileSync(join(import.meta.dirname, '../../.env.db.test'), 'utf8'))?.[1] ?? '';
   } catch {
     return '';
   }
 })();
 
-describe.skipIf(!testEnvConfigured)('M5 privacy and lifecycle (ocm-test)', () => {
+describe.skipIf(!testEnvConfigured)('M5 privacy and lifecycle (icu-test)', () => {
   let adminA: SupabaseClient;
   let student: SupabaseClient;
   const db = () => serviceClient();
@@ -54,10 +54,10 @@ describe.skipIf(!testEnvConfigured)('M5 privacy and lifecycle (ocm-test)', () =>
     await db().from('join_failures').delete().eq('user_id', me);
     const session = (await adminA.rpc('create_session', { p_name: 'RL', p_url_patterns: ['https://a.com/*'], p_starts_at: minutes(-1), p_ends_at: minutes(60) })).data as { code: string };
     for (let i = 0; i < 10; i++) {
-      expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).data).toEqual({ error: 'OCM_CODE_NOT_FOUND' });
+      expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).data).toEqual({ error: 'ICU_CODE_NOT_FOUND' });
     }
-    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).error?.message).toMatch(/OCM_RATE_LIMITED/);
-    expect((await student.rpc('join_session', { p_code: session.code })).error?.message).toMatch(/OCM_RATE_LIMITED/);
+    expect((await student.rpc('join_session', { p_code: 'ZZZZZZ' })).error?.message).toMatch(/ICU_RATE_LIMITED/);
+    expect((await student.rpc('join_session', { p_code: session.code })).error?.message).toMatch(/ICU_RATE_LIMITED/);
     await db().from('join_failures').delete().eq('user_id', me);
     expect((await student.rpc('join_session', { p_code: session.code })).error).toBeNull();
   });
@@ -83,7 +83,7 @@ describe.skipIf(!testEnvConfigured)('M5 privacy and lifecycle (ocm-test)', () =>
     expect(denied.status).toBe(401);
     expect((await db().from('events').select('id').eq('attempt_id', old.attemptId)).data).toHaveLength(1);
 
-    const res = await fetch(url, { method: 'POST', headers: { 'x-ocm-cron-secret': cronSecret } });
+    const res = await fetch(url, { method: 'POST', headers: { 'x-icu-cron-secret': cronSecret } });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { attempts: number; failures: string[] };
     expect(body.failures).toEqual([]);

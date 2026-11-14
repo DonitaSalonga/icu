@@ -4,7 +4,7 @@
 // with a unique violation (23505) and counts as saved; a batch is then re-sent row by row. Plain
 // inserts are used instead of ON CONFLICT DO NOTHING, which PostgreSQL 18 also checks against select
 // policies (students have none). See decision D4.
-import { WEIGHTS, type EventType } from '@ocm/core';
+import { WEIGHTS, type EventType } from '@icu/core';
 import { base64ToBlob } from './capture';
 import { createLock } from './lock';
 import { getSupabase } from './supabase';
@@ -30,9 +30,9 @@ export interface QueuedShot {
   failures: number;
 }
 
-const EVENTS_KEY = 'ocm-queue';
-const SHOTS_KEY = 'ocm-shots';
-const DROPPED_KEY = 'ocm-queue-dropped';
+const EVENTS_KEY = 'icu-queue';
+const SHOTS_KEY = 'icu-shots';
+const DROPPED_KEY = 'icu-queue-dropped';
 const BATCH_SIZE = 50;
 const MAX_EVENTS = 1000;
 const MAX_SHOTS = 20;
@@ -204,7 +204,7 @@ export function flush(attemptId?: string): Promise<void> {
     } catch (error) {
       failures++;
       const delay = Math.min(1000 * 2 ** (failures - 1), MAX_BACKOFF_MS) * (0.8 + Math.random() * 0.4);
-      console.warn(`[ocm] upload failed; retrying in ${Math.round(delay / 1000)} s`, error);
+      console.warn(`[icu] upload failed; retrying in ${Math.round(delay / 1000)} s`, error);
       if (retryTimer) clearTimeout(retryTimer);
       retryTimer = setTimeout(() => void flush(), delay);
     } finally {

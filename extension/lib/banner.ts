@@ -33,7 +33,7 @@ export interface Banner {
 }
 
 export function createBanner(): Banner {
-  const host = document.createElement('ocm-warning-banner');
+  const host = document.createElement('icu-warning-banner');
   const root = host.attachShadow({ mode: 'closed' });
   root.innerHTML = `<style>${STYLE}</style>
     <div class="bar hidden" role="alert" aria-live="assertive">
