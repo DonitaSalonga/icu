@@ -148,7 +148,12 @@ async function bindExamTabLocked(): Promise<void> {
   if (!attempt) return;
   if (attempt.exam_tab_id !== undefined) {
     const bound = await browser.tabs.get(attempt.exam_tab_id).catch(() => undefined);
-    if (bound) return;
+    if (bound) {
+      // Still bound, but after a worker restart or the extension being re-enabled the tab's content
+      // script may be gone: activating re-injects it if needed (idempotent otherwise; SDD F5).
+      await sendToTab(bound.id!, { type: 'sw.activate' });
+      return;
+    }
   }
   const [active] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   const tab = active && isExamUrl(attempt, active.url)
