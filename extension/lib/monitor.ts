@@ -93,6 +93,8 @@ async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' |
     captured_at: new Date(at).toISOString(),
     reason,
     bytes: result.blob.size,
+    visible_host: result.visible?.host,
+    visible_path: result.visible?.path,
     data: await blobToBase64(result.blob),
     failures: 0,
   });

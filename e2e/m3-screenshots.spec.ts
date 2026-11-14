@@ -7,7 +7,7 @@ test.beforeEach(async () => {
 });
 
 const shots = async (attemptId: string) =>
-  (await serviceClient().from('screenshots').select('id, reason, bytes, storage_path, captured_at').eq('attempt_id', attemptId).order('captured_at')).data ?? [];
+  (await serviceClient().from('screenshots').select('id, reason, bytes, storage_path, captured_at, visible_host, visible_path').eq('attempt_id', attemptId).order('captured_at')).data ?? [];
 
 test('T34: interval screenshots; a burst of 5 warning events shares one violation screenshot', async ({ context, ext }) => {
   test.setTimeout(240_000);
@@ -35,6 +35,8 @@ test('T34: interval screenshots; a burst of 5 warning events shares one violatio
   for (const s of all) {
     expect(s.storage_path).toBe(`${session.id}/${attemptId}/${s.id}.jpg`);
     expect(s.bytes).toBeLessThanOrEqual(150_000);
+    // R32/D8: each screenshot records the site it showed (host + path only).
+    expect({ host: s.visible_host, path: s.visible_path }).toEqual({ host: 'localhost:4173', path: '/exam/form.html' });
   }
   // The object really exists in Storage.
   const { data: file } = await serviceClient().storage.from('screenshots').download(violation[0]!.storage_path);

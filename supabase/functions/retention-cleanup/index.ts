@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         if (removeError) throw removeError;
         objects += files.length;
       }
-      for (const table of ['events', 'heartbeats', 'screenshots']) {
+      for (const table of ['events', 'heartbeats', 'screenshots', 'ai_analyses']) {
         const { error: deleteError } = await db.from(table).delete().eq('attempt_id', attempt_id);
         if (deleteError) throw deleteError;
       }

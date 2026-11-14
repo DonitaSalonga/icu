@@ -1,7 +1,8 @@
 // Session detail (R19; DSD § Components "Data table"): candidates with risk and verdict, High first.
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { attemptStatus, loadSummaries, RISK_ORDER, SESSION_COLUMNS, sessionStatus, type ScoredAttempt, type SessionRow } from '../lib/data';
+import { AiBadge } from '../components/AiSuggestion';
+import { attemptStatus, loadAnalyses, loadSummaries, RISK_ORDER, SESSION_COLUMNS, sessionStatus, type AiAnalysis, type ScoredAttempt, type SessionRow } from '../lib/data';
 import { errorText, supabase } from '../supabase';
 import { Alert, formatDateTime, RiskBadge, VerdictBadge } from '../ui';
 
@@ -12,6 +13,7 @@ export function SessionDetail() {
   const navigate = useNavigate();
   const [session, setSession] = useState<SessionRow>();
   const [rows, setRows] = useState<ScoredAttempt[]>();
+  const [ai, setAi] = useState<Map<string, AiAnalysis>>(new Map());
   const [error, setError] = useState<string>();
   const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: 'risk', asc: true });
 
@@ -21,7 +23,9 @@ export function SessionDetail() {
         const s = await supabase!.from('exam_sessions').select(SESSION_COLUMNS).eq('id', id!).single();
         if (s.error) throw s.error;
         setSession(s.data as SessionRow);
-        setRows(await loadSummaries(s.data as SessionRow));
+        const summaries = await loadSummaries(s.data as SessionRow);
+        setRows(summaries);
+        setAi(await loadAnalyses(summaries.map((a) => a.attempt_id)));
       } catch (e) {
         setError(errorText(e as { message: string }));
       }
@@ -65,7 +69,7 @@ export function SessionDetail() {
       {rows?.length === 0 && <p className="text-sm text-muted">No candidates have joined yet. Share the code {session?.code} with your students.</p>}
       {sorted && sorted.length > 0 && session && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-surface">
               <tr>
                 {header('name', 'Candidate')}
@@ -73,6 +77,7 @@ export function SessionDetail() {
                 {header('start', 'Started')}
                 <th scope="col" className="p-2">Warnings</th>
                 {header('risk', 'Risk')}
+                <th scope="col" className="p-2">AI suggestion</th>
                 <th scope="col" className="p-2">Verdict</th>
               </tr>
             </thead>
@@ -87,6 +92,7 @@ export function SessionDetail() {
                   <td className="p-2">{a.started_at ? formatDateTime(a.started_at) : '—'}</td>
                   <td className="p-2">{a.warnings} of {session.warning_limit}</td>
                   <td className="p-2"><RiskBadge level={a.risk.level} score={a.risk.score} /></td>
+                  <td className="p-2"><AiBadge analysis={ai.get(a.attempt_id)} /></td>
                   <td className="p-2"><VerdictBadge verdict={a.verdict} /></td>
                 </tr>
               ))}

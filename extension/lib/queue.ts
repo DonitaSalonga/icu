@@ -25,6 +25,9 @@ export interface QueuedShot {
   captured_at: string;
   reason: 'interval' | 'violation';
   bytes: number;
+  /** The site the screenshot shows (host + path only). */
+  visible_host?: string;
+  visible_path?: string;
   /** JPEG bytes, base64 (chrome.storage holds JSON only). */
   data: string;
   failures: number;
@@ -111,6 +114,8 @@ async function uploadShot(shot: QueuedShot): Promise<void> {
     captured_at: shot.captured_at,
     reason: shot.reason,
     bytes: shot.bytes,
+    visible_host: shot.visible_host?.slice(0, 255) ?? null,
+    visible_path: shot.visible_path?.slice(0, 1024) ?? null,
   });
   if (rowError && rowError.code !== UNIQUE_VIOLATION) throw rowError;
 }

@@ -57,3 +57,32 @@ export async function loadSummaries(session: SessionRow): Promise<ScoredAttempt[
 }
 
 export const RISK_ORDER: Record<RiskLevel, number> = { high: 0, medium: 1, low: 2 };
+
+// ---------------------------------------------------------------------------
+// AI suggestion (R32). A suggestion only: the admin's verdict is the decision.
+// ---------------------------------------------------------------------------
+
+export interface AiAnalysis {
+  attempt_id: string;
+  status: 'pending' | 'done' | 'failed';
+  suggestion: string | null;
+  probabilities: Record<string, number> | null;
+  confidence: number | null;
+  error: string | null;
+  analyzed_at: string | null;
+}
+
+const AI_COLUMNS = 'attempt_id, status, suggestion, probabilities, confidence, error, analyzed_at';
+
+export async function loadAnalyses(attemptIds: string[]): Promise<Map<string, AiAnalysis>> {
+  if (!attemptIds.length) return new Map();
+  const { data, error } = await supabase!.from('ai_analyses').select(AI_COLUMNS).in('attempt_id', attemptIds);
+  if (error) throw error;
+  return new Map((data as AiAnalysis[]).map((a) => [a.attempt_id, a]));
+}
+
+export async function loadAnalysis(attemptId: string): Promise<AiAnalysis | null> {
+  const { data, error } = await supabase!.from('ai_analyses').select(AI_COLUMNS).eq('attempt_id', attemptId).maybeSingle();
+  if (error) throw error;
+  return data as AiAnalysis | null;
+}

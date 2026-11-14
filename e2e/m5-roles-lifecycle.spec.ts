@@ -78,7 +78,7 @@ test('T27 + R15: student flow through the popup and notice; uninstall token work
   await expect(notice.getByRole('heading', { name: 'Monitoring started' })).toBeVisible();
 
   const { data: attempt } = await serviceClient().from('attempts').select('id, status, consent_version, age_confirmed, uninstall_token').eq('status', 'active').single();
-  expect(attempt).toMatchObject({ status: 'active', consent_version: '2026-11-14.1', age_confirmed: true });
+  expect(attempt).toMatchObject({ status: 'active', consent_version: '2026-11-14.2', age_confirmed: true });
   await popup.reload();
   await expect(popup.getByText('Monitoring', { exact: true })).toBeVisible();
 

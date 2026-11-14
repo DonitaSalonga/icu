@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { findGaps, scoreAttempt, type Gap, type Score } from '@icu/core';
+import { AiSuggestionCard } from '../components/AiSuggestion';
 import { deleteAttemptData } from '../lib/deleteAttempt';
 import { attemptStatus, SESSION_COLUMNS, type SessionRow } from '../lib/data';
 import { eventLabel, TYPE_NAMES } from '../lib/labels';
@@ -135,6 +136,7 @@ export function AttemptReview() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <aside className="order-first flex flex-col gap-6 lg:order-last lg:col-span-4">
+          {!attempt.data_deleted_at && <AiSuggestionCard attemptId={attempt.id} canAnalyze={Boolean(attempt.started_at)} />}
           <Breakdown score={score} />
           <VerdictForm attempt={attempt} onSaved={(msg) => { setToast(msg); void load(); }} />
           {!attempt.data_deleted_at && session && (

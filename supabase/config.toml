@@ -432,3 +432,6 @@ verify_jwt = false
 
 [functions.retention-cleanup]
 verify_jwt = false
+
+[functions.ai-analyze]
+verify_jwt = false

@@ -63,6 +63,7 @@ export function Notice() {
       <section>
         <h2 className="text-lg font-semibold">Why</h2>
         <p>To help your examiner check that the exam was taken fairly. The tool only records and flags activity; it never ends your exam or decides that you cheated. A person reviews every flag.</p>
+        <p>An automated system analyses an anonymous summary of this activity (without your name or email) and suggests a result to your examiner. The suggestion can be wrong; your examiner always makes the final decision.</p>
       </section>
 
       <section>
