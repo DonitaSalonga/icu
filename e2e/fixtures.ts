@@ -24,7 +24,9 @@ export async function launch(userDataDir: string, headless = true): Promise<Brow
   return chromium.launchPersistentContext(userDataDir, {
     channel: 'chromium',
     headless,
-    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+    // Whole-screen sharing (D9): auto-pick "Entire screen" in Chrome's picker. In tests this captures the
+    // real screen of the machine running them; screenshots go only to icu-test and are reset each run.
+    args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`, '--auto-select-desktop-capture-source=Entire screen'],
   });
 }
 
@@ -91,11 +93,11 @@ export async function admin(): Promise<SupabaseClient> {
   return adminClient;
 }
 
-export async function createSession(opts: { warningLimit?: number; endsInMin?: number } = {}) {
+export async function createSession(opts: { warningLimit?: number; endsInMin?: number; patterns?: string[] } = {}) {
   const db = await admin();
   const { data, error } = await db.rpc('create_session', {
     p_name: `E2E ${new Date().toISOString()}`,
-    p_url_patterns: ['http://localhost:4173/exam/*'],
+    p_url_patterns: opts.patterns ?? ['http://localhost:4173/exam/*'],
     p_starts_at: new Date(Date.now() - 60_000).toISOString(),
     p_ends_at: new Date(Date.now() + (opts.endsInMin ?? 60) * 60_000).toISOString(),
     p_warning_limit: opts.warningLimit ?? 3,
@@ -137,13 +139,24 @@ export async function waitForEvents(attemptId: string, predicate: (rows: EventRo
 export const count = (rows: EventRow[], type: string) => rows.filter((r) => r.type === type).length;
 
 /** Signs in as student-1, joins a new session and starts monitoring with the exam page open. */
+/** The real Start flow (Q36/Q37): consent on the notice page, share the entire screen, start. */
+export async function shareScreenAndStart(context: BrowserContext, ext: ExtensionDriver): Promise<Page> {
+  const notice = await context.newPage();
+  await notice.goto(`chrome-extension://${ext.extensionId}/notice.html`);
+  await notice.getByLabel('I am 18 or older').check();
+  await notice.getByLabel(/I have read this notice/).check();
+  await notice.getByRole('button', { name: 'Share screen and start' }).click();
+  await notice.getByRole('heading', { name: 'ICU monitoring' }).waitFor({ timeout: 15_000 });
+  return notice;
+}
+
 export async function startExam(context: BrowserContext, ext: ExtensionDriver, opts: { warningLimit?: number; endsInMin?: number; openExam?: boolean } = {}) {
   const session = await createSession(opts);
   const exam = await context.newPage();
   if (opts.openExam !== false) await exam.goto(EXAM_URL);
   await ext.send({ type: 'auth.signIn', email: TEST_USERS.student1.email, password: TEST_PASSWORD });
   const joined = await ext.send<{ attempt_id: string }>({ type: 'attempt.join', code: session.code });
-  await ext.send({ type: 'attempt.start', age_confirmed: true, consent_version: 'e2e' });
+  const monitor = await shareScreenAndStart(context, ext);
   if (opts.openExam !== false) await exam.bringToFront();
-  return { session, exam, attemptId: joined.attempt_id };
+  return { session, exam, attemptId: joined.attempt_id, monitor };
 }

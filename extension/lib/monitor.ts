@@ -15,6 +15,7 @@ import {
   type SwMessage,
 } from '@icu/core';
 import { NOT_DETECTED_DELAY_MS } from './env';
+import { IcuError } from './errors';
 import { createLock } from './lock';
 import { captureVisible, blobToBase64 } from './capture';
 import { enqueue, enqueueShot, flush, type QueuedShot } from './queue';
@@ -78,25 +79,47 @@ async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Re
   await enqueue({ id: crypto.randomUUID(), attempt_id: attempt.attempt_id, type, occurred_at: new Date(at).toISOString(), details, screenshot_id });
 }
 
-/** R16: captures and queues a screenshot; returns its id, or undefined after recording screenshot_failed. */
 /** True when Chrome refused because the visible tab hasn't committed a page yet (e.g. a just-opened tab). */
 const notYetLoaded = (error: string) => /Cannot access contents of url ""/.test(error);
 
+/** host + path of the active tab in a window (or the last-focused window). */
+async function visibleIn(windowId?: number): Promise<{ host: string; path: string } | undefined> {
+  try {
+    const win = windowId !== undefined ? await browser.windows.get(windowId) : await browser.windows.getLastFocused({ windowTypes: ['normal'] });
+    const [tab] = await browser.tabs.query({ active: true, windowId: win.id });
+    return tab?.url ? sanitizeUrl(tab.url) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** D9: a whole-screen frame from the pinned monitoring tab, if sharing is live. */
+async function grabScreen(): Promise<{ data: string; bytes: number } | undefined> {
+  try {
+    const res = (await browser.runtime.sendMessage({ type: 'monitor.grab' })) as { ok: boolean; data?: string; bytes?: number } | undefined;
+    return res?.ok && res.data ? { data: res.data, bytes: res.bytes ?? 0 } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The screenshot is of the entire screen while sharing is live (D9); otherwise (sharing stopped, which is
+ * recorded separately) it falls back to the visible browser tab. Either way it records which site was
+ * in front, for the timeline and the AI suggestion.
+ */
 async function shotFrom(attempt: StoredAttempt, id: string, reason: QueuedShot['reason'], at: number, windowId?: number): Promise<QueuedShot | { error: string }> {
+  const base = { id, attempt_id: attempt.attempt_id, session_id: attempt.session.id, captured_at: new Date(at).toISOString(), reason, failures: 0 };
+  if (attempt.screen_sharing) {
+    const screen = await grabScreen();
+    if (screen) {
+      const visible = await visibleIn(windowId);
+      return { ...base, bytes: screen.bytes, visible_host: visible?.host, visible_path: visible?.path, data: screen.data };
+    }
+  }
   const result = await captureVisible(windowId);
   if (!result.ok) return { error: result.error };
-  return {
-    id,
-    attempt_id: attempt.attempt_id,
-    session_id: attempt.session.id,
-    captured_at: new Date(at).toISOString(),
-    reason,
-    bytes: result.blob.size,
-    visible_host: result.visible?.host,
-    visible_path: result.visible?.path,
-    data: await blobToBase64(result.blob),
-    failures: 0,
-  };
+  return { ...base, bytes: result.blob.size, visible_host: result.visible?.host, visible_path: result.visible?.path, data: await blobToBase64(result.blob) };
 }
 
 /**
@@ -199,6 +222,7 @@ async function bindExamTabLocked(): Promise<void> {
     hidden_at: undefined,
     off_exam: undefined,
     window_state: win?.state,
+    last_exam_path: tab.url ? sanitizeUrl(tab.url).path : undefined,
   });
   await browser.alarms.clear(ALARM_NOT_DETECTED);
   await sendToTab(tab.id, { type: 'sw.activate' });
@@ -291,6 +315,7 @@ export function onTabUpdated(tabId: number, change: { status?: string; url?: str
 export function onTabRemoved(tabId: number): Promise<void> {
   return withLock(async () => {
     const attempt = await activeAttempt();
+    if (attempt && attempt.monitor_tab_id === tabId) await screenStoppedLocked(attempt);
     if (attempt?.exam_tab_id !== tabId) return;
     await updateAttempt({ exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined, off_exam: undefined });
     // Re-bind to another matching tab if one is open (SDD F3); otherwise heartbeats stop → gap.
@@ -332,8 +357,16 @@ export function onSiteMaybeVisible(tabId: number): Promise<void> {
     const attempt = await activeAttempt();
     if (!attempt) return;
     const tab = await browser.tabs.get(tabId).catch(() => undefined);
-    if (!tab?.active || tab.status !== 'complete' || !tab.url || ignoredUrl(tab.url) || isExamUrl(attempt, tab.url)) return;
+    if (!tab?.active || tab.status !== 'complete' || !tab.url || ignoredUrl(tab.url)) return;
     const { host, path } = sanitizeUrl(tab.url);
+    // Rule 3: a different page inside the exam tab on the exam platform is logged (no warning).
+    // Rule 2: any OTHER tab is a visit, even on the exam platform (e.g. course notes in a second tab).
+    const examPage = tabId === attempt.exam_tab_id && isExamUrl(attempt, tab.url);
+    if (examPage) {
+      if (path === attempt.last_exam_path) return;
+      await updateAttempt({ last_exam_path: path });
+      if (attempt.last_exam_path === undefined) return;
+    }
     const key = `${tabId}|${host}${path}`;
     const now = Date.now();
     if (now - (siteSeen.get(key) ?? 0) < SITE_REPEAT_MS) return;
@@ -346,7 +379,7 @@ export function onSiteMaybeVisible(tabId: number): Promise<void> {
     // Reuse a warning screenshot taken moments ago of this same site (e.g. on leaving the exam tab).
     const recent = http ? decideCapture(attempt.shot ?? {}, at, `${host}${path}`) : undefined;
     const shotId = recent?.kind === 'attach' ? recent.shotId : http ? await takeScreenshotLocked(attempt, 'site_visit', at, tab.windowId) : undefined;
-    await enqueueEvent(attempt, 'url_visited', { host, path }, at, shotId);
+    await enqueueEvent(attempt, examPage ? 'exam_page_changed' : 'url_visited', { host, path }, at, shotId);
     void flush();
   });
 }
@@ -415,4 +448,44 @@ export async function onContentEvent(senderTabId: number | undefined, senderTabU
   if (!attempt || senderTabId === undefined || senderTabId !== attempt.exam_tab_id || !isExamUrl(attempt, senderTabUrl)) return;
   if (!['copy', 'cut', 'paste', 'context_menu'].includes(type)) return;
   await recordEvent(type, details);
+}
+
+// ---------------------------------------------------------------------------
+// Whole-screen sharing (D9, Q36/Q37)
+// ---------------------------------------------------------------------------
+
+/** The notice page started (or re-started) sharing: remember and pin it as the "ICU monitoring" tab. */
+export function onScreenStarted(tabId: number | undefined): Promise<void> {
+  return withLock(async () => {
+    const attempt = await loadAttempt();
+    if (!attempt || attempt.state === 'ended' || tabId === undefined) throw new IcuError('ICU_NO_JOINED_ATTEMPT');
+    const wasActive = attempt.state === 'active';
+    await updateAttempt({ monitor_tab_id: tabId, screen_sharing: true });
+    await browser.tabs.update(tabId, { pinned: true }).catch(() => undefined);
+    if (wasActive) await recordEventLocked('screen_share_started');
+  });
+}
+
+async function screenStoppedLocked(attempt: StoredAttempt): Promise<void> {
+  if (!attempt.screen_sharing) return;
+  await updateAttempt({ screen_sharing: false });
+  await recordEventLocked('screen_share_stopped');
+}
+
+/** Chrome's "Stop sharing", the monitoring tab closing, or the stream ending some other way. */
+export function onScreenStopped(): Promise<void> {
+  return withLock(async () => {
+    const attempt = await activeAttempt();
+    if (attempt) await screenStoppedLocked(attempt);
+  });
+}
+
+/** After a browser restart the stream is gone; record it once (SDD F5). */
+export function checkScreenShare(): Promise<void> {
+  return withLock(async () => {
+    const attempt = await activeAttempt();
+    if (!attempt?.screen_sharing) return;
+    const tab = attempt.monitor_tab_id !== undefined ? await browser.tabs.get(attempt.monitor_tab_id).catch(() => undefined) : undefined;
+    if (!tab || !(await grabScreen())) await screenStoppedLocked(attempt);
+  });
 }

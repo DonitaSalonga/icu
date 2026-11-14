@@ -14,9 +14,10 @@ const sql = readdirSync(migrationsDir)
 
 describe('SQL ↔ packages/core parity', () => {
   it('events.type check lists exactly EVENT_TYPES', () => {
-    const m = /type text not null check \(type in \(([^)]*)\)\)/.exec(sql);
-    expect(m, 'events.type check constraint not found').not.toBeNull();
-    const sqlTypes = [...m![1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]);
+    // The latest definition wins: the original column check, or a later events_type_check constraint.
+    const all = [...sql.matchAll(/(?:type text not null check \(type in|events_type_check check \(type in) \(([^)]*)\)\)/g)];
+    expect(all.length, 'events.type check constraint not found').toBeGreaterThan(0);
+    const sqlTypes = [...all.at(-1)![1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]);
     expect(sqlTypes).toEqual([...EVENT_TYPES]);
   });
 

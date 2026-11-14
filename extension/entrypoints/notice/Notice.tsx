@@ -1,40 +1,101 @@
-// Privacy notice and consent (R7, R26). Written for the Philippine Data Privacy Act of 2012 (RA 10173)
-// and the NPC education-sector advisory (RESEARCH F23). Every item listed here must match what the
-// extension actually collects (QAD T45). Bump NOTICE_VERSION in packages/core on any wording change.
-import { useEffect, useState } from 'react';
+// Privacy notice, consent and whole-screen sharing (R7, R26, D9). Written for the Philippine Data Privacy
+// Act of 2012 (RA 10173) and the NPC education-sector advisory (RESEARCH F23). Every item listed here must
+// match what the extension collects (QAD T45). Bump NOTICE_VERSION in packages/core on any wording change.
+// After Start this page holds the screen share and stays open as the pinned "ICU monitoring" tab.
+import { useEffect, useRef, useState } from 'react';
 import { NOTICE_VERSION, type AttemptStatus } from '@icu/core';
+import { requestScreenShare, serveFrames } from '../../lib/screen';
 import { errorText, send } from '../../lib/send';
 import { Alert, Button, formatTime } from '../../lib/ui';
+
+const reshare = new URLSearchParams(location.search).has('reshare');
 
 export function Notice() {
   const [status, setStatus] = useState<AttemptStatus>();
   const [adult, setAdult] = useState(false);
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState<string>();
-  const [started, setStarted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [monitoring, setMonitoring] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const stopRef = useRef<() => void>();
 
   useEffect(() => {
     void send<AttemptStatus>({ type: 'attempt.status' }).then((res) => res.ok && setStatus(res.data));
+    const onMessage = (m: { type?: string }) => {
+      if (m?.type === 'monitor.stop') {
+        stopRef.current?.();
+        stopRef.current = undefined;
+        setEnded(true);
+      }
+    };
+    browser.runtime.onMessage.addListener(onMessage);
+    return () => browser.runtime.onMessage.removeListener(onMessage);
   }, []);
 
-  const start = async () => {
+  useEffect(() => {
+    document.title = monitoring ? 'ICU monitoring · keep this tab open' : 'Privacy notice · ICU: I Caught You';
+  }, [monitoring]);
+
+  /** Q36/Q37: the exam starts only with the entire screen shared. */
+  const shareAndStart = async () => {
     setError(undefined);
-    const res = await send({ type: 'attempt.start', age_confirmed: adult, consent_version: NOTICE_VERSION });
-    if (!res.ok) return setError(errorText(res.code, res.message));
-    setStarted(true);
+    setBusy(true);
+    let stream: MediaStream | undefined;
+    try {
+      stream = await requestScreenShare();
+      stopRef.current = serveFrames(stream, () => void send({ type: 'screen.stopped' }));
+      const shared = await send({ type: 'screen.started' });
+      if (!shared.ok) throw new Error(shared.code);
+      if (!reshare) {
+        const res = await send({ type: 'attempt.start', age_confirmed: adult, consent_version: NOTICE_VERSION });
+        if (!res.ok) throw new Error(res.code);
+      }
+      setMonitoring(true);
+    } catch (e) {
+      stopRef.current?.();
+      stopRef.current = undefined;
+      const code = e instanceof Error ? e.message : String(e);
+      setError(errorText(code, ''));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  if (started) {
+  if (ended) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6">
-        <h1 className="text-xl font-semibold">Monitoring started</h1>
-        <p>Go back to your exam tab. When you finish, open the extension and choose End exam.</p>
+        <h1 className="text-xl font-semibold">Exam ended</h1>
+        <p>Screen sharing has stopped. You can close this tab.</p>
+      </main>
+    );
+  }
+
+  if (monitoring) {
+    return (
+      <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6">
+        <h1 className="text-xl font-semibold">ICU monitoring</h1>
+        <p role="status" className="rounded-md bg-risk-med-bg p-3 text-risk-med-fg">
+          Keep this tab open until the exam ends. Closing it, or clicking “Stop sharing”, is recorded and shown to your examiner.
+        </p>
+        <p>Go back to your exam tab. When you finish, open the ICU extension and choose End exam.</p>
       </main>
     );
   }
 
   const session = status?.session;
   const examiner = session ? `${session.admin_name} (${session.admin_email})` : 'your examiner';
+
+  if (reshare) {
+    return (
+      <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6">
+        <h1 className="text-xl font-semibold">Share your screen again</h1>
+        <p>Your exam requires sharing your entire screen. Choose your screen in the window Chrome opens.</p>
+        {error && <Alert>{error}</Alert>}
+        <Button disabled={busy} onClick={() => void shareAndStart()} className="self-start">Share entire screen</Button>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6 text-base">
@@ -47,17 +108,25 @@ export function Notice() {
 
       <section>
         <h2 className="text-lg font-semibold">What we collect</h2>
-        <p>Only between the moment you click Start and the end of the exam, and only in this browser:</p>
+        <p>Only between the moment you click Start and the end of the exam:</p>
         <ul className="list-disc pl-6">
+          <li>Screenshots of your <strong>entire screen</strong> every minute, when a warning is shown, and when another website is on screen. They show everything visible on your screen, including other apps, which may include personal information.</li>
           <li>When you leave and return to the exam tab or the browser window, and how long you were away.</li>
-          <li>New tabs you open, and the addresses of pages you visit, as site and page only (for example chatgpt.com/c). Never search terms, form data or anything after a “?”.</li>
+          <li>New tabs you open, and the addresses of pages you view, as site and page only (for example chatgpt.com/c). Never search terms, form data or anything after a “?”.</li>
           <li>When you copy, cut, paste or right-click on the exam page. Never what you copied or pasted.</li>
           <li>When the exam window enters or leaves fullscreen. Your exam window switches to fullscreen when you click Start.</li>
-          <li>A screenshot of the browser tab in front every minute, and when a warning is shown. If another tab is in front, the screenshot shows that tab, which may include personal information.</li>
-          <li>A heartbeat every 15 seconds that shows monitoring is on, and the times of any warnings shown to you.</li>
+          <li>When screen sharing starts or stops, a heartbeat every 15 seconds showing that monitoring is on, and the times of any warnings shown to you.</li>
           <li>Your name and email from your account, and when you agreed to this notice.</li>
         </ul>
-        <p>We do not use your camera or microphone, and we do not record keystrokes, your answers, or the text of any page.</p>
+        <p>We do not use your camera or microphone, and we do not record keystrokes or audio.</p>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold">Sharing your screen</h2>
+        <p>
+          When you click Start, Chrome asks you to share your <strong>entire screen</strong>. The exam can't start without it. This tab then stays open as
+          “ICU monitoring” until the exam ends. On a Mac, you may first need to allow Chrome under System Settings → Privacy &amp; Security → Screen Recording.
+        </p>
       </section>
 
       <section>
@@ -92,11 +161,11 @@ export function Notice() {
         <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} /> I am 18 or older
       </label>
       <label className="flex items-center gap-2">
-        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> I have read this notice and agree to this monitoring
+        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> I have read this notice and agree to this monitoring, including sharing my entire screen
       </label>
       {error && <Alert>{error}</Alert>}
-      <Button disabled={!adult || !agree} onClick={() => void start()} className="self-start">
-        Start exam monitoring
+      <Button disabled={!adult || !agree || busy} onClick={() => void shareAndStart()} className="self-start">
+        {busy ? 'Waiting for screen sharing…' : 'Share screen and start'}
       </Button>
     </main>
   );

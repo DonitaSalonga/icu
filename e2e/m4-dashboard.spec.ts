@@ -12,6 +12,10 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   // Create a session through the dialog.
   await page.getByRole('button', { name: 'Create session' }).first().click();
   await page.getByLabel('Name').fill('Created in E2E');
+  await page.getByLabel('Exam platform').fill('docs.google.com/forms');
+  await expect(page.getByText('Will monitor docs.google.com/forms pages')).toBeVisible();
+  await page.getByLabel('Exam platform').press('Enter');
+  await expect(page.getByRole('list', { name: 'Exam platforms' })).toContainText('docs.google.com/forms');
   await page.getByRole('dialog').getByRole('button', { name: 'Create session' }).click();
   const status = page.getByRole('status').filter({ hasText: 'Created in E2E' });
   await expect(status).toBeVisible();

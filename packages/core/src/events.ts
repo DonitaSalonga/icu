@@ -22,6 +22,9 @@ export const EVENT_TYPES = [
   'screenshot_failed',
   'extension_uninstalled',
   'queue_overflow',
+  'exam_page_changed',
+  'screen_share_started',
+  'screen_share_stopped',
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -47,6 +50,11 @@ export const WEIGHTS: Record<EventType, number> = {
   screenshot_failed: 0,
   extension_uninstalled: 8,
   queue_overflow: 0,
+  // Quizzes change pages legitimately; recorded (with a screenshot) for review, not scored.
+  exam_page_changed: 0,
+  screen_share_started: 0,
+  // Whole-screen evidence switched off mid-exam.
+  screen_share_stopped: 5,
 };
 
 export const GAP_WEIGHT = 8;
@@ -58,6 +66,7 @@ export const WARNING_TYPES: readonly EventType[] = [
   'navigated_off_exam',
   'paste',
   'fullscreen_exit',
+  'screen_share_stopped',
 ];
 
 export function isEventType(value: string): value is EventType {

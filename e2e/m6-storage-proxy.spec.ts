@@ -2,7 +2,7 @@
 // The full T43/T49 are manual runs on the demo Google Form (docs/QAD.md). This run uses the E2E
 // build's 30 s screenshot interval, so the per-hour projection uses the production 60 s interval.
 import { serviceClient, resetData } from '../supabase/scripts/testEnv';
-import { admin, events, ExtensionDriver, expect, test } from './fixtures';
+import { admin, events, ExtensionDriver, expect, shareScreenAndStart, test } from './fixtures';
 
 const PAGE = 'https://en.wikipedia.org/wiki/Philippines';
 
@@ -20,7 +20,7 @@ test('T43/T49 proxy: real-page screenshot sizes and no warnings during normal re
   const { TEST_USERS, TEST_PASSWORD } = await import('../supabase/scripts/testEnv');
   await (ext as ExtensionDriver).send({ type: 'auth.signIn', email: TEST_USERS.student1.email, password: TEST_PASSWORD });
   const joined = await ext.send<{ attempt_id: string }>({ type: 'attempt.join', code: (session as { code: string }).code });
-  await ext.send({ type: 'attempt.start', age_confirmed: true, consent_version: 'proxy' });
+  await shareScreenAndStart(context, ext);
   await exam.bringToFront();
 
   // Five minutes of "answering": scroll and read, no leaving, no pasting.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidExamPattern, matchExamUrl, sanitizeUrl } from '../src/url';
+import { describeExamSite, isValidExamPattern, isValidExamSite, matchExamUrl, normalizeExamSite, sanitizeUrl } from '../src/url';
 
 // T1 (R9)
 describe('matchExamUrl', () => {
@@ -47,5 +47,36 @@ describe('sanitizeUrl', () => {
     const out = sanitizeUrl(url);
     expect(out).toEqual(expected);
     expect(JSON.stringify(out)).not.toMatch(/[?#@]/);
+  });
+});
+
+// Exam platforms typed by the admin (2026-11-15; T1 extended)
+describe('exam platforms', () => {
+  it.each([
+    ['keyword matches the platform', 'https://www.netacad.com/launch?id=1', ['netacad'], true],
+    ['keyword matches subdomains', 'https://skillsforall.netacad.com/course/x', ['netacad'], true],
+    ['keyword matches other TLDs', 'https://learn.ibm.org/exam', ['ibm'], true],
+    ['keyword does not match answer sites that only mention it', 'https://netacad-answers.blogspot.com/quiz', ['netacad'], false],
+    ['keyword does not match the path', 'https://quizlet.com/netacad/answers', ['netacad'], false],
+    ['keyword does not match a longer word', 'https://notibm.com/', ['ibm'], false],
+    ['domain matches itself and subdomains', 'https://www.skillsbuild.org/test', ['skillsbuild.org'], true],
+    ['domain does not match a look-alike', 'https://skillsbuild.org.evil.com/', ['skillsbuild.org'], false],
+    ['domain+path limits to the path', 'https://docs.google.com/forms/d/e/x/viewform', ['docs.google.com/forms'], true],
+    ['domain+path excludes Google Docs', 'https://docs.google.com/document/d/x', ['docs.google.com/forms'], false],
+    ['domain+path excludes Google Search', 'https://www.google.com/search?q=answers', ['docs.google.com/forms'], false],
+    ['keyword google would include search (why paths exist)', 'https://www.google.com/search?q=x', ['google'], true],
+    ['localhost keyword (tests)', 'http://localhost:4173/exam/form.html', ['localhost'], true],
+    ['old glob patterns still work', 'https://docs.google.com/forms/x', ['https://docs.google.com/forms/*'], true],
+  ])('%s', (_n, url, entries, expected) => {
+    expect(matchExamUrl(url, entries)).toBe(expected);
+  });
+
+  it('normalises and validates what the admin types', () => {
+    expect(normalizeExamSite('  https://www.NetAcad.com/ ')).toBe('netacad.com');
+    expect(normalizeExamSite('Docs.Google.com/forms/?usp=x')).toBe('docs.google.com/forms');
+    expect(normalizeExamSite('NETACAD')).toBe('netacad');
+    for (const ok of ['netacad', 'ibm', 'skillsbuild.org', 'docs.google.com/forms', 'https://*.example.com/*']) expect(isValidExamSite(ok)).toBe(true);
+    for (const bad of ['', 'two words', 'exam!', '.com', 'http://']) expect(isValidExamSite(bad)).toBe(false);
+    expect(describeExamSite('skillsbuild.org')).toBe('all pages on skillsbuild.org and its subdomains');
   });
 });

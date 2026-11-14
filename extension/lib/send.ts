@@ -23,6 +23,9 @@ export function errorText(code: string, fallback: string): string {
     ICU_CONSENT_REQUIRED: 'Confirm you are 18 or older and agree to the notice to start.',
     ICU_NOT_STUDENT: 'This is an admin account. Use the dashboard.',
     ICU_NO_RESPONSE: 'The extension did not respond. Try again.',
+    ICU_SCREEN_SHARE_REQUIRED: 'This exam requires sharing your entire screen. Click Share screen and start, then choose your screen.',
+    ICU_SCREEN_PERMISSION: 'Chrome is not allowed to record your screen. On a Mac: System Settings → Privacy & Security → Screen Recording → allow Google Chrome, then restart Chrome.',
+    ICU_SCREEN_SHARE_FAILED: 'Screen sharing could not start. Try again.',
     ICU_RATE_LIMITED: 'Too many wrong codes. Wait 10 minutes, then try again.',
   };
   return texts[code] ?? (fallback || 'Something went wrong. Check your connection and try again.');

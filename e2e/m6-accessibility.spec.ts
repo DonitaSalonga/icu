@@ -60,8 +60,9 @@ test('T41: extension popup and notice screens have no serious axe violations', a
   await scan(notice, 'notice page');
   await notice.getByLabel('I am 18 or older').check();
   await notice.getByLabel(/I have read this notice/).check();
-  await notice.getByRole('button', { name: 'Start exam monitoring' }).click();
-  await notice.getByRole('heading', { name: 'Monitoring started' }).waitFor();
+  await notice.getByRole('button', { name: 'Share screen and start' }).click();
+  await notice.getByRole('heading', { name: 'ICU monitoring' }).waitFor();
+  await scan(notice, 'monitoring tab');
   await popup.reload();
   await popup.getByRole('button', { name: 'End exam' }).waitFor();
   await scan(popup, 'popup: monitoring');

@@ -1,7 +1,7 @@
 // Service worker: the only part of the extension that talks to Supabase (SDD.md § Components).
 // Listeners are registered synchronously so Chrome can wake the worker for them (RESEARCH F9).
 import type { Message, Response } from '@icu/core';
-import { ALARM_END, ALARM_HEARTBEAT, ALARM_SCREENSHOT, attemptStatus, endAttempt, joinSession, openNotice, recover, resetAttempt, startAttempt } from '../lib/attempt';
+import { ALARM_END, ALARM_HEARTBEAT, ALARM_SCREENSHOT, attemptStatus, endAttempt, joinSession, openNotice, openReshare, recover, resetAttempt, startAttempt } from '../lib/attempt';
 import { authState, signIn, signOut, signUp } from '../lib/auth';
 import { isConfigured } from '../lib/env';
 import { toErrorResponse } from '../lib/errors';
@@ -12,6 +12,8 @@ import {
   onContentEvent,
   onNotDetectedAlarm,
   onScreenshotAlarm,
+  onScreenStarted,
+  onScreenStopped,
   onSiteMaybeVisible,
   onPopupConnected,
   onTabActivated,
@@ -46,6 +48,12 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
       return attemptStatus();
     case 'attempt.reset':
       return resetAttempt();
+    case 'attempt.reshare':
+      return openReshare();
+    case 'screen.started':
+      return onScreenStarted(sender.tab?.id);
+    case 'screen.stopped':
+      return onScreenStopped();
     case 'cs.hello': {
       const attempt = await loadAttempt();
       return { isExamTab: attempt?.state === 'active' && sender.tab?.id !== undefined && sender.tab.id === attempt.exam_tab_id };

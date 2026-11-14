@@ -23,6 +23,9 @@ const LABELS: Record<string, (d: Details) => string> = {
   warning_limit_reached: () => 'Warning limit reached (forces High)',
   screenshot_failed: (d) => `Screenshot failed: ${String(d.error ?? 'unknown')}`,
   extension_uninstalled: () => 'Extension uninstalled (best effort)',
+  exam_page_changed: (d) => `Viewed another page on the exam platform: ${urlOf(d)}`,
+  screen_share_started: () => 'Started sharing the whole screen',
+  screen_share_stopped: () => 'Stopped sharing the whole screen',
   queue_overflow: (d) => `Upload queue overflowed · ${String(d.dropped_events ?? 0)} events, ${String(d.dropped_screenshots ?? 0)} screenshots dropped`,
 };
 
@@ -47,6 +50,9 @@ export const TYPE_NAMES: Record<string, string> = {
   screenshot_failed: 'Screenshot failed',
   extension_uninstalled: 'Extension uninstalled',
   queue_overflow: 'Queue overflow',
+  exam_page_changed: 'Other exam-platform page',
+  screen_share_started: 'Screen sharing started',
+  screen_share_stopped: 'Screen sharing stopped',
   monitoring_lost: 'Monitoring lost',
 };
 

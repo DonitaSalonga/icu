@@ -68,17 +68,17 @@ test('T27 + R15: student flow through the popup and notice; uninstall token work
   await expect(notice.getByRole('heading', { name: 'ICU privacy notice: exam monitoring' })).toBeVisible();
   await expect(notice.getByText(/Data Privacy Act of 2012/)).toBeVisible();
   await expect(notice.getByText(/admin-a@test.local/).first()).toBeVisible();
-  const start = notice.getByRole('button', { name: 'Start exam monitoring' });
+  const start = notice.getByRole('button', { name: 'Share screen and start' });
   await expect(start).toBeDisabled();
   await notice.getByLabel('I am 18 or older').check();
   await expect(start).toBeDisabled();
   await notice.getByLabel(/I have read this notice/).check();
   await expect(start).toBeEnabled();
   await start.click();
-  await expect(notice.getByRole('heading', { name: 'Monitoring started' })).toBeVisible();
+  await expect(notice.getByRole('heading', { name: 'ICU monitoring' })).toBeVisible();
 
   const { data: attempt } = await serviceClient().from('attempts').select('id, status, consent_version, age_confirmed, uninstall_token').eq('status', 'active').single();
-  expect(attempt).toMatchObject({ status: 'active', consent_version: '2026-11-14.2', age_confirmed: true });
+  expect(attempt).toMatchObject({ status: 'active', consent_version: '2026-11-15.1', age_confirmed: true });
   await popup.reload();
   await expect(popup.getByText('Monitoring', { exact: true })).toBeVisible();
 

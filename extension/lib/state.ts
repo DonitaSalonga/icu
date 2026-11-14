@@ -26,6 +26,11 @@ export interface StoredAttempt {
   /** Screenshot coalescing (R16). */
   shot?: CaptureState;
   last_heartbeat_at?: string;
+  /** Whole-screen sharing (D9): the pinned notice tab that holds the stream. */
+  monitor_tab_id?: number;
+  screen_sharing?: boolean;
+  /** Last page seen in the exam tab, for exam_page_changed (rule 3). */
+  last_exam_path?: string;
 }
 
 const KEY = 'icu-attempt';

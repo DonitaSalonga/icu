@@ -20,10 +20,7 @@ function Shell({ children }: { children: ReactNode }) {
             ICU <span className="text-sm font-normal text-muted">I Caught You</span>
           </Link>
           {profile && (
-            <div className="flex items-center gap-3 text-sm">
-              <span>{profile.full_name}</span>
-              <Button variant="secondary" onClick={() => void supabase?.auth.signOut()}>Sign out</Button>
-            </div>
+            <Button variant="secondary" onClick={() => void supabase?.auth.signOut()}>Sign out</Button>
           )}
         </div>
       </header>

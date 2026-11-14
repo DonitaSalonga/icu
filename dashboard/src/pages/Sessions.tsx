@@ -1,7 +1,7 @@
 // Sessions list and Create session dialog (R4, R5; DSD § Layout "Sessions list").
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { isValidExamPattern } from '@icu/core';
+import { describeExamSite, isValidExamSite, normalizeExamSite } from '@icu/core';
 import { loadSummaries, SESSION_COLUMNS, sessionStatus, type SessionRow } from '../lib/data';
 import { errorText, supabase } from '../supabase';
 import { Alert, Button, Dialog, Field, formatDateTime } from '../ui';
@@ -101,17 +101,78 @@ export function Sessions() {
   );
 }
 
-const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+const pad = (n: number) => String(n).padStart(2, '0');
+const dateValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const timeValue = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+/** Local date (yyyy-mm-dd) + time (hh:mm) → Date, or undefined if either is missing. */
+const combine = (date: string, time: string) => (date && time ? new Date(`${date}T${time}`) : undefined);
+
+/** The exam platform type box (2026-11-15): platform names or websites, shown as removable chips. */
+function PlatformInput({ value, onChange, error }: { value: string[]; onChange: (v: string[]) => void; error?: string }) {
+  const [draft, setDraft] = useState('');
+  const [draftError, setDraftError] = useState<string>();
+  const add = () => {
+    const entry = normalizeExamSite(draft);
+    if (!entry) return;
+    if (!isValidExamSite(entry)) return setDraftError('Type a platform name like netacad, or a website like skillsbuild.org or docs.google.com/forms.');
+    if (!value.includes(entry)) onChange([...value, entry]);
+    setDraft('');
+    setDraftError(undefined);
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="s-platform" className="text-sm font-semibold">Exam platform</label>
+      <div className="flex gap-2">
+        <input
+          id="s-platform"
+          className={`min-h-[36px] flex-1 rounded-sm border px-3 text-sm ${draftError || error ? 'border-danger' : 'border-border-strong'}`}
+          placeholder="e.g. netacad, ibm, docs.google.com/forms"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+              e.preventDefault();
+              add();
+            }
+          }}
+          aria-describedby="s-platform-hint"
+          aria-invalid={draftError || error ? true : undefined}
+        />
+        <Button type="button" variant="secondary" onClick={add}>Add</Button>
+      </div>
+      <p id="s-platform-hint" className="text-xs text-muted">
+        Type the platform or website students take the exam on, then press Enter. Every page of that platform counts as the exam; other websites, and other tabs, don't.
+      </p>
+      {draft && !draftError && isValidExamSite(normalizeExamSite(draft)) && (
+        <p className="text-xs text-muted">Will monitor {describeExamSite(normalizeExamSite(draft))}.</p>
+      )}
+      {(draftError || error) && <p className="text-xs text-danger">{draftError ?? error}</p>}
+      {value.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label="Exam platforms">
+          {value.map((v) => (
+            <li key={v} className="flex items-center gap-1 rounded-full border border-border-strong bg-surface py-0.5 pl-3 pr-1 text-sm" title={`Monitors ${describeExamSite(v)}`}>
+              {v}
+              <button type="button" className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-bg" aria-label={`Remove ${v}`} onClick={() => onChange(value.filter((x) => x !== v))}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (name: string, code: string) => void }) {
   const now = new Date();
+  const later = new Date(now.getTime() + 60 * 60_000);
   const [name, setName] = useState('');
-  const [patterns, setPatterns] = useState(['https://docs.google.com/forms/*']);
-  const [startsAt, setStartsAt] = useState(toLocalInput(now));
-  const [endsAt, setEndsAt] = useState(toLocalInput(new Date(now.getTime() + 60 * 60_000)));
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState(dateValue(now));
+  const [startTime, setStartTime] = useState(timeValue(now));
+  const [endDate, setEndDate] = useState(dateValue(later));
+  const [endTime, setEndTime] = useState(timeValue(later));
   const [warningLimit, setWarningLimit] = useState('3');
-  const [medium, setMedium] = useState('10');
-  const [high, setHigh] = useState('25');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -119,17 +180,13 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
   const validate = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Enter a name.';
-    patterns.forEach((p, i) => {
-      if (!isValidExamPattern(p)) e[`pattern${i}`] = 'Use the form https://site.com/path/* (scheme, host, optional path).';
-    });
-    if (!startsAt) e.starts = 'Choose a start time.';
-    if (!endsAt || (startsAt && new Date(endsAt) <= new Date(startsAt))) e.ends = 'The end must be after the start.';
+    if (platforms.length === 0) e.platforms = 'Add at least one exam platform.';
+    const starts = combine(startDate, startTime);
+    const ends = combine(endDate, endTime);
+    if (!starts) e.starts = 'Choose a start date and time.';
+    if (!ends || (starts && ends <= starts)) e.ends = 'The end must be after the start.';
     const wl = Number(warningLimit);
     if (!Number.isInteger(wl) || wl < 1 || wl > 10) e.warningLimit = 'Choose a whole number from 1 to 10.';
-    const m = Number(medium);
-    const h = Number(high);
-    if (!Number.isInteger(m) || m <= 0) e.medium = 'Must be a whole number above 0.';
-    if (!Number.isInteger(h) || h <= m) e.high = 'Must be a whole number above the Medium threshold.';
     return e;
   };
 
@@ -140,19 +197,19 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
     setServerError(undefined);
     if (Object.keys(e).length) return;
     setSaving(true);
+    // Risk thresholds use the server defaults (Medium from 10, High from 25; 2026-11-15 feedback).
     const { data, error } = await supabase!.rpc('create_session', {
       p_name: name.trim(),
-      p_url_patterns: patterns.map((p) => p.trim()),
-      p_starts_at: new Date(startsAt).toISOString(),
-      p_ends_at: new Date(endsAt).toISOString(),
+      p_url_patterns: platforms,
+      p_starts_at: combine(startDate, startTime)!.toISOString(),
+      p_ends_at: combine(endDate, endTime)!.toISOString(),
       p_warning_limit: Number(warningLimit),
-      p_threshold_medium: Number(medium),
-      p_threshold_high: Number(high),
     });
     setSaving(false);
     if (error) return setServerError(errorText(error));
     onCreated(name.trim(), (data as { code: string }).code);
     setName('');
+    setPlatforms([]);
   };
 
   return (
@@ -161,37 +218,26 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
         <div className="md:col-span-2">
           <Field id="s-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} error={errors.name} />
         </div>
-        <fieldset className="flex flex-col gap-2 md:col-span-2">
-          <legend className="text-sm font-semibold">Exam URL patterns</legend>
-          <p className="text-xs text-muted">Use * as a wildcard, e.g. https://docs.google.com/forms/* . Monitoring applies only to matching pages.</p>
-          {patterns.map((p, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <div className="flex-1">
-                <Field
-                  id={`s-pattern-${i}`}
-                  label={`Pattern ${i + 1}`}
-                  value={p}
-                  onChange={(e) => setPatterns(patterns.map((x, j) => (j === i ? e.target.value : x)))}
-                  error={errors[`pattern${i}`]}
-                />
-              </div>
-              {patterns.length > 1 && (
-                <Button type="button" variant="secondary" className="mt-6" aria-label={`Remove pattern ${i + 1}`} onClick={() => setPatterns(patterns.filter((_, j) => j !== i))}>
-                  Remove
-                </Button>
-              )}
-            </div>
-          ))}
-          {patterns.length < 10 && (
-            <Button type="button" variant="secondary" className="self-start" onClick={() => setPatterns([...patterns, 'https://'])}>Add pattern</Button>
-          )}
+        <div className="md:col-span-2">
+          <PlatformInput value={platforms} onChange={setPlatforms} error={errors.platforms} />
+        </div>
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-semibold">Starts</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <Field id="s-start-date" label="Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <Field id="s-start-time" label="Time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+          </div>
+          {errors.starts && <p className="text-xs text-danger">{errors.starts}</p>}
         </fieldset>
-        <Field id="s-start" label="Starts" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} error={errors.starts} />
-        <Field id="s-end" label="Ends" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} error={errors.ends} />
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-semibold">Ends</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <Field id="s-end-date" label="Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Field id="s-end-time" label="Time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+          </div>
+          {errors.ends && <p className="text-xs text-danger">{errors.ends}</p>}
+        </fieldset>
         <Field id="s-limit" label="Warning limit" type="number" min={1} max={10} value={warningLimit} onChange={(e) => setWarningLimit(e.target.value)} error={errors.warningLimit} hint="Warnings before the candidate is flagged High." />
-        <div />
-        <Field id="s-medium" label="Medium risk from score" type="number" min={1} value={medium} onChange={(e) => setMedium(e.target.value)} error={errors.medium} />
-        <Field id="s-high" label="High risk from score" type="number" min={2} value={high} onChange={(e) => setHigh(e.target.value)} error={errors.high} />
         {serverError && <div className="md:col-span-2"><Alert>{serverError}</Alert></div>}
         <div className="flex gap-2 md:col-span-2">
           <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create session'}</Button>

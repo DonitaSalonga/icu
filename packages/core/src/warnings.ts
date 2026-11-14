@@ -48,6 +48,7 @@ export const WARNING_TEXT: Partial<Record<EventType, string>> = {
   navigated_off_exam: 'You navigated away from the exam page.',
   paste: 'You pasted on the exam page.',
   fullscreen_exit: 'You left fullscreen.',
+  screen_share_stopped: 'You stopped sharing your screen. Open ICU and choose Share screen again.',
 };
 
 export const LIMIT_REACHED_TEXT = "You've reached the warning limit. Your examiner will review this session.";

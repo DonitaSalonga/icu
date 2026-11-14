@@ -32,6 +32,8 @@ export interface AttemptStatus {
   last_heartbeat_at?: string;
   warnings?: { n: number; limit: number };
   upload_failing?: boolean;
+  /** Whole-screen sharing is live (D9). */
+  screen_sharing?: boolean;
 }
 
 export type Message =
@@ -45,6 +47,9 @@ export type Message =
   | { type: 'attempt.end' }
   | { type: 'attempt.status' }
   | { type: 'attempt.reset' }
+  | { type: 'attempt.reshare' }
+  | { type: 'screen.started' }
+  | { type: 'screen.stopped' }
   | { type: 'cs.hello'; top: boolean }
   | { type: 'cs.event'; event_type: EventType; occurred_at: string; details: Record<string, unknown> }
   | { type: 'cs.heartbeat' };
@@ -53,7 +58,8 @@ export type Message =
 export type SwMessage =
   | { type: 'sw.activate' }
   | { type: 'sw.deactivate' }
-  | { type: 'sw.showWarning'; n: number; limit: number; text: string; limitReached: boolean };
+  | { type: 'sw.showWarning'; n: number; limit: number; text: string; limitReached: boolean }
+  | { type: 'monitor.stop' };
 
 export interface AuthState {
   configured: boolean;

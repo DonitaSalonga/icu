@@ -76,9 +76,12 @@ const NAMES: Record<string, string> = {
   exam_page_not_detected: 'exam_page_not_opened',
   warning_limit_reached: 'warning_limit_reached',
   extension_uninstalled: 'monitoring_extension_removed',
+  exam_page_changed: 'viewed_other_page_on_exam_platform',
+  screen_share_started: 'started_screen_sharing',
+  screen_share_stopped: 'stopped_screen_sharing',
 };
 // warning_shown, screenshot_failed and queue_overflow are bookkeeping, not behaviour.
-const IMPORTANT = new Set(['navigated_off_exam', 'url_visited', 'paste', 'exam_page_not_detected', 'warning_limit_reached', 'extension_uninstalled']);
+const IMPORTANT = new Set(['navigated_off_exam', 'url_visited', 'paste', 'exam_page_not_detected', 'warning_limit_reached', 'extension_uninstalled', 'exam_page_changed', 'screen_share_stopped']);
 
 const site = (host: unknown, path: unknown) => `${String(host ?? '')}${String(path ?? '')}`.slice(0, 200);
 

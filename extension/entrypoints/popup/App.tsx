@@ -175,6 +175,12 @@ function StudentHome({ status, run, name }: { status?: AttemptStatus; run: Run; 
           )}
         </p>
         {!status.exam_tab_bound && <p className="text-sm">Open your exam page in this browser to continue.</p>}
+        {!status.screen_sharing && (
+          <div role="alert" className="flex flex-col gap-2 rounded-md bg-risk-high-bg p-3 text-sm text-risk-high-fg">
+            <p>Screen sharing has stopped. Your exam requires sharing your entire screen.</p>
+            <Button onClick={() => void run(() => send({ type: 'attempt.reshare' }))}>Share screen again</Button>
+          </div>
+        )}
         <dl className="grid grid-cols-2 gap-1 text-xs text-muted">
           <dt>Last heartbeat</dt>
           <dd>{status.last_heartbeat_at ? new Date(status.last_heartbeat_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}</dd>

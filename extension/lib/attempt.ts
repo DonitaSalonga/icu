@@ -2,7 +2,7 @@
 import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@icu/core';
 import { SCREENSHOT_PERIOD_MIN, SUPABASE_URL } from './env';
 import { IcuError } from './errors';
-import { ALARM_NOT_DETECTED, bindExamTab, sendToTab, startMonitoring } from './monitor';
+import { ALARM_NOT_DETECTED, bindExamTab, checkScreenShare, sendToTab, startMonitoring } from './monitor';
 import { flush, isUploadFailing, queueSize } from './queue';
 import { clearAttempt, loadAttempt, saveAttempt, updateAttempt } from './state';
 import { getSupabase } from './supabase';
@@ -47,6 +47,8 @@ export async function ensureAlarms(endsAtLocalMs: number): Promise<void> {
 export async function startAttempt(ageConfirmed: boolean, consentVersion: string): Promise<{ started_at: string; ends_at: string }> {
   const attempt = await loadAttempt();
   if (!attempt || attempt.state !== 'joined') throw new IcuError('ICU_NO_JOINED_ATTEMPT');
+  // Q37: the exam starts only while the entire screen is shared (D9).
+  if (!attempt.screen_sharing) throw new IcuError('ICU_SCREEN_SHARE_REQUIRED');
   const sentAt = Date.now();
   const { data, error } = await getSupabase().rpc('start_attempt', {
     p_attempt_id: attempt.attempt_id,
@@ -77,12 +79,14 @@ export async function endAttempt(reason: 'student' | 'time_window'): Promise<{ e
   await browser.alarms.clear(ALARM_NOT_DETECTED);
   await browser.alarms.clear(ALARM_SCREENSHOT);
   await browser.runtime.setUninstallURL('');
+  // Stop the whole-screen share; the monitoring tab tells the student they can close it.
+  await browser.runtime.sendMessage({ type: 'monitor.stop' }).catch(() => undefined);
   if (attempt.exam_tab_id !== undefined) await sendToTab(attempt.exam_tab_id, { type: 'sw.deactivate' });
   // Leave the fullscreen the extension switched on at Start (R13).
   if (attempt.exam_window_id !== undefined && attempt.fullscreen_requested) {
     await browser.windows.update(attempt.exam_window_id, { state: 'normal' }).catch(() => undefined);
   }
-  await updateAttempt({ state: 'ended', ended_at, exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined, blurred_at: undefined });
+  await updateAttempt({ state: 'ended', ended_at, exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined, blurred_at: undefined, screen_sharing: false });
   return { ended_at };
 }
 
@@ -99,6 +103,7 @@ export async function attemptStatus(): Promise<AttemptStatus> {
     last_heartbeat_at: attempt?.last_heartbeat_at,
     warnings: attempt?.state === 'active' ? { n: attempt.warnings?.count ?? 0, limit: attempt.session.warning_limit } : undefined,
     upload_failing: isUploadFailing(),
+    screen_sharing: attempt?.screen_sharing ?? false,
   };
 }
 
@@ -118,5 +123,11 @@ export async function recover(): Promise<void> {
   }
   await ensureAlarms(endsAtLocal);
   await bindExamTab();
+  await checkScreenShare();
   void flush();
+}
+
+/** Opens the page where the student shares their screen again after it stopped. */
+export async function openReshare(): Promise<void> {
+  await browser.tabs.create({ url: browser.runtime.getURL('/notice.html?reshare=1') });
 }

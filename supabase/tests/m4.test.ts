@@ -42,6 +42,12 @@ describe.skipIf(!testEnvConfigured)('M4 review (icu-test)', () => {
     );
     expect(codes.every((c) => !c.error)).toBe(true);
     expect(new Set(codes.map((c) => c.data.code)).size).toBe(50);
+    // Exam platforms typed by the admin (2026-11-15): keyword, domain, domain + path.
+    const platforms = await adminA.rpc('create_session', { p_name: 'Platforms', p_url_patterns: ['netacad', 'skillsbuild.org', 'docs.google.com/forms'], p_starts_at: minutes(0), p_ends_at: minutes(5) });
+    expect(platforms.error).toBeNull();
+    for (const bad of [['two words'], ['exam!'], ['.com']]) {
+      expect((await adminA.rpc('create_session', { p_name: 'x', p_url_patterns: bad, p_starts_at: minutes(0), p_ends_at: minutes(5) })).error?.message).toMatch(/ICU_INVALID_INPUT/);
+    }
   });
 
   it('T19: verdicts are set by the session admin only and hidden from students', async () => {
