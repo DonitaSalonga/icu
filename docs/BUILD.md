@@ -116,7 +116,7 @@ Tasks:
 Deliverables: The four dashboard screens (login exists from M1) working against real data.
 Exit criteria T#: T4, T5, T8, T9, T12, T19, T20, T22, T39, T40.
 Risks: The two gap implementations (SQL vs core) drift; T22 guards this. Signed-URL egress on the free tier ([F7](RESEARCH.md#findings)); thumbnails are lazy-loaded.
-Status (planned/in progress/done): planned
+Status (planned/in progress/done): done (all exit tests pass)
 ```
 
 ```text
@@ -160,6 +160,11 @@ Status (planned/in progress/done): planned
 ```
 
 ## Milestone log
+
+- 2026-11-14: M4 done.
+  - **Built:** scoring in `packages/core`; migration 004 (summaries with a SQL gap rule, verdicts, row deletion that refuses while Storage objects remain); dashboard screens per DSD.md.
+  - **Regression:** unit 74 of 74, integration 11 of 11, E2E 11 of 11. Layout checked visually from screenshots.
+  - **Note:** students have no read access to `attempts` at all, which is stricter than the planned `my_attempts` view. The popup gets everything it needs from RPC responses, so the view wasn't built (T11).
 
 - 2026-11-14: M3 done.
   - **Built:** migration 003 (screenshots, private bucket, path-scoped Storage policies), the coalescer, worker capture with downscale, and a persisted screenshot queue that uploads before linked events.
