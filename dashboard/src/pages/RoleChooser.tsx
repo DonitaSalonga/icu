@@ -8,7 +8,7 @@ export function RoleChooser() {
   const [student, setStudent] = useState(false);
   if (session) return <Navigate to="/sessions" replace />;
 
-  const option = 'flex flex-col items-start gap-1 rounded-md border border-border p-6 text-left hover:bg-surface';
+  const option = 'flex flex-col items-start gap-1 rounded-md border border-border-strong p-6 text-left hover:bg-surface';
   if (student) {
     return (
       <section className="flex max-w-xl flex-col gap-3" aria-labelledby="install-heading">

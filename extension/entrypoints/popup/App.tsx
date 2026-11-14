@@ -74,7 +74,7 @@ type Run = (fn: () => Promise<{ ok: boolean; code?: string; message?: string }>)
 function RoleChooser({ run }: { run: Run }) {
   const [student, setStudent] = useState(false);
   if (student) return <SignIn run={run} onBack={() => setStudent(false)} />;
-  const option = 'flex flex-col items-start gap-1 rounded-md border border-border p-4 text-left hover:bg-surface';
+  const option = 'flex flex-col items-start gap-1 rounded-md border border-border-strong p-4 text-left hover:bg-surface';
   return (
     <div className="flex flex-col gap-3" role="group" aria-labelledby="chooser-heading">
       <h2 id="chooser-heading" className="text-base font-semibold">Sign up or sign in as</h2>
@@ -136,7 +136,7 @@ function StudentHome({ status, run, name }: { status?: AttemptStatus; run: Run; 
     return (
       <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void run(() => send<JoinResult>({ type: 'attempt.join', code })); }}>
         <p className="text-sm">Signed in as {name}.</p>
-        <Field id="code" label="Session code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required maxLength={8} className="min-h-[44px] rounded-sm border border-border px-3 font-mono text-code uppercase" autoComplete="off" />
+        <Field id="code" label="Session code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required maxLength={8} className="min-h-[44px] rounded-sm border border-border-strong px-3 font-mono text-code uppercase" autoComplete="off" />
         <Button type="submit">Join exam</Button>
       </form>
     );

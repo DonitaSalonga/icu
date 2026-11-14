@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build -w extension && npm run build -w dashboard",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p supabase && tsc -p e2e",
     "test": "vitest run --project core",
     "test:integration": "vitest run --project integration",
     "dev:extension": "npm run dev -w extension",
@@ -21,8 +21,10 @@
     "check:secrets": "node scripts/check-secrets.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
     "@supabase/supabase-js": "2.119.0",
+    "@types/chrome": "^0.3.7",
     "@types/node": "^24.19.2",
     "supabase": "3.1.0",
     "typescript": "5.9.3",

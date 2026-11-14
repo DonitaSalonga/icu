@@ -7,7 +7,7 @@ type Variant = 'primary' | 'secondary' | 'danger';
 export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   const styles = {
     primary: 'bg-primary text-primary-on hover:bg-primary-hover',
-    secondary: 'border border-border bg-bg text-text hover:bg-surface',
+    secondary: 'border border-border-strong bg-bg text-text hover:bg-surface',
     danger: 'bg-danger text-primary-on hover:opacity-90',
   }[variant];
   return <button className={`min-h-[36px] rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`} {...props} />;
@@ -20,7 +20,7 @@ export function Field({ label, id, error, hint, ...props }: InputHTMLAttributes<
       <label htmlFor={id} className="text-sm font-semibold">{label}</label>
       <input
         id={id}
-        className={`min-h-[36px] rounded-sm border px-3 text-sm ${error ? 'border-danger' : 'border-border'}`}
+        className={`min-h-[36px] rounded-sm border px-3 text-sm ${error ? 'border-danger' : 'border-border-strong'}`}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         {...props}

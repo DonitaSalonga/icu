@@ -81,6 +81,7 @@ scripts/            check-secrets.mjs (T44)
 | `npm test` | Unit tests for `packages/core` (T1–T9) | nothing |
 | `npm run seed:test` then `npm run test:integration` | Access rules, RPCs, Storage, Edge Functions on ocm-test (T10–T24) | `.env.test`, `.env.db.test` |
 | `npx playwright install chromium` then `npm run test:e2e` | Browser tests with the real extension and dashboard against ocm-test (T25–T41) | as above |
+| `OCM_E2E_SLOW=1 npx playwright test e2e/m6-storage-proxy.spec.ts` | 5-minute real-page run: screenshot sizes and no false warnings (T43/T49 proxy) | as above, plus internet |
 | `npm run build` then `npm run check:secrets` | No secret keys in built bundles (T44) | a build |
 | `npm run typecheck` | TypeScript across the workspaces | nothing |
 

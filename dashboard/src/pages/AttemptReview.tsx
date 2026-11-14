@@ -153,7 +153,7 @@ export function AttemptReview() {
                     key={type}
                     aria-pressed={on}
                     onClick={() => setHidden((h) => { const next = new Set(h); if (on) next.add(type); else next.delete(type); return next; })}
-                    className={`min-h-[28px] rounded-full border px-3 text-xs ${on ? 'border-primary bg-primary text-primary-on' : 'border-border bg-bg text-muted'}`}
+                    className={`min-h-[28px] rounded-full border px-3 text-xs ${on ? 'border-primary bg-primary text-primary-on' : 'border-border-strong bg-bg text-muted'}`}
                   >
                     {TYPE_NAMES[type] ?? type} · {n}
                   </button>
@@ -273,7 +273,7 @@ function VerdictForm({ attempt, onSaved }: { attempt: AttemptRow; onSaved: (msg:
         ))}
       </fieldset>
       <label htmlFor="verdict-note" className="mt-3 block text-sm font-semibold">Note (optional)</label>
-      <textarea id="verdict-note" className="mt-1 w-full rounded-sm border border-border p-2 text-sm" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+      <textarea id="verdict-note" className="mt-1 w-full rounded-sm border border-border-strong p-2 text-sm" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
       <p className="text-xs text-muted">{note.length} / 1000</p>
       {error && <Alert>{error}</Alert>}
       {attempt.verdict_at && <p className="mt-1 text-xs text-muted">Last saved {formatDateTime(attempt.verdict_at)}</p>}
@@ -310,7 +310,7 @@ function DeleteData({ sessionId, attemptId, onDeleted }: { sessionId: string; at
       <Dialog open={open} onClose={() => setOpen(false)} title="Delete this candidate's data?">
         <p className="text-sm">This permanently deletes all events, heartbeats and screenshots for this attempt. It can't be undone.</p>
         <label htmlFor="confirm-delete" className="text-sm font-semibold">Type DELETE to confirm</label>
-        <input id="confirm-delete" className="min-h-[36px] rounded-sm border border-border px-3 text-sm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+        <input id="confirm-delete" className="min-h-[36px] rounded-sm border border-border-strong px-3 text-sm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
         {error && <Alert>{error}</Alert>}
         <div className="flex gap-2">
           <Button variant="danger" disabled={typed !== 'DELETE' || busy} onClick={() => void run()}>{busy ? 'Deleting…' : 'Delete'}</Button>
