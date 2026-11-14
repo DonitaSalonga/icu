@@ -1,4 +1,4 @@
-# online-certification-monitoring — QA and test plan
+# ICU (I Caught You) — QA and test plan
 
 How the requirements in [PRD.md](PRD.md) and the design in [SDD.md](SDD.md) are verified.
 Updated: 2026-11-14
@@ -14,16 +14,16 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | **Manual** | Checklists in this file | The demo on Google Forms with two laptops, the browser-restart edge cases, keyboard and screen-reader passes, the privacy review | Demo laptops, Chrome stable | Third-party sites and assistive technology can't be automated reliably (A2, [F22](RESEARCH.md#findings)) |
 | **Non-functional** | DevTools Performance, build-size output, SQL storage queries, a grep script | Performance budgets, storage budget, secret leakage | Local | R25, R29 |
 
-**Test-only timing:** E2E builds set `WXT_OCM_TEST_TIMINGS=1`, which shortens the `exam_page_not_detected` delay from 120 s to 30 s and the screenshot interval from 60 s to 30 s (Chrome alarms can't fire sooner, [F9](RESEARCH.md#findings)). The heartbeat (15 s) and the gap threshold (60 s) are **never** shortened, so T33 tests the real values. Each test using shortened timings says so.
+**Test-only timing:** E2E builds set `WXT_ICU_TEST_TIMINGS=1`, which shortens the `exam_page_not_detected` delay from 120 s to 30 s and the screenshot interval from 60 s to 30 s (Chrome alarms can't fire sooner, [F9](RESEARCH.md#findings)). The heartbeat (15 s) and the gap threshold (60 s) are **never** shortened, so T33 tests the real values. Each test using shortened timings says so.
 
 ## Environments and test data
 
 | Environment | Supabase project | Used for | Notes |
 | --- | --- | --- | --- |
-| **Dev/demo** | `ocm-main` (free tier) | Development and the final demo | Resume it the day before the demo if it's paused ([F7](RESEARCH.md#findings)) |
-| **Test** | `ocm-test` (free tier) | Integration and E2E | This uses the second free project slot ([F7](RESEARCH.md#findings): 2 active projects). Migrations are applied with `supabase db push --linked` (CLI only, no Docker, [IDEA.md Q19](IDEA.md#decisions-interview-q1q25)) |
+| **Dev/demo** | `icu-main` (free tier) | Development and the final demo | Resume it the day before the demo if it's paused ([F7](RESEARCH.md#findings)) |
+| **Test** | `icu-test` (free tier) | Integration and E2E | This uses the second free project slot ([F7](RESEARCH.md#findings): 2 active projects). Migrations are applied with `supabase db push --linked` (CLI only, no Docker, [IDEA.md Q19](IDEA.md#decisions-interview-q1q25)) |
 | **Fixture exam site** | — | E2E | `e2e/fixtures/exam/` served by Playwright's `webServer` at `http://localhost:4173`. The exam page is `/exam/form.html`, and `/other/page.html` is the "cheating" site. The session pattern is `http://localhost:4173/exam/*` |
-| **Real exam site** | `ocm-main` | Manual demo T47 | A Google Form owned by the team, pattern `https://docs.google.com/forms/*` (A2) |
+| **Real exam site** | `icu-main` | Manual demo T47 | A Google Form owned by the team, pattern `https://docs.google.com/forms/*` (A2) |
 
 **Seed data** (`npm run seed:test`, idempotent): admins `admin-a@test.local` and `admin-b@test.local`, and students `student-1@test.local` and `student-2@test.local`, with passwords from `.env.test`. Users are created through the Auth Admin API with the test project's service-role key.
 - The key is used only by the test runner, never by either app ([F14](RESEARCH.md#findings)).
@@ -45,20 +45,20 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T8 | R4 | Unit | `generateSessionCode` 10,000 times with a seeded random function | Every code has 6 characters from the 32-character alphabet; none contain I, O, 0 or 1 |
 | T9 | R18, R20 | Unit | `scoreAttempt` breakdown for a mixed event list | Σ breakdown points = score; counts per type are correct |
 | T10 | R2 | Integration | Sign up a new student and a new admin with metadata; then each calls `update profiles set role = …` on itself | Profiles exist with the right role and full name; the role updates are rejected or affect 0 rows |
-| T11 | R3, R25 | Integration | admin-a calls `join_session`; student-1 calls `create_session` and selects from `exam_sessions`, `attempts`, `events` | `OCM_NOT_STUDENT`; `OCM_NOT_ADMIN`; the student's selects return 0 rows (students have no read access to `attempts`; the popup uses RPC responses) |
-| T12 | R4 | Integration | `create_session` with valid input; with `ends_at ≤ starts_at`; with an empty pattern list; with `warning_limit` 0 and 11; create 50 sessions | Valid input returns an id and code; the invalid cases give `OCM_INVALID_INPUT`; all 50 codes are unique |
+| T11 | R3, R25 | Integration | admin-a calls `join_session`; student-1 calls `create_session` and selects from `exam_sessions`, `attempts`, `events` | `ICU_NOT_STUDENT`; `ICU_NOT_ADMIN`; the student's selects return 0 rows (students have no read access to `attempts`; the popup uses RPC responses) |
+| T12 | R4 | Integration | `create_session` with valid input; with `ends_at ≤ starts_at`; with an empty pattern list; with `warning_limit` 0 and 11; create 50 sessions | Valid input returns an id and code; the invalid cases give `ICU_INVALID_INPUT`; all 50 codes are unique |
 | T13 | R5, R25 | Integration | admin-a and admin-b each create a session; each selects `exam_sessions`, `attempts`, `events`, `heartbeats`, `screenshots` | Each admin sees only rows for their own session |
-| T14 | R6 | Integration | student-1 calls `join_session` with an unknown code, an ended session, a future session (then `start_attempt`), and a valid code twice | `OCM_CODE_NOT_FOUND`; `OCM_SESSION_ENDED`; the join succeeds but the start gives `OCM_NOT_OPEN_YET`; the same `attempt_id` comes back both times |
-| T15 | R7, R8 | Integration | `start_attempt` with `age_confirmed = false`; then valid; then `start_attempt` on a second session while the first is active | `OCM_CONSENT_REQUIRED`; success stores `consent_at`, `consent_version`, `age_confirmed`, `started_at`; then `OCM_ALREADY_ACTIVE` |
+| T14 | R6 | Integration | student-1 calls `join_session` with an unknown code, an ended session, a future session (then `start_attempt`), and a valid code twice | `ICU_CODE_NOT_FOUND`; `ICU_SESSION_ENDED`; the join succeeds but the start gives `ICU_NOT_OPEN_YET`; the same `attempt_id` comes back both times |
+| T15 | R7, R8 | Integration | `start_attempt` with `age_confirmed = false`; then valid; then `start_attempt` on a second session while the first is active | `ICU_CONSENT_REQUIRED`; success stores `consent_at`, `consent_version`, `age_confirmed`, `started_at`; then `ICU_ALREADY_ACTIVE` |
 | T16 | R8, R25, R30 | Integration | As student-1, insert events before the start, during the attempt, after the end within 1 h, after the end beyond 1 h (backdated), and with `occurred_at` outside the window. Insert heartbeats after the end. Try update and delete on events | Only the during-attempt and within-grace inserts succeed; heartbeats after the end are rejected; update and delete affect 0 rows |
 | T17 | R14 | Integration | Insert a heartbeat and an event that each supply `received_at = '2000-01-01'` | The stored `received_at` is within 5 s of the server's `now()` |
 | T18 | R21, R25 | Integration | student-1 uploads to their own attempt path and to another attempt's path; admin-b requests a signed URL for admin-a's object; admin-a requests a signed URL with expiry 3600 | Own path succeeds and the other fails; admin-b is denied; admin-a's URL loads, and its expiry is ≤ 1 h |
-| T19 | R22 | Integration | admin-a calls `set_verdict` on their attempt; admin-b on the same attempt; student-1 selects verdict columns | Success with `verdict_by` and `verdict_at` set; `OCM_NOT_SESSION_ADMIN`; the student can't see verdict fields |
+| T19 | R22 | Integration | admin-a calls `set_verdict` on their attempt; admin-b on the same attempt; student-1 selects verdict columns | Success with `verdict_by` and `verdict_at` set; `ICU_NOT_SESSION_ADMIN`; the student can't see verdict fields |
 | T20 | R23 | Integration | Seed an attempt with events, heartbeats and 3 screenshots; run the dashboard's delete routine as admin-a | 0 rows remain in the 3 tables for the attempt; 0 objects under its prefix; `data_deleted_at` is set; as admin-b, the routine is denied |
 | T21 | R24 | Integration | Seed attempts that ended 31 days ago and 29 days ago, with data and objects; call `retention-cleanup` with the secret, then without it | With the secret, the 31-day attempt's data and objects are gone and the 29-day attempt is untouched; without it, the response is 401 and nothing is deleted |
 | T22 | R14, R19 | Integration | Seed heartbeats with 0, 1 and 3 holes; compare `session_attempt_summaries` gap counts with `findGaps` on the same data | The counts are equal in every case (the "one rule, two implementations" check, [SDD F6](SDD.md#f6-admin-review-r18r23)) |
 | T23 | R15 | Integration | Call `uninstall-beacon` with a valid active token twice, with a random token, and with no token | The first call inserts exactly one `extension_uninstalled` event; the later calls insert nothing; every response has the same status and body |
-| T24 | R6 | Integration | student-1 calls `join_session` 11 times with bad codes within 10 minutes, then once with a valid code | Calls 1–10 give `OCM_CODE_NOT_FOUND`; call 11 and the valid call are rate-limited (`OCM_RATE_LIMITED`) |
+| T24 | R6 | Integration | student-1 calls `join_session` 11 times with bad codes within 10 minutes, then once with a valid code | Calls 1–10 give `ICU_CODE_NOT_FOUND`; call 11 and the valid call are rate-limited (`ICU_RATE_LIMITED`) |
 | T25 | R1 | E2E | Fresh profile: open the popup → chooser; choose Admin → a new tab with the dashboard. Open the dashboard → chooser; choose Student → install message; choose Admin → login | Each screen appears as described in R1, and no sign-up form appears on the wrong path |
 | T26 | R3 | E2E | Sign in to the extension as admin-a; sign in to the dashboard as student-1 | The extension shows "This is an admin account. Use the dashboard." with no Join form; the dashboard shows the student message and loads no data |
 | T27 | R6, R7, R8 | E2E | As student-1: login → enter code → summary → Continue → notice page. Try Start with 0, 1 and 2 boxes ticked; then Start | Start is enabled only with both boxes ticked; the attempt is `active`; the popup shows "Monitoring" |
@@ -67,7 +67,7 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T30 | R12, R26 | E2E | On the exam page (top frame and an iframe), do copy, cut, paste and right-click; do the same on a non-exam tab | 4 events of each type from the exam tab with `frame` set; none from the other tab; no event details contain the clipboard text |
 | T31 | R13 | E2E | Enter fullscreen through the chosen mechanism (OQ1), exit it; in a second attempt, never enter it | The first gives `fullscreen_enter` then `fullscreen_exit` with a warning; the second has no `fullscreen_exit`, and the review shows "Not in fullscreen" |
 | T32 | R9 | E2E (shortened timing) | Start with no matching tab open; wait 30 s | Exactly one `exam_page_not_detected` event |
-| T33 | R14 | E2E (real timing; the disable part runs headed through `chrome://extensions`, opt-in with `OCM_E2E_SLOW=1`) | Active attempt for 2 min; then disable the extension at `chrome://extensions` for 90 s and re-enable it; then close the exam tab for 75 s and reopen it | Heartbeat intervals during normal operation are 15 ± 5 s; review shows one gap of about 90 s (±15 s) and one of about 75 s (±15 s) |
+| T33 | R14 | E2E (real timing; the disable part runs headed through `chrome://extensions`, opt-in with `ICU_E2E_SLOW=1`) | Active attempt for 2 min; then disable the extension at `chrome://extensions` for 90 s and re-enable it; then close the exam tab for 75 s and reopen it | Heartbeat intervals during normal operation are 15 ± 5 s; review shows one gap of about 90 s (±15 s) and one of about 75 s (±15 s) |
 | T34 | R16 | E2E (shortened timing) | Run idle for 65 s; then trigger 5 warning events within 3 s | 2–3 interval screenshots (30 s interval); the burst gives exactly one violation screenshot linked to all 5 events; no `screenshot_failed`; each image is ≤ 150 KB and exists in Storage at `{session}/{attempt}/{id}.jpg` |
 | T35 | R17 | E2E | With limit 3, trigger 4 warning events at least 11 s apart | Banners say "Warning 1 of 3" to "Warning 3 of 3", plus the limit-reached message; one `warning_limit_reached`; a 4th event is still recorded (monitoring continues) |
 | T36 | R8 | E2E | A session with `ends_at` = now + 60 s; start; wait 75 s; then switch tabs | The attempt is `ended` with `end_reason = time_window`; the popup says the exam ended; no events or heartbeats after `ended_at` |
@@ -85,7 +85,11 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T48 | R31 | Manual | A team member follows the README from a fresh clone on a clean machine, through to running `npm test` and the demo | It completes without help; any missing step is logged as an S2 defect |
 | T49 | Success metric M-false-flags | Manual (15 min) | Answer a Google Form normally without leaving it, starting in fullscreen | Low risk, 0 warnings |
 | T50 | R10 (A5) | E2E + manual | During an active attempt, open and close the extension popup 3 times; show a Chrome notification and click it | No `window_blur`, `exam_tab_hidden` or warning caused by the popup; the notification-click result is recorded in [SDD § Key flows](SDD.md#key-flows) |
-| T51 | R14 | E2E (real timing, 7 min, headed, opt-in with `OCM_E2E_SLOW=1`) | During an active attempt, keep another tab active (the exam tab hidden) for 6 minutes, which brings in Chrome's hidden-tab timer throttling | There's no gap over 60 s during the hidden period: alarm-sourced heartbeats fill in (the `source = 'alarm'` count is > 0) |
+| T52 | R32 | Unit | `buildAnalysisState` on a seeded attempt; on 400+ events | Ordered mm:ss timeline with site, away_s, screenshot_shows and gaps; no names, emails, UUIDs or absolute times in the state; capped at 200 rows keeping important events; exactly one Choice question |
+| T53 | R32 | Unit | Compare option keys and gap rules | Model question keys = dashboard label keys = `SUGGESTIONS`; `gapsFor` equals `findGaps` |
+| T54 | R32, R23 | Integration (real model, 2 requests) | Seed a ChatGPT-and-paste attempt; turn `ai_auto` on; the student ends the attempt; then Re-analyze as the session admin, another admin and the student; delete the data | The trigger produces `done` with a `cheating_*` suggestion, probabilities summing to 1 and model `jev*`. Only the session admin can read and re-request; a second request within 30 s doesn't start another; deletion removes the row; no secret → 401 |
+| T55 | R32 | E2E (1 real request) | Seed a suggestion; open session detail and candidate review; click Re-analyze | Column and card show "Likely cheating: used AI or the web · 82%", confidence high, 5 bars and the "your verdict is the decision" line; Re-analyze shows Analyzing… then a new analyzed time |
+| T51 | R14 | E2E (real timing, 7 min, headed, opt-in with `ICU_E2E_SLOW=1`) | During an active attempt, keep another tab active (the exam tab hidden) for 6 minutes, which brings in Chrome's hidden-tab timer throttling | There's no gap over 60 s during the hidden period: alarm-sourced heartbeats fill in (the `source = 'alarm'` count is > 0) |
 
 ## Entry and exit criteria
 
@@ -148,3 +152,4 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | R29 | T42, T43 |
 | R30 | T16, T38 |
 | R31 | T48 (plus the existence of T1–T24 as the automated suite) |
+| R32 | T52, T53, T54, T55 |

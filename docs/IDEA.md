@@ -1,6 +1,6 @@
-# online-certification-monitoring — Idea intake
+# ICU (I Caught You) — Idea intake
 
-Problem screening and solution choice for the idea pipeline.
+Problem screening and solution choice for the idea pipeline. The app is named **ICU, "I Caught You"** (decision D8).
 Updated: 2026-11-14
 Status: solution chosen; research applied ([RESEARCH.md](RESEARCH.md)); design complete. No build until the user says "go".
 Source: design interview with the user, 2026-11-14 (Q1–Q25).
@@ -62,6 +62,8 @@ Option 2. It's the only option that monitors third-party exam sites, runs entire
 | Q21 | Webcam face detection removed entirely: no camera, no MediaPipe, no offscreen document for the camera | User's choice, after research showed "looking away" needed an experimental head-pose estimate; also less personal data under the Philippine rules |
 | Q24 | Jurisdiction is the Philippines: the Data Privacy Act of 2012 (RA 10173) and the National Privacy Commission's education-sector advisory on online proctoring apply (RESEARCH F23). Explicit consent, a privacy notice, and human review of every flag (the admin verdict) are required | The user's university is in the Philippines |
 | Q25 | The consent screen asks students to confirm they are 18 or older; guardian consent for minors is out of scope | University students are almost all adults; the Philippine guidance requires guardian consent for minors (RESEARCH F23) |
+| Q26–Q34 | **AI suggestion** (R32): after each exam, one request to TypeSafe's Jev model with one Choice question (five options: three cheating reasons, needs review, likely fine), sent an anonymous timeline with no name, email or IDs. Screenshots are described by the site they showed, never as pixels or OCR text. It runs automatically when the exam ends, and the admin has Re-analyze. It's a suggestion only: the admin decides. If unavailable, the rule-based risk stays. The privacy notice has a generic line naming no service | User's choice. Speeds up review while keeping the human decision required by the NPC advisory (RESEARCH F23) |
+| Name | **ICU, "I Caught You"** | User's choice |
 | Q20 | The role chooser appears in both apps. In the extension, Admin opens the dashboard; on the dashboard, Student shows "install the extension". Each app rejects the wrong role | Whichever app someone opens first, they get sent to the right place |
 
 ### Stack reasons (Q14)

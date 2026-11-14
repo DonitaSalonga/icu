@@ -1,4 +1,4 @@
-# online-certification-monitoring — Design system
+# ICU (I Caught You) — Design system
 
 Visual and interaction rules implementing the requirements in [PRD.md](PRD.md).
 Updated: 2026-11-14
@@ -117,6 +117,8 @@ Each component lists its states. "Focus" always means a 2 px `--color-primary` o
 | **Screenshot thumbnail and lightbox** | — | loading (skeleton), loaded, failed ("Image unavailable"), signed URL expired (auto-refreshes) | The lightbox shows the image, capture time, reason (interval or violation), linked events, and previous/next | R16, R21 |
 | **Dialog** | confirm, danger confirm | open, closing | Focus trapped, Esc closes, focus returns to the trigger. The delete dialog asks the admin to type `DELETE` to confirm | R23 |
 | **Toast** | success, error | entering, visible, exiting | `role="status"` (success) or `role="alert"` (error); 5 s; doesn't take focus | all |
+| **AI suggestion card** | — | not analyzed, pending ("Analyzing…", checks every 3 s), failed ("AI analysis unavailable" plus reason and Re-analyze), done | Suggested option in bold, its %, and confidence (High/Medium/Low). A bar per option (chosen option `--color-primary`, others `--color-border-strong`), analyzed time, and always the line "A suggestion only. It can be wrong; your verdict is the decision." `aria-live="polite"` | R32 |
+| **AI suggestion badge** | cheating (risk-high tokens), needs review (risk-med), likely fine (risk-low), Analyzing…, Unavailable, — | — | Short label · %, e.g. "Likely cheating: used AI or the web · 82%" | R32 |
 | **Empty state** | — | — | One sentence plus a primary action | R5, R19, R20 |
 
 ## Layout and responsive rules

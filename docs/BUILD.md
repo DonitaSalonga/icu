@@ -1,4 +1,4 @@
-# online-certification-monitoring — Build guide
+# ICU (I Caught You) — Build guide
 
 Phases and milestones that deliver [PRD.md](PRD.md), verified per [QAD.md](QAD.md).
 Updated: 2026-11-14
@@ -18,8 +18,8 @@ Current milestone: M1 (in progress)
 Dependencies: M1 → M2 → M3 → M4 → M5 → M6. M4's UI work can start once M2's events exist, while M3 is in progress. M5's retention spike results come from M1.
 
 **User actions needed before or during M1** (Claude can't do these):
-1. Create a Supabase account and two free projects, `ocm-main` and `ocm-test` ([F7](RESEARCH.md#findings)).
-2. Provide each project's URL and publishable (anon) key for `.env`, and the `ocm-test` service-role key for `.env.test`. That key is used only by the test runner and is never committed ([QAD § Environments](QAD.md#environments-and-test-data)).
+1. Create a Supabase account and two free projects, `icu-main` and `icu-test` ([F7](RESEARCH.md#findings)).
+2. Provide each project's URL and publishable (anon) key for `.env`, and the `icu-test` service-role key for `.env.test`. That key is used only by the test runner and is never committed ([QAD § Environments](QAD.md#environments-and-test-data)).
 3. Create one Google Form to serve as the demo exam (A2).
 
 ## Milestones
@@ -34,7 +34,7 @@ Delivers R#: R2, R6, R8 (Start/End only), R10 (tab events only), R14 (content-sc
 Tasks:
   1. Monorepo with npm workspaces: extension/ (WXT + React + TS), dashboard/ (Vite + React + TS + Tailwind),
      packages/core, packages/ui-tokens (tokens from DSD.md), supabase/, e2e/. Shared tsconfig, ESLint, Prettier, Vitest.
-  2. Link the Supabase CLI to ocm-main and ocm-test (no Docker). Migration 001: profiles (+ auth trigger), exam_sessions,
+  2. Link the Supabase CLI to icu-main and icu-test (no Docker). Migration 001: profiles (+ auth trigger), exam_sessions,
      attempts, events (catalogue check), heartbeats, received_at triggers, RLS for these tables, RPCs create_session,
      join_session, start_attempt, end_attempt (SDD § Interfaces).
   3. packages/core: EVENT_TYPES, matchExamUrl, findGaps, generateSessionCode, message types; unit tests.
@@ -72,7 +72,7 @@ Tasks:
   4. Fullscreen per the OQ1 decision; "Not in fullscreen" derived on the dashboard.
   5. packages/core warning policy (10 s cool-down, limit_reminder); the shadow-DOM banner (plain DOM, DSD tokens,
      role="alert"); chrome.notifications; warning_shown / warning_limit_reached events.
-  6. The ocm-heartbeat alarm backup (30 s, only while the exam tab exists); heartbeat source column.
+  6. The icu-heartbeat alarm backup (30 s, only while the exam tab exists); heartbeat source column.
   7. The offline queue: exponential backoff, caps and queue_overflow (persistence, batching and the duplicate-safe insert landed in M1).
   8. The popup status screen (state, warnings, queue size, last heartbeat).
 Deliverables: The extension records every catalogue event except screenshots, uninstall and limit edge cases;
@@ -80,7 +80,7 @@ Deliverables: The extension records every catalogue event except screenshots, un
 Exit criteria T#: T2, T6, T28, T29, T30, T31, T32, T33, T35, T38, T51.
 Risks: In-page iframes on real exam sites fire clipboard events in frames the content script doesn't reach (OQ2).
       Notifications are blocked by OS settings; the banner still covers this ([IDEA.md Q8](IDEA.md#decisions-interview-q1q25)).
-Status (planned/in progress/done): done (all exit tests pass. T33 and T51 run headed and are opt-in with OCM_E2E_SLOW=1)
+Status (planned/in progress/done): done (all exit tests pass. T33 and T51 run headed and are opt-in with ICU_E2E_SLOW=1)
 ```
 
 ```text
@@ -90,7 +90,7 @@ Delivers R#: R16; R21 and R25 (Storage policies, backend part).
 Tasks:
   1. Migration: screenshots table + received_at trigger; the private bucket "screenshots"; storage.objects policies (SDD § RLS).
   2. packages/core coalescer (3 s window, 600 ms spacing) + tests.
-  3. Service worker: ocm-screenshot alarm (60 s; 10 s in test timings); getLastFocused + captureVisibleTab JPEG;
+  3. Service worker: icu-screenshot alarm (60 s; 10 s in test timings); getLastFocused + captureVisibleTab JPEG;
      createImageBitmap + OffscreenCanvas downscale to 1280 px; queue order screenshot → row → events; screenshot_failed handling.
   4. Record bytes, and write a SQL query for the per-attempt storage total (for T43).
 Deliverables: Screenshots in Storage with linked events; storage policy tests.
@@ -127,12 +127,12 @@ Delivers R#: R1, R3, R6 (rate limit), R7 (full notice), R8 (time-window end, res
 Tasks:
   1. Role chooser in the popup and the dashboard; wrong-role screens; dashboard routing guards.
   2. Privacy notice page content per DSD.md "Content and voice" and SDD § Privacy; NOTICE_VERSION; the 18+ and agree checkboxes.
-  3. The ocm-end alarm and time_window end; runtime.onStartup recovery; scripting.executeScript re-injection.
+  3. The icu-end alarm and time_window end; runtime.onStartup recovery; scripting.executeScript re-injection.
   4. setUninstallURL with the attempt token; Edge Function uninstall-beacon + record_uninstall.
   5. Edge Function retention-cleanup + the daily schedule (mechanism chosen in the M1 spike) + shared secret; join_failures cleanup.
   6. join_failures table and the rate limit in join_session.
   7. Data-minimisation review against R26 (T45); fix anything found.
-Deliverables: Complete student journey; both Edge Functions deployed to ocm-main and ocm-test.
+Deliverables: Complete student journey; both Edge Functions deployed to icu-main and icu-test.
 Exit criteria T#: T11, T15 (with the final notice), T21, T23, T24, T25, T26, T27, T36, T37, T45.
 Risks: The NPC advisory may need more than a notice (OQ4); the user checks with the adviser. setUninstallURL isn't
       delivered ([F12](RESEARCH.md#findings)), which is acceptable since it's a Could.
@@ -159,7 +159,26 @@ Risks: Real-site behaviour differs from the fixture (A2); rehearse at least 3 da
 Status (planned/in progress/done): in progress. Automated parts are done: T41, T42 and T44; licence check OQ5; README; real-page proxies for T43 and T49. Needs a person: T46 (Edge), T47 (two-laptop demo), T48 (README walkthrough on a clean machine), the full T43 and T49 runs on the demo Form, and T50.
 ```
 
+```text
+Milestone M7 — ICU rename + AI suggestion
+Goal: Rename the app to ICU ("I Caught You") everywhere, and add a model-generated suggestion that the admin sees before deciding.
+Delivers R#: R32 (and renames across R1–R31).
+Tasks: migration 006 (ICU_ codes, Vault names, retention job); migration 007 (ai_analyses, trigger, sweep, Re-analyze,
+       screenshot sites); Edge Function ai-analyze + _shared/analysis.ts; extension screenshot site + notice line;
+       dashboard card and column; secrets TYPESAFE_API_KEY on both projects.
+Exit criteria T#: T52, T53, T54, T55, plus the full regression.
+Risks: model credits and pricing are unknown (RESEARCH F28); provider data retention isn't documented.
+Status (planned/in progress/done): done
+```
+
 ## Milestone log
+
+- 2026-11-14: M7 done.
+  - **Renamed to ICU** across UI, manifest, packages (`@icu/*`), error codes (`ICU_*`, migration 006), Vault names and job names. Supabase project display names must be renamed in the dashboard by the owner (the CLI can't).
+  - **AI suggestion built and deployed to both projects:**
+    - A real Jev call on the seeded case returned `cheating_ai_or_web` at 82% with confidence 0.77, using about 690 input tokens.
+    - T52–T55 pass.
+    - `app_settings.ai_auto` is off in icu-test so regression runs don't spend credits.
 
 - 2026-11-14: M6 automated work done.
   - **T41:** axe scans (WCAG 2.2 A/AA rules) of every extension and dashboard screen and dialog found 0 violations, and the keyboard-only flow passes. The token contrast check found the light border at 1.47:1, which fails WCAG 1.4.11 for control boundaries, so a new `border-strong` token (#6b7280, 4.83:1) is used for controls.
@@ -196,17 +215,17 @@ Status (planned/in progress/done): in progress. Automated parts are done: T41, T
     - Shadow-DOM warning banner plus notifications.
     - Queue backoff and caps.
     - Popup port so the popup itself doesn't count as leaving (A5).
-  - **E2E harness:** Playwright with Chromium 159, loading the extension built against `ocm-test`. 8 of 8 E2E tests pass.
+  - **E2E harness:** Playwright with Chromium 159, loading the extension built against `icu-test`. 8 of 8 E2E tests pass.
   - **Findings:**
     - Headless Chromium doesn't emit the window focus-return event, so the window test runs headed.
     - On macOS, a window opened from a fullscreen exam window bounces focus back after about 0.5 s. That produces a short real `window_blur` with a warning, which is acceptable.
 
 - 2026-11-14: Supabase set up with the CLI.
-  - **Projects:** `ocm-main` (ref `jrmvczctkzhmuuxclhpm`) and `ocm-test` (ref `jyoxiircwkyxkxdnklrc`), free plan, `ap-southeast-1`. Migrations 001 and 002 applied to both.
+  - **Projects:** `icu-main` (ref `jrmvczctkzhmuuxclhpm`) and `icu-test` (ref `jyoxiircwkyxkxdnklrc`), free plan, `ap-southeast-1`. Migrations 001 and 002 applied to both.
   - **Tests on real Supabase (PostgreSQL 17):** integration tests T10, T11 (backend part) and T13–T17 pass, 5 of 5. Exit criteria met for these: T10, T13, T14, T15, T16, T17.
   - **Advisor hardening (migration 002):** policy helpers moved to a `private` schema; trigger functions no longer client-callable. The remaining advisor warnings are the four intended RPCs, plus leaked-password protection (not enabled).
-  - **Spike 6c / OQ3 answered:** `pg_cron`, `pg_net` and `supabase_vault` are all available on the free plan (queried `pg_available_extensions` on `ocm-main`).
-  - **Code location:** private GitHub repo `DonitaSalonga/online-certification-monitoring`; docs on `main`, code on `dev`.
+  - **Spike 6c / OQ3 answered:** `pg_cron`, `pg_net` and `supabase_vault` are all available on the free plan (queried `pg_available_extensions` on `icu-main`).
+  - **Code location:** private GitHub repo `DonitaSalonga/icu` (renamed from online-certification-monitoring on 2026-11-14); docs on `main`, code on `dev`.
   - **Still open for M1:** T1/T3 already pass; T28, T50 and T51 (browser) and spikes 6a, 6b, 6d, 6e.
 
 - 2026-11-14: M1 started on the user's "go".
@@ -220,6 +239,6 @@ Status (planned/in progress/done): in progress. Automated parts are done: T41, T
     - Integration tests for T10, T11 (backend part) and T13–T17, written and skipped until `.env.test` exists.
   - **Finding:** PostgreSQL 18 rejects `INSERT … ON CONFLICT (id) DO NOTHING` without a select policy, so the queue uses plain inserts instead (D4).
   - **OQ3, partly answered:** Supabase docs show `pg_cron` + `pg_net` + Vault calling an Edge Function. Free-plan availability isn't stated, so it will be checked on the project.
-  - **Blocked:** applying the migration and running integration tests, E2E tests and spikes 6a–6e, until the user creates `ocm-main`/`ocm-test` and the demo Google Form.
+  - **Blocked:** applying the migration and running integration tests, E2E tests and spikes 6a–6e, until the user creates `icu-main`/`icu-test` and the demo Google Form.
 
 - 2026-11-14: Plan created from IDEA.md Q1–Q25 and RESEARCH.md through `contextspine prompt propagate`. No code exists yet; M1 waits for the user's "go".
