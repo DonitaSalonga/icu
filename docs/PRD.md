@@ -102,10 +102,10 @@ Priority uses MoSCoW: **Must** is required for the demo, **Should** is expected 
 ## Assumptions
 
 - A1. All students are 18 or older (Q25). If minors take part, guardian consent is needed ([F23](RESEARCH.md#findings)).
-- A2. The demo exam is a Google Form whose URL stays inside one pattern for the whole test (`docs.google.com/forms/*`). **Unverified** until M1 ([RESEARCH Q6](RESEARCH.md#answers-to-the-open-questions)).
+- A2. The demo exam is a Google Form whose URL stays inside one pattern for the whole test (`docs.google.com/forms/*`). **Verified** 2026-11-14 on a public multi-section form (`/viewform` → `/formResponse`).
 - A3. Each exam window is at most 3 hours, and a session has at most 50 candidates. These are labelled estimates for sizing.
 - A4. Supabase's free tier includes Edge Functions and scheduled jobs (`pg_cron`) for R15 and R24. `pg_cron` and `pg_net` were **verified available** on 2026-11-14; Edge Functions are not yet deployed.
-- A5. Opening the extension popup doesn't fire `window_blur` on the exam window. **Unverified**, checked in M1 (R10).
+- A5. Opening the extension popup doesn't fire `window_blur` on the exam window. While the popup is open the service worker ignores focus changes (popup port). **Still to verify** with the real toolbar popup (T50).
 - A6. Times are shown in Asia/Manila. All storage uses UTC (`timestamptz`).
 - A7. Graders care more about a working demo than about a backend written from scratch ([IDEA.md § Assumptions](IDEA.md#assumptions)).
 
@@ -113,8 +113,8 @@ Priority uses MoSCoW: **Must** is required for the demo, **Should** is expected 
 
 | # | Question | Answered by |
 | --- | --- | --- |
-| OQ1 | DOM fullscreen (needs a user click on the page) or browser window fullscreen through `chrome.windows`? Which can be detected reliably on Google Forms? (R13) | M1 prototype |
-| OQ2 | Does Google Forms use iframes or SPA navigation that break R9 matching or the R12 content-script events? | M1 prototype |
+| OQ1 | DOM fullscreen (needs a user click on the page) or browser window fullscreen through `chrome.windows`? Which can be detected reliably on Google Forms? (R13) | **Answered:** browser-window fullscreen (D6). It survives Google Forms' page reloads between sections (verified 2026-11-14 on a real form) |
+| OQ2 | Does Google Forms use iframes or SPA navigation that break R9 matching or the R12 content-script events? | **Answered 2026-11-14:** no iframes. "Next" does a full reload from `/viewform` to `/formResponse`, and both match `docs.google.com/forms/*`. Clipboard events on form fields are recorded |
 | OQ3 | Are `pg_cron` and scheduled Edge Functions available on the free tier, and can a function delete Storage objects in bulk? (R24, A4) | **Partly answered 2026-11-14:** `pg_cron`, `pg_net` and Vault are available on the free plan (checked on `ocm-main`). Bulk Storage deletion from an Edge Function is still to be tested in M5 |
 | OQ4 | Does the university or adviser need a Privacy Impact Assessment or a named Data Protection Officer contact in the notice for a volunteer demo? ([IDEA.md open question 2](IDEA.md#open-questions-for-deep-search)) | User or adviser |
-| OQ5 | Are all dependency licences compatible with the project? ([IDEA.md open question 3](IDEA.md#open-questions-for-deep-search)) | Licence check in M6 |
+| OQ5 | Are all dependency licences compatible with the project? ([IDEA.md open question 3](IDEA.md#open-questions-for-deep-search)) | **Answered 2026-11-14:** all production dependencies are MIT or 0BSD |

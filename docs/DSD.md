@@ -29,13 +29,14 @@ The theme is light only in v1. Dark mode is a Could, and it would add a second s
 
 ### Colour
 
-All text and background pairs must reach 4.5:1 contrast (3:1 for large text and UI boundaries). Verify each pair with a contrast checker during M6; the hex values are Tailwind palette steps chosen to meet this, but they still need to be checked.
+All text and background pairs must reach 4.5:1 contrast (3:1 for large text and UI boundaries). **Verified 2026-11-14** by computing WCAG contrast for every pair: text and icon pairs are 5.02:1 to 17.74:1 (lowest: success green on white). The light border failed as a control boundary (1.47:1), so `--color-border-strong` was added.
 
 | Token | Value | Use | R# |
 | --- | --- | --- | --- |
 | `--color-bg` | `#FFFFFF` | Page background | all |
 | `--color-surface` | `#F9FAFB` (gray-50) | Cards, table header | all |
-| `--color-border` | `#D1D5DB` (gray-300) | Dividers, input borders | all |
+| `--color-border` | `#D1D5DB` (gray-300) | Dividers only (1.47:1, decorative) | all |
+| `--color-border-strong` | `#6B7280` (gray-500) | Boundaries of inputs, outlined buttons, chips, option cards (4.83:1, meets WCAG 1.4.11's 3:1) | R28 |
 | `--color-text` | `#111827` (gray-900) | Body text | all |
 | `--color-text-muted` | `#4B5563` (gray-600) | Secondary text, timestamps | all |
 | `--color-primary` | `#1D4ED8` (blue-700) | Primary buttons, links, focus ring | all |
