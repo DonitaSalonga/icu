@@ -31,6 +31,8 @@ export interface QueuedShot {
   /** JPEG bytes, base64 (chrome.storage holds JSON only). */
   data: string;
   failures: number;
+  /** A reserved slot while a failed capture is retried; never uploaded until resolved. */
+  pending?: boolean;
 }
 
 const EVENTS_KEY = 'icu-queue';
@@ -120,9 +122,26 @@ async function uploadShot(shot: QueuedShot): Promise<void> {
   if (rowError && rowError.code !== UNIQUE_VIOLATION) throw rowError;
 }
 
+/**
+ * Resolves a reserved screenshot slot: replaces it with the captured shot, or removes it and unlinks
+ * its events if every retry failed.
+ */
+export function resolvePendingShot(id: string, shot: QueuedShot | null): Promise<void> {
+  return withLock(async () => {
+    const shots = await get<QueuedShot>(SHOTS_KEY);
+    if (shot) {
+      await set(SHOTS_KEY, shots.map((s) => (s.id === id ? shot : s)));
+    } else {
+      await set(SHOTS_KEY, shots.filter((s) => s.id !== id));
+      await unlinkShots(new Set([id]));
+    }
+  });
+}
+
 async function flushShots(): Promise<void> {
   for (;;) {
-    const [shot] = await get<QueuedShot>(SHOTS_KEY);
+    // Reserved slots wait (their events wait with them, see flushEvents).
+    const shot = (await get<QueuedShot>(SHOTS_KEY)).find((s) => !s.pending);
     if (!shot) return;
     try {
       await uploadShot(shot);

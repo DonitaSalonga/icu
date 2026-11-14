@@ -17,7 +17,7 @@ import {
 import { NOT_DETECTED_DELAY_MS } from './env';
 import { createLock } from './lock';
 import { captureVisible, blobToBase64 } from './capture';
-import { enqueue, enqueueShot, flush } from './queue';
+import { enqueue, enqueueShot, flush, resolvePendingShot, type QueuedShot } from './queue';
 import { loadAttempt, serverNow, updateAttempt, type StoredAttempt } from './state';
 import { getSupabase } from './supabase';
 
@@ -79,14 +79,13 @@ async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Re
 }
 
 /** R16: captures and queues a screenshot; returns its id, or undefined after recording screenshot_failed. */
-async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' | 'violation', at: number): Promise<string | undefined> {
+/** Retries for a failed warning screenshot: a tab that was just opened has no page to capture yet. */
+const CAPTURE_RETRY_DELAYS_MS = [1500, 4000];
+
+async function shotFrom(attempt: StoredAttempt, id: string, reason: 'interval' | 'violation', at: number): Promise<QueuedShot | { error: string }> {
   const result = await captureVisible();
-  if (!result.ok) {
-    await enqueueEvent(attempt, 'screenshot_failed', { error: result.error.slice(0, 200) }, at);
-    return undefined;
-  }
-  const id = crypto.randomUUID();
-  await enqueueShot({
+  if (!result.ok) return { error: result.error };
+  return {
     id,
     attempt_id: attempt.attempt_id,
     session_id: attempt.session.id,
@@ -97,7 +96,46 @@ async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' |
     visible_path: result.visible?.path,
     data: await blobToBase64(result.blob),
     failures: 0,
-  });
+  };
+}
+
+/** Retries a reserved violation screenshot outside the lock; records screenshot_failed if all fail. */
+async function retryCapture(attempt: StoredAttempt, id: string, at: number): Promise<void> {
+  let lastError = '';
+  for (const delay of CAPTURE_RETRY_DELAYS_MS) {
+    await new Promise((r) => setTimeout(r, delay));
+    if ((await loadAttempt())?.state !== 'active') break;
+    const shot = await shotFrom(attempt, id, 'violation', serverNow(attempt));
+    if (!('error' in shot)) {
+      await resolvePendingShot(id, shot);
+      void flush();
+      return;
+    }
+    lastError = shot.error;
+  }
+  await resolvePendingShot(id, null);
+  await enqueueEvent(attempt, 'screenshot_failed', { error: (lastError || 'capture failed').slice(0, 200) }, at);
+  void flush();
+}
+
+/**
+ * R16: captures and queues a screenshot and returns its id. A failed violation capture reserves the
+ * slot and retries shortly (the first capture often lands before a newly opened tab has loaded); an
+ * interval capture that fails is recorded as screenshot_failed straight away.
+ */
+async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' | 'violation', at: number): Promise<string | undefined> {
+  const id = crypto.randomUUID();
+  const shot = await shotFrom(attempt, id, reason, at);
+  if ('error' in shot) {
+    if (reason === 'interval') {
+      await enqueueEvent(attempt, 'screenshot_failed', { error: shot.error.slice(0, 200) }, at);
+      return undefined;
+    }
+    await enqueueShot({ id, attempt_id: attempt.attempt_id, session_id: attempt.session.id, captured_at: new Date(at).toISOString(), reason, bytes: 1, data: '', failures: 0, pending: true });
+    void retryCapture(attempt, id, at);
+  } else {
+    await enqueueShot(shot);
+  }
   await updateAttempt({ shot: { lastCaptureAt: at, lastShotId: id } });
   return id;
 }

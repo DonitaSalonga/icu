@@ -1,7 +1,7 @@
 // M2 signal tests (QAD.md T28–T32, T35). Headless Chromium with the extension against icu-test.
 import type { Worker } from '@playwright/test';
-import { resetData } from '../supabase/scripts/testEnv';
-import { count, EXAM_URL, expect, OTHER_URL, startExam, test, waitForEvents } from './fixtures';
+import { resetData, serviceClient } from '../supabase/scripts/testEnv';
+import { count, events, EXAM_URL, expect, OTHER_URL, startExam, test, waitForEvents } from './fixtures';
 
 const examIds = (worker: Worker) =>
   worker.evaluate(async () => {
@@ -33,6 +33,13 @@ test('T28 (tabs) + T29: tab switch, new tab, visited URL, navigate off exam; war
   expect(visited.details).toEqual({ host: 'localhost:4173', path: '/other/page.html' });
   expect(JSON.stringify(rows)).not.toMatch(/secret|frag/);
   expect(count(rows, 'warning_shown')).toBe(1);
+
+  // The warning screenshot shows the site the student switched to. The first capture can land before
+  // the new tab has loaded; the extension retries (found in the 2026-11-15 demo run).
+  await expect
+    .poll(async () => (await serviceClient().from('screenshots').select('visible_path').eq('attempt_id', attemptId).eq('reason', 'violation')).data?.map((s) => s.visible_path), { timeout: 20_000 })
+    .toContain('/other/page.html');
+  expect(count(await events(attemptId), 'screenshot_failed')).toBe(0);
 
   // Banner host element exists on the exam page; a notification was created.
   await expect(exam.locator('icu-warning-banner')).toHaveCount(1);
