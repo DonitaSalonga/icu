@@ -173,6 +173,12 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Demo-run fixes on icu-main.
+  - **Problem:** a claude.ai visit had no screenshot. The 3 s grouping rule attached it to the earlier ChatGPT screenshot, and screenshots were only taken on warnings.
+  - **Fix:** every other website on screen now gets a `url_visited` event with its own screenshot (migration 008 adds `site_visit`), and grouping applies only when the same site is on screen.
+  - **Also:** a short-lived retry that captured the wrong page was removed.
+  - **Tests:** T56 added; T28 checks the visit's screenshot.
+
 - 2026-11-14: M7 done.
   - **Renamed to ICU** across UI, manifest, packages (`@icu/*`), error codes (`ICU_*`, migration 006), Vault names and job names. Supabase project display names must be renamed in the dashboard by the owner (the CLI can't).
   - **AI suggestion built and deployed to both projects:**
