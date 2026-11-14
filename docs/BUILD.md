@@ -97,7 +97,7 @@ Deliverables: Screenshots in Storage with linked events; storage policy tests.
 Exit criteria T#: T7, T18, T34.
 Risks: OffscreenCanvas or convertToBlob behaves differently in the MV3 worker; the fallback is an offscreen document with
       reason BLOBS ([F1](RESEARCH.md#findings)). Capture of restricted pages fails ([F6](RESEARCH.md#findings)), which is expected and logged.
-Status (planned/in progress/done): planned
+Status (planned/in progress/done): done (T7, T18, T34 pass; OffscreenCanvas works in the MV3 worker)
 ```
 
 ```text
@@ -160,6 +160,11 @@ Status (planned/in progress/done): planned
 ```
 
 ## Milestone log
+
+- 2026-11-14: M3 done.
+  - **Built:** migration 003 (screenshots, private bucket, path-scoped Storage policies), the coalescer, worker capture with downscale, and a persisted screenshot queue that uploads before linked events.
+  - **Tests:** T7, T18 and T34 pass. Fixture screenshots are about 10 KB each.
+  - **Bug found by T30 and fixed:** a screenshot queued during an in-flight upload was stranded until the next alarm. A flush requested mid-flush now re-runs afterwards.
 
 - 2026-11-14: M2 built and mostly verified.
   - **Built:**

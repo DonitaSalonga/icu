@@ -14,7 +14,7 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | **Manual** | Checklists in this file | The demo on Google Forms with two laptops, the browser-restart edge cases, keyboard and screen-reader passes, the privacy review | Demo laptops, Chrome stable | Third-party sites and assistive technology can't be automated reliably (A2, [F22](RESEARCH.md#findings)) |
 | **Non-functional** | DevTools Performance, build-size output, SQL storage queries, a grep script | Performance budgets, storage budget, secret leakage | Local | R25, R29 |
 
-**Test-only timing:** E2E builds set `WXT_OCM_TEST_TIMINGS=1`, which shortens the `exam_page_not_detected` delay from 120 s to 30 s (Chrome alarms can't fire sooner, [F9](RESEARCH.md#findings)) and the screenshot interval from 60 s to 10 s. The heartbeat (15 s) and the gap threshold (60 s) are **never** shortened, so T33 tests the real values. Each test using shortened timings says so.
+**Test-only timing:** E2E builds set `WXT_OCM_TEST_TIMINGS=1`, which shortens the `exam_page_not_detected` delay from 120 s to 30 s and the screenshot interval from 60 s to 30 s (Chrome alarms can't fire sooner, [F9](RESEARCH.md#findings)). The heartbeat (15 s) and the gap threshold (60 s) are **never** shortened, so T33 tests the real values. Each test using shortened timings says so.
 
 ## Environments and test data
 
@@ -68,7 +68,7 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T31 | R13 | E2E | Enter fullscreen through the chosen mechanism (OQ1), exit it; in a second attempt, never enter it | The first gives `fullscreen_enter` then `fullscreen_exit` with a warning; the second has no `fullscreen_exit`, and the review shows "Not in fullscreen" |
 | T32 | R9 | E2E (shortened timing) | Start with no matching tab open; wait 30 s | Exactly one `exam_page_not_detected` event |
 | T33 | R14 | E2E (real timing) | Active attempt for 2 min; then disable the extension at `chrome://extensions` for 90 s and re-enable it; then close the exam tab for 75 s and reopen it | Heartbeat intervals during normal operation are 15 ± 5 s; review shows one gap of about 90 s (±15 s) and one of about 75 s (±15 s) |
-| T34 | R16 | E2E (shortened timing) | Run idle for 35 s; then trigger 5 warning events within 3 s | About 3–4 interval screenshots (10 s interval); the burst gives exactly one violation screenshot linked to all 5 events; no `screenshot_failed` with a rate-limit error |
+| T34 | R16 | E2E (shortened timing) | Run idle for 65 s; then trigger 5 warning events within 3 s | 2–3 interval screenshots (30 s interval); the burst gives exactly one violation screenshot linked to all 5 events; no `screenshot_failed`; each image is ≤ 150 KB and exists in Storage at `{session}/{attempt}/{id}.jpg` |
 | T35 | R17 | E2E | With limit 3, trigger 4 warning events at least 11 s apart | Banners say "Warning 1 of 3" to "Warning 3 of 3", plus the limit-reached message; one `warning_limit_reached`; a 4th event is still recorded (monitoring continues) |
 | T36 | R8 | E2E | A session with `ends_at` = now + 60 s; start; wait 75 s; then switch tabs | The attempt is `ended` with `end_reason = time_window`; the popup says the exam ended; no events or heartbeats after `ended_at` |
 | T37 | R8 | E2E | During an active attempt, close the Playwright persistent context and relaunch it with the same user-data directory; wait 30 s | Monitoring resumes: new heartbeats arrive within 30 s of the relaunch, and the downtime shows as a gap |
