@@ -1,0 +1,30 @@
+{
+  "name": "@ocm/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@ocm/core": "*",
+    "@ocm/ui-tokens": "*",
+    "@supabase/supabase-js": "2.119.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@wxt-dev/module-react": "1.2.2",
+    "autoprefixer": "10.6.2",
+    "postcss": "8.5.33",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "wxt": "0.21.5"
+  }
+}

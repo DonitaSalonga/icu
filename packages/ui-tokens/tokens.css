@@ -1,0 +1,50 @@
+/* Design tokens from docs/DSD.md § Tokens. Components use these via the Tailwind preset; never raw colours. */
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f9fafb;
+  --color-border: #d1d5db;
+  --color-text: #111827;
+  --color-text-muted: #4b5563;
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-on-primary: #ffffff;
+  --color-risk-low-bg: #dcfce7;
+  --color-risk-low-fg: #166534;
+  --color-risk-med-bg: #fef3c7;
+  --color-risk-med-fg: #92400e;
+  --color-risk-high-bg: #fee2e2;
+  --color-risk-high-fg: #991b1b;
+  --color-danger: #b91c1c;
+  --color-gap: #fca5a5;
+  --color-success: #15803d;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.12);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.18);
+
+  --motion-fast: 120ms ease-out;
+  --motion-base: 200ms ease-out;
+  --motion-exit: 150ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms linear;
+    --motion-base: 0ms linear;
+    --motion-exit: 0ms linear;
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

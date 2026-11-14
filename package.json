@@ -1,0 +1,31 @@
+{
+  "name": "online-certification-monitoring",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "extension",
+    "dashboard"
+  ],
+  "scripts": {
+    "build": "npm run build -w extension && npm run build -w dashboard",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run --project core",
+    "test:integration": "vitest run --project integration",
+    "dev:extension": "npm run dev -w extension",
+    "dev:dashboard": "npm run dev -w dashboard",
+    "seed:test": "node supabase/scripts/seed.ts seed",
+    "reset:test": "node supabase/scripts/seed.ts reset",
+    "db:push": "supabase db push --linked"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.119.0",
+    "@types/node": "^24.19.2",
+    "supabase": "3.1.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
