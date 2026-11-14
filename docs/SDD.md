@@ -382,6 +382,21 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 3. It logs counts with `console.log`, which appear in the Supabase function logs.
 4. **Scheduler mechanism:** `pg_cron` runs a daily job that calls the function with `pg_net`, reading the project URL and secret key from Vault. This is the pattern in the Supabase docs ([schedule-functions](https://supabase.com/docs/guides/functions/schedule-functions)). All three extensions were verified available on the free plan on 2026-11-14 (OQ3).
 
+### F10. Whole-screen sharing and exam platforms (R33, decisions D9, D10)
+1. **Why it works this way:** Chrome lets only the page that requested a desktop share use its stream. A prototype on 2026-11-15 confirmed this: a stream ID handed to an offscreen document fails with "Error starting tab capture"; `getDisplayMedia` in an offscreen document fails with "Could not start video source"; and the picker can't open from the service worker. So the notice page holds the stream.
+2. **Start:**
+   1. After consent, "Share screen and start" calls `chrome.desktopCapture.chooseDesktopMedia(['screen'])` (entire screen only), then `getUserMedia` with `chromeMediaSource: 'desktop'`.
+   2. It sends `screen.started`; the service worker pins the tab as "ICU monitoring".
+   3. Only then does it send `attempt.start`. The service worker refuses Start unless `screen_sharing` is set (Q37).
+3. **Frames:** the service worker sends `monitor.grab`, and the monitoring page answers with an `ImageCapture.grabFrame()` JPEG (at most 1280 px, quality 0.5). Frames stay live while the tab is in the background; this was verified at +10 s and +70 s, headed and headless. The site in front is still recorded from the active tab.
+4. **Stop:** Chrome's "Stop sharing" (track `ended`), closing the tab (`tabs.onRemoved`), or a browser restart (checked in recovery) records `screen_share_stopped` (a warning). The popup shows "Share screen again", which opens `notice.html?reshare=1` and records `screen_share_started`.
+5. **Platforms:** what the admin types is stored in `url_patterns` and matched by `matchExamUrl`:
+   - a keyword is equal to one dot-separated label of the hostname;
+   - a domain matches itself and its subdomains;
+   - a domain plus path also requires the path prefix;
+   - patterns with `://` keep their glob meaning.
+6. **Other pages:** a different page inside the exam tab on the platform is recorded as `exam_page_changed` (weight 0, with a screenshot). Any other tab, even on the platform, is a `url_visited` with a screenshot.
+
 ### F9. AI suggestion (R32, decision D8)
 1. **Trigger:** an update of `attempts.status` to `ended` fires `private.on_attempt_ended()`, which inserts `ai_analyses(status = 'pending')` and calls the `ai-analyze` Edge Function asynchronously through `pg_net`, with the same Vault secrets and `x-icu-cron-secret` header as the retention job. It runs only when `app_settings.ai_auto` is true, which is false in icu-test so test runs don't spend model credits.
 2. **Missed ends:** attempts closed by the time window, or whose browser never reached End, are picked up by the `icu-ai-sweep` job (every 5 minutes, `ai_sweep_candidates`).

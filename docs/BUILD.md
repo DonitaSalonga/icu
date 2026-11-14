@@ -173,6 +173,13 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Design feedback round, plus whole-screen capture.
+  - **Dashboard:** removed the admin name from the header; URL patterns replaced by an **Exam platform** type box with chips; separate date and time boxes; risk-threshold inputs removed (server defaults 10/25).
+  - **Platforms (D10):** keyword, domain or domain + path. Other tabs on the platform count as visits; exam-tab page changes are logged.
+  - **Whole-screen capture (D9):** Chrome-researched, prototyped and verified. Migration 009 adds the new event types and updates `create_session` validation.
+  - **Tests:** T57–T59 added; T1, T12, T27, T39 and T41 updated.
+  - **Note:** in automated tests, "entire screen" is the real screen of the machine running them. Test screenshots go only to icu-test and are cleared after runs.
+
 - 2026-11-15: Demo-run fixes on icu-main.
   - **Problem:** a claude.ai visit had no screenshot. The 3 s grouping rule attached it to the earlier ChatGPT screenshot, and screenshots were only taken on warnings.
   - **Fix:** every other website on screen now gets a `url_visited` event with its own screenshot (migration 008 adds `site_visit`), and grouping applies only when the same site is on screen.
