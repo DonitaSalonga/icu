@@ -56,7 +56,7 @@ Exit criteria T#: T1, T3, T10, T13 (tables that exist in M1; re-run in M3 for sc
 Risks: Supabase auth in an MV3 worker misbehaves on restart ([F8](RESEARCH.md#findings), [F9](RESEARCH.md#findings)).
       Google Forms breaks URL matching (OQ2). No free-tier scheduler (OQ3); the fallback is a manual "Run cleanup"
       admin action plus the next login triggering cleanup, recorded as a decision.
-Status (planned/in progress/done): in progress (tasks 1, 3, 4, 5 and 7 written; 2 written but not yet applied to Supabase; spikes 6a–6e waiting)
+Status (planned/in progress/done): in progress (tasks 1–5 and 7 done; spike 6c done; spikes 6a, 6b, 6d, 6e waiting for the demo Google Form and a browser run)
 ```
 
 ```text
@@ -160,6 +160,14 @@ Status (planned/in progress/done): planned
 ```
 
 ## Milestone log
+
+- 2026-11-14: Supabase set up with the CLI.
+  - **Projects:** `ocm-main` (ref `jrmvczctkzhmuuxclhpm`) and `ocm-test` (ref `jyoxiircwkyxkxdnklrc`), free plan, `ap-southeast-1`. Migrations 001 and 002 applied to both.
+  - **Tests on real Supabase (PostgreSQL 17):** integration tests T10, T11 (backend part) and T13–T17 pass, 5 of 5. Exit criteria met for these: T10, T13, T14, T15, T16, T17.
+  - **Advisor hardening (migration 002):** policy helpers moved to a `private` schema; trigger functions no longer client-callable. The remaining advisor warnings are the four intended RPCs, plus leaked-password protection (not enabled).
+  - **Spike 6c / OQ3 answered:** `pg_cron`, `pg_net` and `supabase_vault` are all available on the free plan (queried `pg_available_extensions` on `ocm-main`).
+  - **Code location:** private GitHub repo `DonitaSalonga/online-certification-monitoring`; docs on `main`, code on `dev`.
+  - **Still open for M1:** T1/T3 already pass; T28, T50 and T51 (browser) and spikes 6a, 6b, 6d, 6e.
 
 - 2026-11-14: M1 started on the user's "go".
   - **Done:**
