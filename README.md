@@ -26,7 +26,8 @@ Student's Chrome                         Supabase Cloud (free tier)             
 - The admin creates an **exam session** (name, exam URL pattern, time window, warning limit) and gives students its 6-character **code**.
 - The student signs in to the extension, enters the code, reads and accepts the privacy notice (Philippine Data Privacy Act, RA 10173), and clicks **Start**. Monitoring runs only on matching exam pages and only until End or the session's end time.
 - Events and screenshots upload to Supabase. A heartbeat every 15 s means that silence of more than 60 s shows up as **monitoring lost**, for example when the extension is disabled or the exam tab is closed.
-- The admin sees each candidate's risk level (Low/Medium/High), a timeline with screenshots, and records a verdict. Data is deleted automatically after 30 days, or earlier by the admin.
+- When the exam ends, an **AI suggestion** is generated automatically. An anonymous activity timeline goes to an analysis model (TypeSafe Jev) as one question, and the admin sees the suggested result (for example "Likely cheating: used AI or the web · 82%") with confidence.
+- The admin sees each candidate's risk level (Low/Medium/High), the AI suggestion, a timeline with screenshots, and records the verdict. The suggestion never decides. Data is deleted automatically after 30 days, or earlier by the admin.
 
 ## Repository layout
 
@@ -65,7 +66,11 @@ scripts/            check-secrets.mjs (T44)
    npx supabase secrets set --project-ref <ref> ICU_CRON_SECRET='<cron secret>'
    npx supabase functions deploy uninstall-beacon --project-ref <ref> --no-verify-jwt --use-api
    npx supabase functions deploy retention-cleanup --project-ref <ref> --no-verify-jwt --use-api
+   npx supabase functions deploy ai-analyze --project-ref <ref> --no-verify-jwt --use-api
+   # AI suggestion: the model key lives only in the function secret.
+   npx supabase secrets set --project-ref <ref> TYPESAFE_API_KEY='<key>'
    ```
+   For a project used only for automated tests, turn automatic analysis off so test runs don't spend model credits: `npx supabase db query --remote "update public.app_settings set ai_auto = false"`.
 6. **Optional, for a quick demo:** in icu-main → Authentication → Sign In / Providers → Email, turn off **Confirm email**. Otherwise new users must click the email link before they can sign in.
 
 ## Run
