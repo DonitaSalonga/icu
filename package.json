@@ -16,7 +16,7 @@
     "dev:dashboard": "npm run dev -w dashboard",
     "seed:test": "node supabase/scripts/seed.ts seed",
     "reset:test": "node supabase/scripts/seed.ts reset",
-    "db:push": "supabase db push --linked"
+    "db:push": "supabase db push --remote"
   },
   "devDependencies": {
     "@supabase/supabase-js": "2.119.0",
