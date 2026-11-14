@@ -225,7 +225,7 @@ The weights are fixed in code (Q13: no per-event weight editing). Only the thres
 
 ### Database RPCs
 
-These are Postgres functions called with `supabase.rpc`, all `security definer` with `set search_path = public` (R25). Each checks `auth.uid()` and the caller's role first and raises a coded error (`OCM_*`) on failure.
+These are Postgres functions called with `supabase.rpc`, all `security definer` with an empty `search_path` and fully qualified names (R25). The row-level-security helper functions (`is_session_admin`, `can_write_attempt`, etc.) live in a `private` schema that the Data API doesn't expose, so they aren't callable as endpoints (migration 002, decision D5). Each checks `auth.uid()` and the caller's role first and raises a coded error (`OCM_*`) on failure.
 
 | Function | Caller | Input | Output | Errors | R# |
 | --- | --- | --- | --- | --- | --- |
@@ -379,7 +379,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 1. A daily scheduled job at 03:00 Asia/Manila calls `retention-cleanup` with the header `x-ocm-cron-secret`.
 2. For each expired attempt, the function runs the same removal as F6 step 5 using the service role.
 3. It logs counts with `console.log`, which appear in the Supabase function logs.
-4. **Scheduler mechanism** (`pg_cron` with `pg_net`, or Supabase's scheduled functions): OQ3, M1 spike.
+4. **Scheduler mechanism:** `pg_cron` runs a daily job that calls the function with `pg_net`, reading the project URL and secret key from Vault. This is the pattern in the Supabase docs ([schedule-functions](https://supabase.com/docs/guides/functions/schedule-functions)). All three extensions were verified available on the free plan on 2026-11-14 (OQ3).
 
 ## Technology choices
 
