@@ -1,0 +1,120 @@
+# online-certification-monitoring — Product requirements
+
+What the product must do, derived from [IDEA.md](IDEA.md) and [RESEARCH.md](RESEARCH.md).
+Updated: 2026-11-14
+Status: draft for user review. Source: design interview Q1–Q25 recorded in [IDEA.md](IDEA.md#decisions-interview-q1q25).
+
+## Problem summary
+
+Online certification tests are often run on third-party sites (Google Forms, Coursera, LMS quizzes). The examiner can't see what candidates do in their browser during the test: switching to an AI assistant, searching, or pasting answers leaves no trace ([IDEA.md § Problem statement](IDEA.md#problem-statement)). Institutions already pay for proctoring tools like Respondus, Honorlock and Proctorio ([RESEARCH F17–F19](RESEARCH.md#findings)), and online assessment volume is large ([F15](RESEARCH.md#findings)). No evidence was found of demand for this specific tool, so the "Large enough" and "Urgent" screens remain weak ([IDEA.md § Problem screening](IDEA.md#problem-screening)). This product is a university project. It's judged on a working end-to-end demo, not market traction.
+
+The product records browser activity during an exam window and gives an examiner evidence for **human review**. It supports a decision; it doesn't prove cheating ([RESEARCH § Risks](RESEARCH.md#risks)).
+
+## Target users and their jobs
+
+| User | Who | Jobs to be done |
+| --- | --- | --- |
+| **Student** (candidate) | An adult (18 or older) taking an online test on a third-party site in Chrome or another Chromium browser, with the extension installed | Join the right exam quickly; understand exactly what is collected before agreeing; take the test without the tool getting in the way; know immediately when an action counts as a violation |
+| **Admin** (examiner) | A teacher or exam organiser using the web dashboard | Set up a monitored exam in minutes; give students a code; after the exam, see which candidates need attention; review each one's timeline and screenshots; record a fair verdict; delete data on request |
+
+## Goals and non-goals
+
+**Goals**
+- G1. Make in-browser misconduct visible: leaving the exam tab, other sites, pasting, leaving fullscreen.
+- G2. Make tampering visible: a disabled extension or closed exam tab shows up as a monitoring gap.
+- G3. Let an admin triage a session in under a minute using risk levels, then review one candidate in detail.
+- G4. Respect the Philippine Data Privacy Act of 2012 (RA 10173) and the NPC education-sector advisory ([F23](RESEARCH.md#findings)): informed consent, data minimisation, limited retention, and human review of every flag.
+- G5. Deliver the two-laptop demo agreed in [IDEA.md § Definition of done](IDEA.md#definition-of-done-q17).
+
+**Non-goals** (from [IDEA.md § Features](IDEA.md#features))
+- Preventing cheating. The tool detects and records; it never blocks the browser or ends an exam on its own.
+- Webcam, face detection, microphone or live video proctoring.
+- Detecting phones, other people, other devices, other browsers or incognito windows.
+- Banned-extension detection.
+- Firefox or Safari, and publishing to the Chrome Web Store.
+- Students under 18 or guardian consent.
+- Admin invites, organisations or multi-admin sessions.
+- Analytics or reporting pages beyond the four dashboard screens.
+- A local Supabase or Docker setup.
+
+## Scope
+
+**Version 1 (this project):** everything in [Requirements](#requirements), with these parts:
+- The extension: popup, privacy-notice page, service worker and content script.
+- The admin dashboard, with four screens.
+- The Supabase Cloud free-tier backend: Auth, Postgres with row-level security, Storage, Edge Functions and scheduled jobs.
+- A README, automated tests, and a scripted demo.
+
+**Later (not committed):**
+- Live "online/offline" status using Supabase Presence ([IDEA.md Q22](IDEA.md#decisions-interview-q1q25)).
+- Admin invites to replace self-chosen roles.
+- A "My data" page for students.
+- Chrome Web Store publishing.
+- Guardian consent for minors.
+
+## Requirements
+
+Priority uses MoSCoW: **Must** is required for the demo, **Should** is expected in v1 but can slip with a recorded reason, and **Could** is a stretch goal.
+
+| ID | Requirement | Type (functional/non-functional) | Priority | Acceptance criteria |
+| --- | --- | --- | --- | --- |
+| R1 | **Role chooser.** On first launch, before sign-in, the extension popup and the dashboard both ask "Sign up as Student or Admin". In the extension, choosing Admin opens the dashboard in a new tab. On the dashboard, choosing Student shows "Install the extension to take exams" with installation steps. | functional | Must | 1) With no signed-in user, the chooser is the first screen in both apps. 2) Extension → Admin opens the dashboard URL in a new tab and shows nothing else. 3) Dashboard → Student shows the install message and no sign-up form. 4) Choosing the matching role leads to that app's sign-up or login. |
+| R2 | **Sign-up and login.** Email and password through Supabase Auth. Sign-up collects full name, email, password and the role from R1. The role is stored on the user's profile and can't be changed by the user afterwards. | functional | Must | 1) A new student and a new admin can each sign up and log in. 2) The profile row has the chosen role and full name. 3) Updating one's own role through the API fails. 4) Wrong credentials show an error and no session. 5) Sign-out clears the session in that app. |
+| R3 | **Wrong-role rejection.** Admin accounts can't join or start an exam in the extension. Student accounts can't use the dashboard. | functional | Must | 1) An admin signing in to the extension sees "This is an admin account. Use the dashboard." and a link, with no Join form. 2) A student signing in to the dashboard sees "This is a student account. Use the Chrome extension." and no dashboard data. 3) Row-level security also blocks these at the API level (R25). |
+| R4 | **Create exam session.** The admin enters a name, one or more exam URL patterns, a start and end time, a warning limit (1–10, default 3), and risk thresholds (Medium ≥ 10, High ≥ 25 by default). The system generates a unique 6-character session code from an alphabet without look-alike characters. | functional | Must | 1) Saving a valid form creates the session and shows its code. 2) The end must be after the start, and at least one pattern is required; invalid input shows inline errors. 3) Codes are unique across all sessions. 4) The URL pattern syntax is documented in the form's help text. |
+| R5 | **Sessions list.** The admin sees only their own sessions: name, code, start and end, status (Upcoming / Active / Ended, from the clock), number of candidates, and the number of High-risk candidates. | functional | Must | 1) Another admin's sessions never appear. 2) Status matches the current time against the window. 3) Clicking a row opens session detail (R19). 4) An empty state explains how to create the first session. |
+| R6 | **Join by code.** A signed-in student enters a code in the extension and sees the session name, the admin's name and email, and the time window. They can join only while the session isn't over. | functional | Must | 1) A valid code shows the session summary. 2) An unknown code shows "Code not found". 3) An ended session shows "This exam has ended". 4) Before the start time, the student can join but Start stays disabled until the start time, with a countdown. 5) Joining twice returns the same attempt; there's one attempt per student per session. |
+| R7 | **Privacy notice and consent.** Before Start, a full-page privacy notice lists every data item collected (per R26), why, who can see it (that session's admin), the retention (30 days, R24), the student's rights under RA 10173, and how to request deletion (the admin's email). The student must tick "I am 18 or older" and "I agree" before Start is enabled. The consent time and notice version are stored. | functional, non-functional (privacy) | Must | 1) Start is disabled until both boxes are ticked. 2) The attempt stores `consent_at`, `consent_version` and `age_confirmed = true`. 3) The notice text matches the data actually collected (checked in review). 4) Declining leaves no events, heartbeats or screenshots. |
+| R8 | **Monitoring lifecycle.** Monitoring starts when the student clicks Start. It ends when they click End exam, or automatically at the session end time. Nothing is collected before Start or after the end. A student has at most one active attempt. Monitoring resumes after a service-worker or browser restart while the attempt is still active. | functional | Must | 1) No events, heartbeats or screenshots exist outside `started_at` to `ended_at`. 2) At the end time the attempt ends with reason `time_window`, and the popup says so. 3) Restarting Chrome mid-attempt resumes monitoring within 30 s of the browser reopening; the downtime appears as a gap (R14). 4) A second Start while one attempt is active is refused. |
+| R9 | **Exam page detection.** On Start, the extension finds the exam tab: the active tab if it matches a session URL pattern, otherwise the first matching tab opened later. Navigating the exam tab to a non-matching URL records `navigated_off_exam`. If no matching tab is seen within 120 s of Start, it records `exam_page_not_detected`. | functional | Must | 1) Starting while on a matching Google Forms URL binds that tab. 2) Navigating it to a non-matching site records `navigated_off_exam` with host and path. 3) With no matching tab for 120 s, exactly one `exam_page_not_detected` event is recorded. 4) Matching is done in code against the tab URL, not with host permissions ([F11](RESEARCH.md#findings)). |
+| R10 | **Focus loss.** The extension records when the exam tab stops being visible (another tab selected: `exam_tab_hidden` / `exam_tab_visible`) and when the browser window loses focus to another app or window (`window_blur` / `window_focus`). Each "return" event carries the time spent away in ms. | functional | Must | 1) Switching to another tab and back records both events, and the away duration is within ±1 s of actual. 2) Alt-tabbing to another app and back records `window_blur` / `window_focus`. 3) Opening the extension's own popup doesn't count as leaving (verified in M1, [BUILD.md](BUILD.md)). |
+| R11 | **New tabs and visited URLs.** During an attempt, the extension records `tab_opened` for new tabs or windows and `url_visited` for each top-level URL shown in any tab. URLs are stored as host and path only, without the query string or fragment. | functional | Must | 1) Opening chatgpt.com in a new tab records `tab_opened` and `url_visited` with host `chatgpt.com`. 2) No stored URL contains `?` or `#`. 3) Nothing is recorded outside an active attempt (R8). |
+| R12 | **Clipboard and context menu.** On the exam page, the extension records `copy`, `cut`, `paste` and `context_menu` events. Clipboard content is never read or stored. | functional | Must | 1) Each action on the exam page records one event of the right type. 2) The event details contain no clipboard text. 3) The same actions on other tabs aren't recorded as clipboard events. |
+| R13 | **Fullscreen.** On Start, the student is asked to enter fullscreen, and the extension records `fullscreen_enter` and `fullscreen_exit` for the exam window. Never entering fullscreen is shown to the admin as "Not in fullscreen", not as an exit. | functional | Must | 1) Entering and leaving fullscreen records both events. 2) A student who never enters fullscreen has no `fullscreen_exit` events, and the review shows "Not in fullscreen". 3) The method used (DOM fullscreen or browser window fullscreen) is decided in M1 and recorded in [SDD.md](SDD.md#key-flows) ([F10](RESEARCH.md#findings)). |
+| R14 | **Heartbeat and monitoring gaps.** While an attempt is active and the exam tab is open, the extension sends a heartbeat every 15 s, with a 30 s alarm as backup ([F9](RESEARCH.md#findings)). The server records its own receive time. Any interval longer than 60 s without a heartbeat is a **monitoring lost** gap. This includes from Start to the first heartbeat and from the last heartbeat to the end, or to now if the attempt is still active. | functional | Must | 1) Normal operation produces heartbeats 15 s ± 5 s apart. 2) Disabling the extension for 90 s shows one gap of about 90 s. 3) Closing the exam tab stops heartbeats and produces a gap. 4) Gaps use server timestamps only, so changing the client clock has no effect. |
+| R15 | **Uninstall beacon.** The extension registers an uninstall URL carrying an opaque, single-use token for the active attempt. When the URL is opened, it records `extension_uninstalled`. It's best effort and never used as the only evidence ([F12](RESEARCH.md#findings)). | functional | Could | 1) Uninstalling during an attempt records `extension_uninstalled` when Chrome opens the URL. 2) The URL contains no personal data and no auth token. 3) Reusing a token has no effect. |
+| R16 | **Screenshots.** During an attempt, the extension captures the visible tab of the last-focused browser window every 60 s, plus on each warning-triggering event (R17). Events within 3 s of each other share one screenshot. Captures stay under Chrome's 2-per-second limit ([F6](RESEARCH.md#findings)). Images are JPEG (quality about 50, longest side at most 1280 px) uploaded to private storage and linked to their events. Failures record `screenshot_failed` with the error. | functional | Must | 1) A 10-minute attempt with no violations has about 10 screenshots. 2) Five violations within 3 s produce one screenshot linked to all five events. 3) No capture call fails because of the rate limit. 4) The median image is at most 150 KB. 5) A blocked capture (e.g. on a `chrome://` page) records `screenshot_failed`. |
+| R17 | **Live warnings and warning limit.** The warning-triggering events are `exam_tab_hidden`, `window_blur`, `navigated_off_exam`, `paste` and `fullscreen_exit`. Each shows a banner on the exam page and a Chrome notification: "⚠️ Warning k of N: <reason>". There's a 10 s cool-down, so a burst produces one warning. When k reaches N, the attempt records `warning_limit_reached`, which forces High risk. The exam is never ended or blocked. | functional | Must | 1) A tab switch shows the banner and notification within 2 s. 2) Two violations 3 s apart produce one warning. 3) The banner shows "Warning k of N" with N from the session. 4) After N warnings, `warning_limit_reached` is recorded once, and monitoring continues. 5) Each warning is stored as a `warning_shown` event. |
+| R18 | **Risk scoring.** Each attempt's score is the sum of event weights plus 8 per monitoring gap (weights are fixed in [SDD.md § Risk scoring](SDD.md#risk-scoring)). The level is Low, Medium or High based on the session's thresholds. `warning_limit_reached` forces High. | functional | Must | 1) Unit tests cover every weight, both threshold boundaries and the High override. 2) The dashboard and the tests use the same scoring function. 3) Changing a session's thresholds re-levels its attempts without changing the stored events. |
+| R19 | **Session detail.** A table of the session's candidates: full name, email, attempt status, start and end, warning count, score, risk level badge and verdict. Sortable by risk, with High first by default. | functional | Must | 1) It shows only this session's attempts. 2) Risk badges match R18. 3) Sorting works on risk, name and start time. 4) Clicking a row opens candidate review (R20). |
+| R20 | **Candidate review timeline.** A chronological timeline of the attempt's events, with monitoring gaps (R14) shown as red bars, filters by event type, and a risk breakdown (count and points per type). A "Not in fullscreen" notice appears when relevant (R13). | functional | Must | 1) Events are in time order, with local time (Asia/Manila) to the second. 2) Every gap appears with its start, end and duration. 3) Filters hide and show types without reloading the page. 4) The breakdown totals equal the score in R18. |
+| R21 | **Screenshot gallery.** A grid of the attempt's screenshots in time order. Clicking an event opens its linked screenshot, and clicking a screenshot shows the events linked to it. Images load through short-lived signed URLs. | functional | Must | 1) Every linked screenshot opens from its event. 2) Images are lazy-loaded. 3) Signed URLs expire within 1 h. 4) Another admin can't load the images, even with the path. |
+| R22 | **Verdict.** The admin sets Cleared, Suspicious or Cheating confirmed for an attempt, with an optional note of up to 1,000 characters. The reviewer and time are stored. The verdict can be changed later. | functional | Must | 1) Saving shows the verdict in session detail. 2) The reviewer ID and time are stored. 3) A student can't read or change the verdict through the API. |
+| R23 | **Delete candidate data.** The admin can delete one attempt's events, heartbeats and screenshots (including the Storage files) after a confirmation dialog. The attempt row is kept with `data_deleted_at` set. | functional, non-functional (privacy) | Must | 1) After deleting, there are no events, heartbeats or screenshots for the attempt and no files under its Storage path. 2) The review page shows "Data deleted on <date>". 3) Only the session's admin can delete. |
+| R24 | **30-day retention.** Events, heartbeats and screenshots (including Storage files) are deleted automatically 30 days after an attempt ends, by a daily scheduled job. | non-functional (privacy) | Must | 1) Data older than 30 days after `ended_at` is gone within 24 h. 2) Newer data is untouched. 3) The job's runs are visible in the Supabase logs. |
+| R25 | **Access control.** Row-level security on every table and storage bucket: admins can read and update only their own sessions and those sessions' attempts, events, heartbeats and screenshots. Students can read only their own profile, attempts and session summary. Students can insert only into their own active attempt, and can't update or delete any monitoring data. No service-role or secret key ships in either client ([F14](RESEARCH.md#findings)). | non-functional (security) | Must | 1) An automated test suite proves each allowed and denied case with real test users. 2) Grepping the built extension and dashboard bundles finds no service-role key. 3) Students can't list sessions; they reach a session only through its code (R6). |
+| R26 | **Data minimisation.** The only data collected is the R2 account data, the event types in R9–R17, URLs as host and path (R11), heartbeats and screenshots. No webcam, microphone, clipboard content, keystrokes, page text or browsing outside an active attempt. | non-functional (privacy) | Must | 1) A code review against this list finds no other collection. 2) The privacy notice (R7) lists exactly these items. |
+| R27 | **Compatibility.** The extension is Manifest V3 and works on desktop Chrome 120 or later; Edge and Brave are best effort. The dashboard works in current Chrome, Edge, Firefox and Safari. | non-functional | Must | 1) The demo scenario passes on Chrome stable. 2) The manifest declares `minimum_chrome_version: "120"`. |
+| R28 | **Accessibility.** The extension UI (popup, notice page, banner) and the dashboard meet WCAG 2.2 AA as specified in [DSD.md § Accessibility](DSD.md#accessibility). | non-functional | Should | 1) Automated axe checks pass with no serious or critical issues. 2) Every flow works with the keyboard alone. 3) The warning banner is announced by screen readers. |
+| R29 | **Performance and storage budget.** Monitoring adds no noticeable lag to the exam page: each content-script handler runs in at most 5 ms. Screenshot storage stays at or below 10 MB per candidate-hour ([F25](RESEARCH.md#findings)). The candidate review page renders a 1-hour attempt in 2 s or less on a typical laptop. | non-functional | Should | 1) The performance profile shows handlers ≤ 5 ms. 2) Measured storage for a 1-hour test attempt is ≤ 10 MB. 3) Candidate review is interactive in ≤ 2 s on the demo laptop. |
+| R30 | **Offline buffering.** If the network drops, events and screenshots are queued locally with their original times and uploaded when the connection returns. Heartbeats aren't queued, so offline time still appears as a gap. | non-functional (reliability) | Should | 1) Going offline for 2 minutes and then online uploads every queued event with its original `occurred_at`. 2) The timeline shows a gap for the offline period. 3) The queue keeps at most 1,000 events and 20 screenshots, dropping the oldest screenshots first and recording that it did. |
+| R31 | **README and automated tests.** The README covers prerequisites, Supabase project setup, environment variables, running both apps, loading the extension unpacked, running tests and running the demo. Automated tests cover risk scoring, gap detection, burst coalescing, URL matching, warning cool-down and row-level security. | non-functional | Must | 1) A new developer can follow the README to a working demo. 2) `npm test` passes. 3) The tests listed in [QAD.md](QAD.md) exist and pass. |
+
+## Success metrics
+
+- **M-demo:** the [IDEA.md definition of done](IDEA.md#definition-of-done-q17) runs start to finish on two laptops without manual database edits.
+- **M-detect:** in the scripted demo, 100% of performed actions appear on the timeline: tab switch, ChatGPT visit, paste, fullscreen exit, and a ≥ 60 s extension disable.
+- **M-false-flags:** in a 15-minute "honest" run (answering a Google Form without leaving it), the attempt is Low risk with 0 warnings.
+- **M-triage:** a reviewer unfamiliar with the project finds the High-risk candidate and the screenshot of the ChatGPT visit within 60 s of opening the session.
+- **M-tests:** all automated tests in [QAD.md](QAD.md) pass, and every requirement has at least one test.
+- **M-budget:** a 1-hour attempt uses ≤ 10 MB of storage (R29).
+
+## Assumptions
+
+- A1. All students are 18 or older (Q25). If minors take part, guardian consent is needed ([F23](RESEARCH.md#findings)).
+- A2. The demo exam is a Google Form whose URL stays inside one pattern for the whole test (`docs.google.com/forms/*`). **Unverified** until M1 ([RESEARCH Q6](RESEARCH.md#answers-to-the-open-questions)).
+- A3. Each exam window is at most 3 hours, and a session has at most 50 candidates. These are labelled estimates for sizing.
+- A4. Supabase's free tier includes Edge Functions and scheduled jobs (`pg_cron`) for R15 and R24. **Unverified**, checked in M1.
+- A5. Opening the extension popup doesn't fire `window_blur` on the exam window. **Unverified**, checked in M1 (R10).
+- A6. Times are shown in Asia/Manila. All storage uses UTC (`timestamptz`).
+- A7. Graders care more about a working demo than about a backend written from scratch ([IDEA.md § Assumptions](IDEA.md#assumptions)).
+
+## Open questions
+
+| # | Question | Answered by |
+| --- | --- | --- |
+| OQ1 | DOM fullscreen (needs a user click on the page) or browser window fullscreen through `chrome.windows`? Which can be detected reliably on Google Forms? (R13) | M1 prototype |
+| OQ2 | Does Google Forms use iframes or SPA navigation that break R9 matching or the R12 content-script events? | M1 prototype |
+| OQ3 | Are `pg_cron` and scheduled Edge Functions available on the free tier, and can a function delete Storage objects in bulk? (R24, A4) | M1 spike, Supabase docs |
+| OQ4 | Does the university or adviser need a Privacy Impact Assessment or a named Data Protection Officer contact in the notice for a volunteer demo? ([IDEA.md open question 2](IDEA.md#open-questions-for-deep-search)) | User or adviser |
+| OQ5 | Are all dependency licences compatible with the project? ([IDEA.md open question 3](IDEA.md#open-questions-for-deep-search)) | Licence check in M6 |
