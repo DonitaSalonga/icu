@@ -336,6 +336,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
   - On `warn(n)`, the worker sends `sw.showWarning` to the exam tab, creates a `chrome.notifications` notification, and queues `warning_shown`.
   - On `warn_and_limit(n)`, it also queues `warning_limit_reached` once.
   - If the exam tab isn't the active tab (for example on `exam_tab_hidden`), the banner is still sent, so the student sees it on return, and the notification shows immediately.
+- **Site visits (added 2026-11-15):** `onSiteMaybeVisible(tabId)` runs 0.4 s after a tab loads or is switched to, 1.2 s after an in-app URL change, and when a window gains focus. If that tab is active, loaded, and showing a non-exam site that wasn't recorded for this tab in the last 10 s, it records `url_visited` (host + path) with a screenshot of that window. It reuses a same-site warning screenshot from the last 3 s if there is one, and keeps captures at least 600 ms apart. Background tabs the student never looks at aren't recorded as visits. A warning capture that lands before a new tab has loaded is skipped silently, because the site-visit capture follows.
 - **Screenshots:**
   1. `chrome.windows.getLastFocused({ windowTypes: ['normal'] })`, then `chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 50 })`.
   2. The worker decodes the image with `createImageBitmap`, downscales it so the longest side is at most 1280 px with `OffscreenCanvas`, re-encodes it with `convertToBlob({ type: 'image/jpeg', quality: 0.5 })`, and queues the upload.

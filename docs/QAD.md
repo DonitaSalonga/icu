@@ -85,6 +85,7 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T48 | R31 | Manual | A team member follows the README from a fresh clone on a clean machine, through to running `npm test` and the demo | It completes without help; any missing step is logged as an S2 defect |
 | T49 | Success metric M-false-flags | Manual (15 min) | Answer a Google Form normally without leaving it, starting in fullscreen | Low risk, 0 warnings |
 | T50 | R10 (A5) | E2E + manual | During an active attempt, open and close the extension popup 3 times; show a Chrome notification and click it | No `window_blur`, `exam_tab_hidden` or warning caused by the popup; the notification-click result is recorded in [SDD § Key flows](SDD.md#key-flows) |
+| T56 | R11, R16 | E2E | During an attempt, open other site A, then other site B, switch back to A, and navigate inside A with `history.pushState` (single-page app style) | `url_visited` for all three paths, each with a screenshot showing that page (`site_visit`, or the same-site warning shot from moments earlier); no `screenshot_failed` |
 | T52 | R32 | Unit | `buildAnalysisState` on a seeded attempt; on 400+ events | Ordered mm:ss timeline with site, away_s, screenshot_shows and gaps; no names, emails, UUIDs or absolute times in the state; capped at 200 rows keeping important events; exactly one Choice question |
 | T53 | R32 | Unit | Compare option keys and gap rules | Model question keys = dashboard label keys = `SUGGESTIONS`; `gapsFor` equals `findGaps` |
 | T54 | R32, R23 | Integration (real model, 2 requests) | Seed a ChatGPT-and-paste attempt; turn `ai_auto` on; the student ends the attempt; then Re-analyze as the session admin, another admin and the student; delete the data | The trigger produces `done` with a `cheating_*` suggestion, probabilities summing to 1 and model `jev*`. Only the session admin can read and re-request; a second request within 30 s doesn't start another; deletion removes the row; no secret → 401 |
@@ -131,12 +132,12 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | R8 | T15, T16, T27, T36, T37 |
 | R9 | T1, T29, T32 |
 | R10 | T28, T50 |
-| R11 | T2, T29 |
+| R11 | T2, T29, T56 |
 | R12 | T30 |
 | R13 | T31 |
 | R14 | T3, T17, T22, T33, T51 |
 | R15 | T23 |
-| R16 | T7, T34, T43 |
+| R16 | T7, T34, T43, T56 |
 | R17 | T6, T28, T35 |
 | R18 | T4, T5, T9 |
 | R19 | T22, T39 |
