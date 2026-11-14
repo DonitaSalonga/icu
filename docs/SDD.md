@@ -230,7 +230,7 @@ These are Postgres functions called with `supabase.rpc`, all `security definer` 
 | Function | Caller | Input | Output | Errors | R# |
 | --- | --- | --- | --- | --- | --- |
 | `create_session` | admin | `{ name, url_patterns[], starts_at, ends_at, warning_limit?, threshold_medium?, threshold_high? }` | `{ id, code }` | `OCM_NOT_ADMIN`, `OCM_INVALID_INPUT` | R4 |
-| `join_session` | student | `{ code }` | `{ attempt_id, status, session: { id, name, admin_name, admin_email, starts_at, ends_at, url_patterns, warning_limit } }`; creates the attempt if it doesn't exist | `OCM_NOT_STUDENT`, `OCM_CODE_NOT_FOUND`, `OCM_SESSION_ENDED` | R6 |
+| `join_session` | student | `{ code }` | `{ attempt_id, status, session: { id, name, admin_name, admin_email, starts_at, ends_at, url_patterns, warning_limit } }`; creates the attempt if it doesn't exist. An unknown code returns `{ error: 'OCM_CODE_NOT_FOUND' }` as a result (not an exception), so the failure recorded for the rate limit isn't rolled back (D7) | `OCM_NOT_STUDENT`, `OCM_RATE_LIMITED`, `OCM_SESSION_ENDED` | R6 |
 | `start_attempt` | student | `{ attempt_id, consent_version, age_confirmed }` | `{ started_at, ends_at, uninstall_token, server_now }`. The extension uses `server_now` to correct its clock, and event times must fall within the attempt window ±2 min. Idempotent: starting an active attempt again returns the same values. It also closes the caller's attempts whose session window has passed | `OCM_NOT_OWNER`, `OCM_NOT_OPEN_YET`, `OCM_SESSION_ENDED`, `OCM_CONSENT_REQUIRED`, `OCM_ALREADY_ACTIVE` (another attempt is active) | R7, R8 |
 | `end_attempt` | student | `{ attempt_id, reason: 'student'\|'time_window' }` | `{ ended_at }`; clears `uninstall_token` | `OCM_NOT_OWNER` | R8 |
 | `set_verdict` | admin | `{ attempt_id, verdict, note? }` | `{ verdict_at }` | `OCM_NOT_SESSION_ADMIN`, `OCM_INVALID_INPUT` | R22 |
@@ -356,7 +356,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
 5. If `end_attempt` fails because the network is offline, it retries with the queue. Gap computation caps the end at `session.ends_at` anyway, so a missing `ended_at` never creates a false gap after the window.
 
 ### F5. Restart recovery (R8)
-- On `runtime.onStartup` or when the worker wakes up, it reads the attempt state from `chrome.storage.local`. If the state is `active` and `now < ends_at`, it re-creates the alarms, re-binds the exam tab and flushes the queue.
+- On `runtime.onStartup` or when the worker wakes up, it reads the attempt state from `chrome.storage.local`. If the state is `active` and `now < ends_at`, it re-creates the alarms, re-binds the exam tab and flushes the queue. If the exam tab is still bound, it sends `sw.activate` anyway: after the extension is disabled and re-enabled, the tab's content script is gone, and activation re-injects it when nothing answers (found by T33, 2026-11-14).
 - Content scripts in tabs that were already open re-run `cs.hello` when the page reloads. If a page loaded before the extension was re-enabled, the worker injects the content script with `chrome.scripting.executeScript` into the matching tabs.
 - The downtime shows as a gap (R14).
 

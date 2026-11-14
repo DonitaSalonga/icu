@@ -56,7 +56,7 @@ Exit criteria T#: T1, T3, T10, T13 (tables that exist in M1; re-run in M3 for sc
 Risks: Supabase auth in an MV3 worker misbehaves on restart ([F8](RESEARCH.md#findings), [F9](RESEARCH.md#findings)).
       Google Forms breaks URL matching (OQ2). No free-tier scheduler (OQ3); the fallback is a manual "Run cleanup"
       admin action plus the next login triggering cleanup, recorded as a decision.
-Status (planned/in progress/done): in progress (tasks 1–5 and 7 done; spike 6c done. Exit tests T1, T3, T10, T13–T17 and T28 pass. Waiting: T50, T51 and spikes 6a, 6b, 6d, 6e, which need the demo Google Form or a person at a real browser)
+Status (planned/in progress/done): done except T50. Spikes 6a and 6b were run on a real public multi-section Google Form (headless), 6c on Supabase, and 6e as T51 (headed). T50 (the real toolbar popup) needs a person, because Playwright can't open an action popup; the popup port that implements A5 is in place.
 ```
 
 ```text
@@ -80,7 +80,7 @@ Deliverables: The extension records every catalogue event except screenshots, un
 Exit criteria T#: T2, T6, T28, T29, T30, T31, T32, T33, T35, T38, T51.
 Risks: In-page iframes on real exam sites fire clipboard events in frames the content script doesn't reach (OQ2).
       Notifications are blocked by OS settings; the banner still covers this ([IDEA.md Q8](IDEA.md#decisions-interview-q1q25)).
-Status (planned/in progress/done): in progress (all tasks done. T2, T6, T28–T32, T35, T38 pass, and T33's closed-tab part passes. Remaining: T33's extension-disable part (manual) and T51 (needs a 7-minute headed run))
+Status (planned/in progress/done): done (all exit tests pass. T33 and T51 run headed and are opt-in with OCM_E2E_SLOW=1)
 ```
 
 ```text
@@ -136,7 +136,7 @@ Deliverables: Complete student journey; both Edge Functions deployed to ocm-main
 Exit criteria T#: T11, T15 (with the final notice), T21, T23, T24, T25, T26, T27, T36, T37, T45.
 Risks: The NPC advisory may need more than a notice (OQ4); the user checks with the adviser. setUninstallURL isn't
       delivered ([F12](RESEARCH.md#findings)), which is acceptable since it's a Could.
-Status (planned/in progress/done): planned
+Status (planned/in progress/done): done (all exit tests pass; T45 review clean)
 ```
 
 ```text
@@ -156,10 +156,27 @@ Deliverables: Release-ready repository; README; recorded results of all manual t
 Exit criteria T#: T41, T42, T43, T44, T46, T47, T48, T49, plus the release exit criteria in QAD.md (T1–T51 green or recorded).
 Risks: Real-site behaviour differs from the fixture (A2); rehearse at least 3 days before the demo. Free-tier project
       paused on demo day ([F7](RESEARCH.md#findings)); the README checklist covers this.
-Status (planned/in progress/done): planned
+Status (planned/in progress/done): in progress. Automated parts are done: T41, T42 and T44; licence check OQ5; README; real-page proxies for T43 and T49. Needs a person: T46 (Edge), T47 (two-laptop demo), T48 (README walkthrough on a clean machine), the full T43 and T49 runs on the demo Form, and T50.
 ```
 
 ## Milestone log
+
+- 2026-11-14: M6 automated work done.
+  - **T41:** axe scans (WCAG 2.2 A/AA rules) of every extension and dashboard screen and dialog found 0 violations, and the keyboard-only flow passes. The token contrast check found the light border at 1.47:1, which fails WCAG 1.4.11 for control boundaries, so a new `border-strong` token (#6b7280, 4.83:1) is used for controls.
+  - **T42:** the heaviest listener call took 2.6 ms (average 0.07 ms); the 1-hour candidate review was interactive in 861 ms; popup about 51 KB gzipped; content script about 2.6 KB gzipped.
+  - **T44:** the `check:secrets` script works and fails on a planted key.
+  - **OQ5:** all production dependencies are MIT or 0BSD.
+  - **T43/T49 proxy:** 5 minutes on a real Wikipedia page gave a median screenshot of 69 KB (about 4.1 MB per hour at 60 s) and no warnings.
+  - **Spikes 6a/6b on a real public 3-page Google Form:**
+    - "Next" moves `/viewform` → `/formResponse` (full reload), then reloads at the same URL. Both match `docs.google.com/forms/*`, so there's no false `navigated_off_exam`.
+    - Window fullscreen survives the reloads (no false `fullscreen_exit`), confirming D6.
+    - The form has no iframes; copy and paste on a real field are recorded.
+    - The form was never submitted.
+  - **T33 (headed, through `chrome://extensions`) found a bug, now fixed:** after re-enable, recovery never re-activated the still-bound exam tab, so only alarm heartbeats resumed. A gap of 96 s was recorded for a 90 s disable.
+- 2026-11-14: M5 done.
+  - **Built:** migration 005 (join rate limit, uninstall, retention candidates, pg_cron + pg_net job reading Vault), Edge Functions `uninstall-beacon` and `retention-cleanup` (deployed to both projects), the role chooser in both apps, the RA 10173 privacy notice (version 2026-11-14.1), and content-script re-injection.
+  - **Tests:** T21, T23, T24, T25, T26, T27, T36, T37 pass. Calling the scheduler path manually returned 200.
+  - **Change (D7):** an unknown join code now returns `{error}` instead of raising, so the recorded failure isn't rolled back.
 
 - 2026-11-14: M4 done.
   - **Built:** scoring in `packages/core`; migration 004 (summaries with a SQL gap rule, verdicts, row deletion that refuses while Storage objects remain); dashboard screens per DSD.md.
