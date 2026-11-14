@@ -34,9 +34,13 @@ export function Notice() {
       </p>
       <h2 className="text-lg font-semibold">What we collect while the exam is running</h2>
       <ul className="list-disc pl-6">
-        <li>When you leave and return to the exam tab, and how long you were away</li>
+        <li>When you leave and return to the exam tab or the browser window, and how long you were away</li>
+        <li>New tabs you open, and the website addresses you visit (site and page only, never search terms or form data)</li>
+        <li>When you copy, cut, paste or right-click on the exam page (never what you copied)</li>
+        <li>When the exam window enters or leaves fullscreen</li>
         <li>A heartbeat every 15 seconds showing that monitoring is on</li>
       </ul>
+      <p>When you click Start, your exam window switches to fullscreen. Some actions show a warning; your examiner reviews every warning, and nothing ends your exam automatically.</p>
       <p>Your examiner for this exam can see this data. Nothing is collected before you click Start or after the exam ends.</p>
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} /> I am 18 or older

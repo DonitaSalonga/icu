@@ -16,9 +16,11 @@
     "dev:dashboard": "npm run dev -w dashboard",
     "seed:test": "node supabase/scripts/seed.ts seed",
     "reset:test": "node supabase/scripts/seed.ts reset",
-    "db:push": "supabase db push --remote"
+    "db:push": "supabase db push --remote",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@supabase/supabase-js": "2.119.0",
     "@types/node": "^24.19.2",
     "supabase": "3.1.0",

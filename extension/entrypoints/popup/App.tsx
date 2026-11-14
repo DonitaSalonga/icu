@@ -20,6 +20,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    // While this port is open the service worker ignores focus changes caused by the popup (A5).
+    const port = browser.runtime.connect({ name: 'popup' });
+    return () => port.disconnect();
+  }, []);
+
+  useEffect(() => {
     void refresh();
     const timer = setInterval(() => void refresh(), 5000);
     return () => clearInterval(timer);
@@ -151,12 +157,18 @@ function StudentHome({ status, run, name }: { status?: AttemptStatus; run: Run; 
       <div className="flex flex-col gap-3">
         {summary}
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <span aria-hidden className="h-2 w-2 rounded-full bg-success" /> Monitoring
+          {status.upload_failing ? (
+            <><span aria-hidden className="h-2 w-2 rounded-full bg-risk-med-fg" /> Reconnecting…</>
+          ) : (
+            <><span aria-hidden className="h-2 w-2 rounded-full bg-success" /> Monitoring</>
+          )}
         </p>
         {!status.exam_tab_bound && <p className="text-sm">Open your exam page in this browser to continue.</p>}
         <dl className="grid grid-cols-2 gap-1 text-xs text-muted">
           <dt>Last heartbeat</dt>
           <dd>{status.last_heartbeat_at ? new Date(status.last_heartbeat_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}</dd>
+          <dt>Warnings</dt>
+          <dd>{status.warnings ? `${status.warnings.n} of ${status.warnings.limit}` : '—'}</dd>
           <dt>Events waiting to upload</dt>
           <dd>{status.queue_size}</dd>
         </dl>

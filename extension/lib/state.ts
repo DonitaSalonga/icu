@@ -1,6 +1,6 @@
 // Attempt state machine persisted in chrome.storage.local, because the service worker may stop
 // after 30 s idle and lose memory (RESEARCH F9). SDD.md § Components (service worker).
-import type { SessionSummary } from '@ocm/core';
+import type { SessionSummary, WarningState } from '@ocm/core';
 
 export interface StoredAttempt {
   attempt_id: string;
@@ -14,6 +14,15 @@ export interface StoredAttempt {
   exam_window_id?: number;
   /** Server-corrected ms when the exam tab was hidden, while it is hidden (R10). */
   hidden_at?: number;
+  /** Server-corrected ms when the browser lost focus, while it is unfocused (R10). */
+  blurred_at?: number;
+  /** The exam tab is currently on a non-exam URL (R9). */
+  off_exam?: boolean;
+  /** Last known state of the exam window, for fullscreen enter/exit (R13). */
+  window_state?: string;
+  fullscreen_requested?: boolean;
+  not_detected_recorded?: boolean;
+  warnings?: WarningState;
   last_heartbeat_at?: string;
 }
 

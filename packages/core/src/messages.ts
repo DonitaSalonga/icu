@@ -30,6 +30,8 @@ export interface AttemptStatus {
   exam_tab_bound: boolean;
   queue_size: number;
   last_heartbeat_at?: string;
+  warnings?: { n: number; limit: number };
+  upload_failing?: boolean;
 }
 
 export type Message =
@@ -48,7 +50,10 @@ export type Message =
   | { type: 'cs.heartbeat' };
 
 /** Messages from the service worker to the content script in the exam tab. */
-export type SwMessage = { type: 'sw.activate' } | { type: 'sw.deactivate' };
+export type SwMessage =
+  | { type: 'sw.activate' }
+  | { type: 'sw.deactivate' }
+  | { type: 'sw.showWarning'; n: number; limit: number; text: string; limitReached: boolean };
 
 export interface AuthState {
   configured: boolean;

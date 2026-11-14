@@ -1,8 +1,8 @@
 // Join, start and end an attempt (R6–R8). SDD.md § Key flows F2, F4.
-import { normalizeSessionCode, type AttemptStatus, type JoinResult } from '@ocm/core';
+import { initialWarningState, normalizeSessionCode, type AttemptStatus, type JoinResult } from '@ocm/core';
 import { OcmError } from './errors';
-import { bindExamTab, sendToTab } from './monitor';
-import { flush, queueSize } from './queue';
+import { ALARM_NOT_DETECTED, bindExamTab, sendToTab, startMonitoring } from './monitor';
+import { flush, isUploadFailing, queueSize } from './queue';
 import { clearAttempt, loadAttempt, saveAttempt, updateAttempt } from './state';
 import { getSupabase } from './supabase';
 
@@ -49,9 +49,9 @@ export async function startAttempt(ageConfirmed: boolean, consentVersion: string
   if (error) throw error;
   const result = data as { started_at: string; ends_at: string; server_now: string };
   const clock_offset_ms = Date.parse(result.server_now) - (sentAt + Date.now()) / 2;
-  await saveAttempt({ ...attempt, state: 'active', started_at: result.started_at, clock_offset_ms });
+  await saveAttempt({ ...attempt, state: 'active', started_at: result.started_at, clock_offset_ms, warnings: initialWarningState() });
   await ensureAlarms(Date.parse(result.ends_at) - clock_offset_ms);
-  await bindExamTab();
+  await startMonitoring();
   return { started_at: result.started_at, ends_at: result.ends_at };
 }
 
@@ -65,8 +65,13 @@ export async function endAttempt(reason: 'student' | 'time_window'): Promise<{ e
   const ended_at = (data as { ended_at: string | null } | null)?.ended_at ?? new Date().toISOString();
   await browser.alarms.clear(ALARM_HEARTBEAT);
   await browser.alarms.clear(ALARM_END);
+  await browser.alarms.clear(ALARM_NOT_DETECTED);
   if (attempt.exam_tab_id !== undefined) await sendToTab(attempt.exam_tab_id, { type: 'sw.deactivate' });
-  await updateAttempt({ state: 'ended', ended_at, exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined });
+  // Leave the fullscreen the extension switched on at Start (R13).
+  if (attempt.exam_window_id !== undefined && attempt.fullscreen_requested) {
+    await browser.windows.update(attempt.exam_window_id, { state: 'normal' }).catch(() => undefined);
+  }
+  await updateAttempt({ state: 'ended', ended_at, exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined, blurred_at: undefined });
   return { ended_at };
 }
 
@@ -81,6 +86,8 @@ export async function attemptStatus(): Promise<AttemptStatus> {
     exam_tab_bound: attempt?.exam_tab_id !== undefined,
     queue_size: await queueSize(),
     last_heartbeat_at: attempt?.last_heartbeat_at,
+    warnings: attempt?.state === 'active' ? { n: attempt.warnings?.count ?? 0, limit: attempt.session.warning_limit } : undefined,
+    upload_failing: isUploadFailing(),
   };
 }
 

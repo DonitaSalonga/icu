@@ -5,7 +5,20 @@ import { ALARM_END, ALARM_HEARTBEAT, attemptStatus, endAttempt, joinSession, ope
 import { authState, signIn, signOut, signUp } from '../lib/auth';
 import { isConfigured } from '../lib/env';
 import { toErrorResponse } from '../lib/errors';
-import { heartbeat, onTabActivated, onTabRemoved, onTabUpdated, recordEvent } from '../lib/monitor';
+import { flush } from '../lib/queue';
+import {
+  ALARM_NOT_DETECTED,
+  heartbeat,
+  onContentEvent,
+  onNotDetectedAlarm,
+  onPopupConnected,
+  onTabActivated,
+  onTabCreated,
+  onTabRemoved,
+  onTabUpdated,
+  onWindowFocusChanged,
+  onWindowStateMaybeChanged,
+} from '../lib/monitor';
 import { loadAttempt } from '../lib/state';
 import { restrictStorageToTrustedContexts } from '../lib/supabase';
 
@@ -37,11 +50,8 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
     }
     case 'cs.heartbeat':
       return heartbeat('content', sender.tab?.id);
-    case 'cs.event': {
-      const attempt = await loadAttempt();
-      if (sender.tab?.id === undefined || sender.tab.id !== attempt?.exam_tab_id) return undefined;
-      return recordEvent(message.event_type, message.details);
-    }
+    case 'cs.event':
+      return onContentEvent(sender.tab?.id, sender.tab?.url, message.event_type, message.details);
   }
 }
 
@@ -56,12 +66,28 @@ export default defineBackground(() => {
     return true; // keep the channel open for the async response
   });
 
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name === 'popup') onPopupConnected(port);
+  });
+
   browser.tabs.onActivated.addListener(({ tabId, windowId }) => void onTabActivated(tabId, windowId));
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => void onTabUpdated(tabId, changeInfo.status, tab.url));
+  browser.tabs.onCreated.addListener(() => void onTabCreated());
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => void onTabUpdated(tabId, changeInfo, tab.url));
   browser.tabs.onRemoved.addListener((tabId) => void onTabRemoved(tabId));
+  browser.windows.onFocusChanged.addListener((windowId) => {
+    void onWindowFocusChanged(windowId);
+    if (windowId !== browser.windows.WINDOW_ID_NONE) void onWindowStateMaybeChanged(windowId);
+  });
+  browser.windows.onBoundsChanged.addListener((win) => {
+    if (win.id !== undefined) void onWindowStateMaybeChanged(win.id);
+  });
 
   browser.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === ALARM_HEARTBEAT) void heartbeat('alarm');
+    if (alarm.name === ALARM_HEARTBEAT) {
+      void heartbeat('alarm');
+      void flush(); // safety net for the offline queue (R30)
+    }
+    if (alarm.name === ALARM_NOT_DETECTED) void onNotDetectedAlarm();
     if (alarm.name === ALARM_END) void endAttempt('time_window').catch((e) => console.warn('[ocm] auto-end failed', e));
   });
 
