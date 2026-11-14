@@ -72,7 +72,7 @@ Tasks:
   4. Fullscreen per the OQ1 decision; "Not in fullscreen" derived on the dashboard.
   5. packages/core warning policy (10 s cool-down, limit_reminder); the shadow-DOM banner (plain DOM, DSD tokens,
      role="alert"); chrome.notifications; warning_shown / warning_limit_reached events.
-  6. The ocm-heartbeat alarm backup (30 s, only while the exam tab exists); heartbeat source column.
+  6. The icu-heartbeat alarm backup (30 s, only while the exam tab exists); heartbeat source column.
   7. The offline queue: exponential backoff, caps and queue_overflow (persistence, batching and the duplicate-safe insert landed in M1).
   8. The popup status screen (state, warnings, queue size, last heartbeat).
 Deliverables: The extension records every catalogue event except screenshots, uninstall and limit edge cases;
@@ -90,7 +90,7 @@ Delivers R#: R16; R21 and R25 (Storage policies, backend part).
 Tasks:
   1. Migration: screenshots table + received_at trigger; the private bucket "screenshots"; storage.objects policies (SDD § RLS).
   2. packages/core coalescer (3 s window, 600 ms spacing) + tests.
-  3. Service worker: ocm-screenshot alarm (60 s; 10 s in test timings); getLastFocused + captureVisibleTab JPEG;
+  3. Service worker: icu-screenshot alarm (60 s; 10 s in test timings); getLastFocused + captureVisibleTab JPEG;
      createImageBitmap + OffscreenCanvas downscale to 1280 px; queue order screenshot → row → events; screenshot_failed handling.
   4. Record bytes, and write a SQL query for the per-attempt storage total (for T43).
 Deliverables: Screenshots in Storage with linked events; storage policy tests.
@@ -127,7 +127,7 @@ Delivers R#: R1, R3, R6 (rate limit), R7 (full notice), R8 (time-window end, res
 Tasks:
   1. Role chooser in the popup and the dashboard; wrong-role screens; dashboard routing guards.
   2. Privacy notice page content per DSD.md "Content and voice" and SDD § Privacy; NOTICE_VERSION; the 18+ and agree checkboxes.
-  3. The ocm-end alarm and time_window end; runtime.onStartup recovery; scripting.executeScript re-injection.
+  3. The icu-end alarm and time_window end; runtime.onStartup recovery; scripting.executeScript re-injection.
   4. setUninstallURL with the attempt token; Edge Function uninstall-beacon + record_uninstall.
   5. Edge Function retention-cleanup + the daily schedule (mechanism chosen in the M1 spike) + shared secret; join_failures cleanup.
   6. join_failures table and the rate limit in join_session.
@@ -225,7 +225,7 @@ Status (planned/in progress/done): done
   - **Tests on real Supabase (PostgreSQL 17):** integration tests T10, T11 (backend part) and T13–T17 pass, 5 of 5. Exit criteria met for these: T10, T13, T14, T15, T16, T17.
   - **Advisor hardening (migration 002):** policy helpers moved to a `private` schema; trigger functions no longer client-callable. The remaining advisor warnings are the four intended RPCs, plus leaked-password protection (not enabled).
   - **Spike 6c / OQ3 answered:** `pg_cron`, `pg_net` and `supabase_vault` are all available on the free plan (queried `pg_available_extensions` on `icu-main`).
-  - **Code location:** private GitHub repo `DonitaSalonga/online-certification-monitoring`; docs on `main`, code on `dev`.
+  - **Code location:** private GitHub repo `DonitaSalonga/icu` (renamed from online-certification-monitoring on 2026-11-14); docs on `main`, code on `dev`.
   - **Still open for M1:** T1/T3 already pass; T28, T50 and T51 (browser) and spikes 6a, 6b, 6d, 6e.
 
 - 2026-11-14: M1 started on the user's "go".
