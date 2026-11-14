@@ -56,7 +56,7 @@ Exit criteria T#: T1, T3, T10, T13 (tables that exist in M1; re-run in M3 for sc
 Risks: Supabase auth in an MV3 worker misbehaves on restart ([F8](RESEARCH.md#findings), [F9](RESEARCH.md#findings)).
       Google Forms breaks URL matching (OQ2). No free-tier scheduler (OQ3); the fallback is a manual "Run cleanup"
       admin action plus the next login triggering cleanup, recorded as a decision.
-Status (planned/in progress/done): in progress (tasks 1–5 and 7 done; spike 6c done; spikes 6a, 6b, 6d, 6e waiting for the demo Google Form and a browser run)
+Status (planned/in progress/done): in progress (tasks 1–5 and 7 done; spike 6c done. Exit tests T1, T3, T10, T13–T17 and T28 pass. Waiting: T50, T51 and spikes 6a, 6b, 6d, 6e, which need the demo Google Form or a person at a real browser)
 ```
 
 ```text
@@ -80,7 +80,7 @@ Deliverables: The extension records every catalogue event except screenshots, un
 Exit criteria T#: T2, T6, T28, T29, T30, T31, T32, T33, T35, T38, T51.
 Risks: In-page iframes on real exam sites fire clipboard events in frames the content script doesn't reach (OQ2).
       Notifications are blocked by OS settings; the banner still covers this ([IDEA.md Q8](IDEA.md#decisions-interview-q1q25)).
-Status (planned/in progress/done): planned
+Status (planned/in progress/done): in progress (all tasks done. T2, T6, T28–T32, T35, T38 pass, and T33's closed-tab part passes. Remaining: T33's extension-disable part (manual) and T51 (needs a 7-minute headed run))
 ```
 
 ```text
@@ -160,6 +160,19 @@ Status (planned/in progress/done): planned
 ```
 
 ## Milestone log
+
+- 2026-11-14: M2 built and mostly verified.
+  - **Built:**
+    - Warning policy in `packages/core` (T6).
+    - Window focus, new tabs, visited URLs, navigated-off-exam, exam-page-not-detected, clipboard and context menu in all frames.
+    - Browser-window fullscreen (D6).
+    - Shadow-DOM warning banner plus notifications.
+    - Queue backoff and caps.
+    - Popup port so the popup itself doesn't count as leaving (A5).
+  - **E2E harness:** Playwright with Chromium 159, loading the extension built against `ocm-test`. 8 of 8 E2E tests pass.
+  - **Findings:**
+    - Headless Chromium doesn't emit the window focus-return event, so the window test runs headed.
+    - On macOS, a window opened from a fullscreen exam window bounces focus back after about 0.5 s. That produces a short real `window_blur` with a warning, which is acceptable.
 
 - 2026-11-14: Supabase set up with the CLI.
   - **Projects:** `ocm-main` (ref `jrmvczctkzhmuuxclhpm`) and `ocm-test` (ref `jyoxiircwkyxkxdnklrc`), free plan, `ap-southeast-1`. Migrations 001 and 002 applied to both.

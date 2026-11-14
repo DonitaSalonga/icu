@@ -313,7 +313,7 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
    - **Option A:** the worker calls `chrome.windows.update(examWindowId, { state: 'fullscreen' })` and watches `windows.onBoundsChanged`.
    - **Option B:** the worker sends `sw.promptFullscreen`, and the banner shows an "Enter fullscreen" button that calls `requestFullscreen()` with the click as the user gesture ([F10](RESEARCH.md#findings)).
 
-   The choice is recorded in this section after M1.
+   **Chosen: option A** (decision D6, 2026-11-14). Google Forms reloads the page between sections, and DOM fullscreen ends on every reload, which would cause false `fullscreen_exit` events. Browser-window fullscreen needs no click and survives reloads. Exits are detected with `windows.onBoundsChanged` and `windows.onFocusChanged` by comparing the window's `state`. At End, the extension restores the window to `normal`. E2E T31 passes; the real-Form check is spike 6a.
 5. Error paths:
    - `OCM_NOT_OPEN_YET`: the countdown stays.
    - `OCM_ALREADY_ACTIVE`: the message "You already have an exam in progress."
