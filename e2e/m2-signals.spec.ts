@@ -34,11 +34,12 @@ test('T28 (tabs) + T29: tab switch, new tab, visited URL, navigate off exam; war
   expect(JSON.stringify(rows)).not.toMatch(/secret|frag/);
   expect(count(rows, 'warning_shown')).toBe(1);
 
-  // The warning screenshot shows the site the student switched to. The first capture can land before
-  // the new tab has loaded; the extension retries (found in the 2026-11-15 demo run).
-  await expect
-    .poll(async () => (await serviceClient().from('screenshots').select('visible_path').eq('attempt_id', attemptId).eq('reason', 'violation')).data?.map((s) => s.visible_path), { timeout: 20_000 })
-    .toContain('/other/page.html');
+  // The visit to the other site carries a screenshot showing that site (R16): its own site-visit
+  // capture, or the warning screenshot taken moments earlier of the same page.
+  const { data: visitEvent } = await serviceClient().from('events').select('screenshot_id').eq('attempt_id', attemptId).eq('type', 'url_visited').limit(1).single();
+  expect(visitEvent?.screenshot_id).toBeTruthy();
+  const { data: visitShot } = await serviceClient().from('screenshots').select('visible_path').eq('id', visitEvent!.screenshot_id!).single();
+  expect(visitShot?.visible_path).toBe('/other/page.html');
   expect(count(await events(attemptId), 'screenshot_failed')).toBe(0);
 
   // Banner host element exists on the exam page; a notification was created.
@@ -106,4 +107,30 @@ test('T35: warning cool-down and limit; monitoring continues after the limit', a
   expect(count(rows, 'warning_shown')).toBe(4);
   expect(count(rows, 'warning_limit_reached')).toBe(1);
   expect(rows.filter((r) => r.type === 'warning_shown').map((r) => r.details.n)).toEqual([1, 2, 3, 4]);
+});
+
+test('R16 site visits: every other website on screen gets its own visit event and screenshot', async ({ context, ext, worker }) => {
+  const { attemptId } = await startExam(context, ext, { warningLimit: 10 });
+  await expect.poll(async () => (await examIds(worker)).tabId, { timeout: 10_000 }).toBeDefined();
+  const { tabId, windowId } = await examIds(worker);
+  const SECOND = 'http://localhost:4173/other/second.html';
+  const a = await worker.evaluate(({ url, windowId }) => chrome.tabs.create({ url, windowId, active: true }), { url: OTHER_URL, windowId: windowId! });
+  await new Promise((r) => setTimeout(r, 2500));
+  await worker.evaluate(({ url, windowId }) => chrome.tabs.create({ url, windowId, active: true }), { url: SECOND, windowId: windowId! });
+  await new Promise((r) => setTimeout(r, 2500));
+  // Switch back to the first other tab, then navigate inside it like a single-page app (claude.ai style).
+  await worker.evaluate((id) => chrome.tabs.update(id, { active: true }), a.id!);
+  await new Promise((r) => setTimeout(r, 1500));
+  const page = context.pages().find((p) => p.url().startsWith(OTHER_URL))!;
+  await page.evaluate(() => history.pushState({}, '', '/other/chat-123'));
+  await new Promise((r) => setTimeout(r, 3000));
+  await worker.evaluate((id) => chrome.tabs.update(id, { active: true }), tabId!);
+
+  const want = ['/other/page.html', '/other/second.html', '/other/chat-123'];
+  await expect
+    .poll(async () => (await serviceClient().from('screenshots').select('visible_path').eq('attempt_id', attemptId)).data!.map((r) => r.visible_path).sort(), { timeout: 20_000 })
+    .toEqual(expect.arrayContaining(want));
+  const visits = (await events(attemptId)).filter((e) => e.type === 'url_visited').map((e) => e.details.path);
+  for (const path of want) expect(visits).toContain(path);
+  expect(count(await events(attemptId), 'screenshot_failed')).toBe(0);
 });

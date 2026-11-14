@@ -17,7 +17,7 @@ import {
 import { NOT_DETECTED_DELAY_MS } from './env';
 import { createLock } from './lock';
 import { captureVisible, blobToBase64 } from './capture';
-import { enqueue, enqueueShot, flush, resolvePendingShot, type QueuedShot } from './queue';
+import { enqueue, enqueueShot, flush, type QueuedShot } from './queue';
 import { loadAttempt, serverNow, updateAttempt, type StoredAttempt } from './state';
 import { getSupabase } from './supabase';
 
@@ -79,11 +79,11 @@ async function enqueueEvent(attempt: StoredAttempt, type: EventType, details: Re
 }
 
 /** R16: captures and queues a screenshot; returns its id, or undefined after recording screenshot_failed. */
-/** Retries for a failed warning screenshot: a tab that was just opened has no page to capture yet. */
-const CAPTURE_RETRY_DELAYS_MS = [1500, 4000];
+/** True when Chrome refused because the visible tab hasn't committed a page yet (e.g. a just-opened tab). */
+const notYetLoaded = (error: string) => /Cannot access contents of url ""/.test(error);
 
-async function shotFrom(attempt: StoredAttempt, id: string, reason: 'interval' | 'violation', at: number): Promise<QueuedShot | { error: string }> {
-  const result = await captureVisible();
+async function shotFrom(attempt: StoredAttempt, id: string, reason: QueuedShot['reason'], at: number, windowId?: number): Promise<QueuedShot | { error: string }> {
+  const result = await captureVisible(windowId);
   if (!result.ok) return { error: result.error };
   return {
     id,
@@ -99,45 +99,34 @@ async function shotFrom(attempt: StoredAttempt, id: string, reason: 'interval' |
   };
 }
 
-/** Retries a reserved violation screenshot outside the lock; records screenshot_failed if all fail. */
-async function retryCapture(attempt: StoredAttempt, id: string, at: number): Promise<void> {
-  let lastError = '';
-  for (const delay of CAPTURE_RETRY_DELAYS_MS) {
-    await new Promise((r) => setTimeout(r, delay));
-    if ((await loadAttempt())?.state !== 'active') break;
-    const shot = await shotFrom(attempt, id, 'violation', serverNow(attempt));
-    if (!('error' in shot)) {
-      await resolvePendingShot(id, shot);
-      void flush();
-      return;
-    }
-    lastError = shot.error;
+/**
+ * R16: captures and queues a screenshot and returns its id. If the visible tab hasn't loaded yet (the
+ * student is switching to a new tab), no screenshot is taken here: the site-visit capture takes the
+ * loaded page a moment later. Other failures are recorded as screenshot_failed.
+ */
+async function takeScreenshotLocked(attempt: StoredAttempt, reason: QueuedShot['reason'], at: number, windowId?: number): Promise<string | undefined> {
+  const shot = await shotFrom(attempt, crypto.randomUUID(), reason, at, windowId);
+  if ('error' in shot) {
+    if (!notYetLoaded(shot.error)) await enqueueEvent(attempt, 'screenshot_failed', { error: shot.error.slice(0, 200) }, at);
+    return undefined;
   }
-  await resolvePendingShot(id, null);
-  await enqueueEvent(attempt, 'screenshot_failed', { error: (lastError || 'capture failed').slice(0, 200) }, at);
-  void flush();
+  await enqueueShot(shot);
+  const site = shot.visible_host !== undefined ? `${shot.visible_host}${shot.visible_path ?? ''}` : undefined;
+  await updateAttempt({ shot: { lastCaptureAt: at, lastShotId: shot.id, lastShotSite: site } });
+  return shot.id;
 }
 
-/**
- * R16: captures and queues a screenshot and returns its id. A failed violation capture reserves the
- * slot and retries shortly (the first capture often lands before a newly opened tab has loaded); an
- * interval capture that fails is recorded as screenshot_failed straight away.
- */
-async function takeScreenshotLocked(attempt: StoredAttempt, reason: 'interval' | 'violation', at: number): Promise<string | undefined> {
-  const id = crypto.randomUUID();
-  const shot = await shotFrom(attempt, id, reason, at);
-  if ('error' in shot) {
-    if (reason === 'interval') {
-      await enqueueEvent(attempt, 'screenshot_failed', { error: shot.error.slice(0, 200) }, at);
-      return undefined;
-    }
-    await enqueueShot({ id, attempt_id: attempt.attempt_id, session_id: attempt.session.id, captured_at: new Date(at).toISOString(), reason, bytes: 1, data: '', failures: 0, pending: true });
-    void retryCapture(attempt, id, at);
-  } else {
-    await enqueueShot(shot);
+/** host + path of the tab currently on screen in the last-focused browser window. */
+async function visibleSite(): Promise<string | undefined> {
+  try {
+    const win = await browser.windows.getLastFocused({ windowTypes: ['normal'] });
+    const [tab] = await browser.tabs.query({ active: true, windowId: win.id });
+    if (!tab?.url) return undefined;
+    const { host, path } = sanitizeUrl(tab.url);
+    return `${host}${path}`;
+  } catch {
+    return undefined;
   }
-  await updateAttempt({ shot: { lastCaptureAt: at, lastShotId: id } });
-  return id;
 }
 
 async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}): Promise<void> {
@@ -148,7 +137,7 @@ async function recordEventLocked(type: EventType, details: Record<string, unknow
   // Warning-triggering events get a screenshot; events within 3 s share one (R16).
   let screenshotId: string | undefined;
   if (WARNING_TYPES.includes(type)) {
-    const capture = decideCapture(attempt.shot ?? {}, at);
+    const capture = decideCapture(attempt.shot ?? {}, at, await visibleSite());
     screenshotId = capture.kind === 'attach' ? capture.shotId : await takeScreenshotLocked(attempt, 'violation', at);
   }
   await enqueueEvent(attempt, type, details, at, screenshotId);
@@ -290,7 +279,6 @@ export function onTabUpdated(tabId: number, change: { status?: string; url?: str
           await updateAttempt({ off_exam: undefined });
         }
       }
-      if (!exam) await recordEventLocked('url_visited', { ...sanitizeUrl(change.url) });
     }
 
     // Bind the first matching tab that finishes loading if none is bound yet.
@@ -323,6 +311,43 @@ export function onTabActivated(tabId: number, windowId: number): Promise<void> {
       await updateAttempt({ hidden_at: undefined });
       await recordEventLocked('exam_tab_visible', { away_ms });
     }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Site visits (R11, R16): every other website on screen gets a url_visited event with a screenshot
+// ---------------------------------------------------------------------------
+
+const SITE_REPEAT_MS = 10_000;
+const MIN_CAPTURE_SPACING_MS = 600; // Chrome allows 2 captures per second (RESEARCH F6)
+const siteSeen = new Map<string, number>();
+
+/**
+ * Called when a tab may have become visible with a loaded page (tab loaded, switched to, SPA navigation,
+ * window focused). If it is the active tab of its window, shows a non-exam site, and that tab+site wasn't
+ * recorded in the last 10 s, records url_visited with a screenshot of the page.
+ */
+export function onSiteMaybeVisible(tabId: number): Promise<void> {
+  return withLock(async () => {
+    const attempt = await activeAttempt();
+    if (!attempt) return;
+    const tab = await browser.tabs.get(tabId).catch(() => undefined);
+    if (!tab?.active || tab.status !== 'complete' || !tab.url || ignoredUrl(tab.url) || isExamUrl(attempt, tab.url)) return;
+    const { host, path } = sanitizeUrl(tab.url);
+    const key = `${tabId}|${host}${path}`;
+    const now = Date.now();
+    if (now - (siteSeen.get(key) ?? 0) < SITE_REPEAT_MS) return;
+    siteSeen.set(key, now);
+
+    const last = attempt.shot?.lastCaptureAt;
+    if (last !== undefined && serverNow(attempt) - last < MIN_CAPTURE_SPACING_MS) await new Promise((r) => setTimeout(r, MIN_CAPTURE_SPACING_MS));
+    const at = serverNow(attempt);
+    const http = /^https?:/.test(tab.url);
+    // Reuse a warning screenshot taken moments ago of this same site (e.g. on leaving the exam tab).
+    const recent = http ? decideCapture(attempt.shot ?? {}, at, `${host}${path}`) : undefined;
+    const shotId = recent?.kind === 'attach' ? recent.shotId : http ? await takeScreenshotLocked(attempt, 'site_visit', at, tab.windowId) : undefined;
+    await enqueueEvent(attempt, 'url_visited', { host, path }, at, shotId);
+    void flush();
   });
 }
 

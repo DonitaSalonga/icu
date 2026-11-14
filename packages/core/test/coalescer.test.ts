@@ -33,6 +33,12 @@ describe('decideCapture', () => {
     for (let i = 1; i < captures.length; i++) expect(captures[i]! - captures[i - 1]!).toBeGreaterThanOrEqual(3000);
   });
 
+  it('a different site on screen always gets its own capture (found 2026-11-15: claude.ai attached to a chatgpt shot)', () => {
+    const state = { lastCaptureAt: 1000, lastShotId: 'chatgpt', lastShotSite: 'chatgpt.com/' };
+    expect(decideCapture(state, 2000, 'chatgpt.com/')).toEqual({ kind: 'attach', shotId: 'chatgpt' });
+    expect(decideCapture(state, 2000, 'claude.ai/new')).toEqual({ kind: 'capture' });
+  });
+
   it('interval captures are skipped right after another capture', () => {
     expect(shouldCaptureInterval({}, 0)).toBe(true);
     expect(shouldCaptureInterval({ lastCaptureAt: 1000, lastShotId: 'a' }, 2500)).toBe(false);

@@ -12,6 +12,7 @@ import {
   onContentEvent,
   onNotDetectedAlarm,
   onScreenshotAlarm,
+  onSiteMaybeVisible,
   onPopupConnected,
   onTabActivated,
   onTabCreated,
@@ -71,13 +72,26 @@ export default defineBackground(() => {
     if (port.name === 'popup') onPopupConnected(port);
   });
 
-  browser.tabs.onActivated.addListener(({ tabId, windowId }) => void onTabActivated(tabId, windowId));
+  // Site visits: give the page a moment to render before capturing it.
+  const siteSoon = (tabId: number, ms: number) => setTimeout(() => void onSiteMaybeVisible(tabId), ms);
+
+  browser.tabs.onActivated.addListener(({ tabId, windowId }) => {
+    void onTabActivated(tabId, windowId);
+    siteSoon(tabId, 400);
+  });
   browser.tabs.onCreated.addListener(() => void onTabCreated());
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => void onTabUpdated(tabId, changeInfo, tab.url));
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    void onTabUpdated(tabId, changeInfo, tab.url);
+    if (changeInfo.status === 'complete') siteSoon(tabId, 400);
+    // In-app navigation (single-page sites like claude.ai change the URL without reloading).
+    else if (changeInfo.url && tab.status === 'complete') siteSoon(tabId, 1200);
+  });
   browser.tabs.onRemoved.addListener((tabId) => void onTabRemoved(tabId));
   browser.windows.onFocusChanged.addListener((windowId) => {
     void onWindowFocusChanged(windowId);
-    if (windowId !== browser.windows.WINDOW_ID_NONE) void onWindowStateMaybeChanged(windowId);
+    if (windowId === browser.windows.WINDOW_ID_NONE) return;
+    void onWindowStateMaybeChanged(windowId);
+    void browser.tabs.query({ active: true, windowId }).then(([tab]) => tab?.id !== undefined && siteSoon(tab.id, 400));
   });
   browser.windows.onBoundsChanged.addListener((win) => {
     if (win.id !== undefined) void onWindowStateMaybeChanged(win.id);

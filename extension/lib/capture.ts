@@ -9,9 +9,9 @@ const MAX_SIDE = 1280;
 /** `visible`: the site the screenshot shows, sanitized like visited URLs (host + path only; D8). */
 export type CaptureResult = { ok: true; blob: Blob; visible?: SanitizedUrl } | { ok: false; error: string };
 
-export async function captureVisible(): Promise<CaptureResult> {
+export async function captureVisible(windowId?: number): Promise<CaptureResult> {
   try {
-    const win = await browser.windows.getLastFocused({ windowTypes: ['normal'] });
+    const win = windowId !== undefined ? await browser.windows.get(windowId) : await browser.windows.getLastFocused({ windowTypes: ['normal'] });
     if (win.id === undefined) return { ok: false, error: 'no browser window' };
     const [tab] = await browser.tabs.query({ active: true, windowId: win.id });
     const dataUrl = await browser.tabs.captureVisibleTab(win.id, { format: 'jpeg', quality: 50 });

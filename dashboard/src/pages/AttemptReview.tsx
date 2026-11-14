@@ -21,7 +21,7 @@ interface Shot {
   id: string;
   storage_path: string;
   captured_at: string;
-  reason: 'interval' | 'violation';
+  reason: 'interval' | 'violation' | 'site_visit';
   url?: string;
 }
 
@@ -40,6 +40,8 @@ interface AttemptRow {
 type TimelineRow = { kind: 'event'; at: number; event: EventRow } | { kind: 'gap'; at: number; gap: Gap };
 
 const SIGNED_URL_SECONDS = 3600;
+const REASON_SHORT = { interval: 'interval', violation: 'on warning', site_visit: 'site visit' } as const;
+const REASON_LONG = { interval: 'Taken on the 60-second interval', violation: 'Taken on a warning', site_visit: 'Taken when another website was on screen' } as const;
 
 export function AttemptReview() {
   const { id, attemptId } = useParams();
@@ -200,7 +202,7 @@ export function AttemptReview() {
                     ) : (
                       <span className="flex aspect-video w-full items-center justify-center rounded-lg border border-border text-xs text-muted">Image unavailable</span>
                     )}
-                    <span className="text-xs text-muted">{formatTime(s.captured_at)} · {s.reason === 'violation' ? 'on warning' : 'interval'}</span>
+                    <span className="text-xs text-muted">{formatTime(s.captured_at)} · {REASON_SHORT[s.reason]}</span>
                   </button>
                 </li>
               ))}
@@ -335,7 +337,7 @@ function Lightbox({ shots, events, index, onIndex }: { shots: Shot[]; events: Ev
           ) : (
             <p className="text-sm text-muted">Image unavailable.</p>
           )}
-          <p className="text-sm text-muted">{shot.reason === 'violation' ? 'Taken on a warning' : 'Taken on the 60-second interval'} · {formatDateTime(shot.captured_at)}</p>
+          <p className="text-sm text-muted">{REASON_LONG[shot.reason]} · {formatDateTime(shot.captured_at)}</p>
           {linked.length > 0 && (
             <ul className="list-disc pl-5 text-sm">
               {linked.map((e) => (
