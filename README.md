@@ -102,4 +102,3 @@ ICU warns students and flags what it sees, but it never ends an exam or decides 
 - The extension uses permission on all websites (needed for screenshots), so it's meant to be loaded unpacked, not published to the Chrome Web Store.
 - Supabase's "leaked password protection" isn't enabled. It may require a paid plan (not verified).
 
-More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations).
