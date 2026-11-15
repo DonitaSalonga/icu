@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: README rewritten for readers (logo, meaning, tagline, what/why/how, architecture image, tech stack, live link and download, examiner/student/developer setup, Vercel deploy). The extension zip is served from the dashboard at `/downloads/ICU-extension.zip` (`dashboard/public/downloads`). Images in `docs/assets`. Secret scan clean.
+
 - 2026-11-15: Signed-out screens centred (user's inspiration): role chooser and student install card in a centred column with a subtitle; admin sign-in as a centred card with the logo on top, placeholder fields (labels kept for screen readers), and "Don't have an account? Create an admin account" (no Google button). Install steps now say to unzip the ICU zip. T25–T27, T36–T37, T39–T41 pass; axe 0 violations.
 
 - 2026-11-15: Deployed the dashboard to Vercel (https://icu-dashboard-ten.vercel.app) from a clean `git archive` of `main` with `vercel.json` (npm workspaces build, SPA rewrite) and the two public Supabase settings for the main project. Checked: pages and deep links load, the build points at the main project, the demo admin signs in and sees their sessions. Extension packaged as a zip (`wxt zip`) whose Open dashboard button goes to the Vercel site.

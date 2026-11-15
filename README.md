@@ -1,48 +1,115 @@
-# ICU: I Caught You
+<p align="center">
+  <img src="docs/assets/icu-logo.png" alt="ICU logo" width="360">
+</p>
 
-**ICU** ("I Caught You") is a university project. A Chrome extension records what a student does in their browser during an online exam on a third-party site such as Google Forms or Coursera. It records tab switches, other sites visited, copy and paste, leaving fullscreen, screenshots, and gaps in monitoring. An admin dashboard shows that evidence for **human review**. The tool warns and flags; it never ends an exam or decides that someone cheated.
+<h1 align="center">ICU: I Caught You</h1>
 
-| | |
-| --- | --- |
-| Why and what | [docs/IDEA.md](docs/IDEA.md) · research: [docs/RESEARCH.md](docs/RESEARCH.md) |
-| Requirements (R1–R35) | [docs/PRD.md](docs/PRD.md) |
-| Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
-| Tests (T1–T65) | [docs/QAD.md](docs/QAD.md) |
-| Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
-| Handoff for UI/UX work | [docs/UI-HANDOFF.md](docs/UI-HANDOFF.md) · backend connection: [docs/BACKEND-HANDOFF.md](docs/BACKEND-HANDOFF.md) |
+<p align="center"><b>It catches the tab switch. A person makes the call.</b><br>
+Fair, privacy-aware monitoring for online certification exams.</p>
+
+<p align="center">
+  <a href="https://icu-dashboard-ten.vercel.app"><b>Open the dashboard</b></a> ·
+  <a href="https://icu-dashboard-ten.vercel.app/downloads/ICU-extension.zip"><b>Download the extension (zip)</b></a>
+</p>
+
+## Overview
+
+**ICU** stands for **"I Caught You"**. It's a university project for exams taken online on someone else's website, such as Google Forms, Cisco NetAcad or Coursera, where the examiner can't see what students do in their browser.
+
+ICU has two parts:
+
+- A **Chrome extension** that students turn on before the exam.
+- An **admin dashboard** where the examiner reviews the evidence afterwards.
+
+ICU warns students and flags what it sees, but it never ends an exam or decides that someone cheated. A person always makes the final call.
+
+## What it does
+
+- **Watches the exam tab:** records when the student leaves the exam tab, opens other sites, copies or pastes, or leaves fullscreen.
+- **Takes screenshots:** of the shared screen on every tab switch and at intervals, so the examiner sees what was on screen.
+- **Warns the student at once:** each rule break shows a warning, up to the warning limit the examiner set.
+- **Notices tampering:** if the extension is turned off or the exam tab closes, the silence shows up as "monitoring lost".
+- **Scores the risk:** every candidate gets a Low, Medium or High risk level with a points breakdown.
+- **Gives an AI suggestion:** when the exam ends, an AI reads the activity timeline and suggests a result with a confidence level.
+- **Supports the verdict:** the examiner sees the findings, the timeline and the screenshots, then records Cleared, Suspicious or Cheating confirmed.
+
+## Why use ICU
+
+- **Works with the exam site you already use.** There's no exam to rebuild; ICU watches whichever site the examiner names.
+- **No webcam.** It records browser activity and the shared screen only, which is less intrusive than camera proctoring.
+- **Evidence, not accusations.** Risk scores and AI suggestions only help; the examiner decides.
+- **Privacy built in.** Students read and accept a notice based on the Philippine Data Privacy Act (RA 10173) first. Data is deleted after 30 days, or earlier by the examiner, and each examiner sees only their own sessions.
+- **Free to run.** It fits on the free tiers of Supabase and Vercel.
 
 ## How it works
 
-```text
-Student's Chrome                         Supabase Cloud (free tier)                 Admin's browser
-┌───────────────────────────┐   HTTPS   ┌──────────────────────────────┐   HTTPS   ┌───────────────────┐
-│ Extension (MV3)            │ ────────▶ │ Auth · Postgres + RLS        │ ◀──────── │ Dashboard (React) │
-│  service worker: events,   │           │ Storage (private screenshots)│           │  sessions, risk,  │
-│  screenshots, heartbeat    │           │ Edge Functions: uninstall    │           │  timeline,        │
-│  content script: clipboard,│           │  beacon, 30-day retention    │           │  verdicts         │
-│  warning banner            │           │ pg_cron: daily cleanup       │           └───────────────────┘
-└───────────────────────────┘           └──────────────────────────────┘
-```
+1. The **examiner** creates an exam session on the dashboard and gives students its 6-character code.
+2. The **student** enters the code in the extension, agrees to the privacy notice and shares their entire screen. ICU switches to the exam tab and makes it fullscreen.
+3. During the exam, the **extension** sends events and screenshots to **Supabase**.
+4. When the exam ends, Supabase asks the **AI** (TypeSafe Jev) for a suggestion and saves it.
+5. The **examiner** opens the candidate on the dashboard, reviews the evidence and saves a verdict.
 
-- The admin creates an **exam session** (name, the **exam platform** typed as a name like `netacad` or a website like `docs.google.com/forms`, date and time, warning limit, and an optional **Tell us about the exam** note) and gives students its 6-character **code**. Clicking a session shows its exam info.
-- The student signs in to the extension, enters the code, reads and accepts the privacy notice (Philippine Data Privacy Act, RA 10173), and clicks **Share screen and start**: Chrome asks to share the **entire screen**, which is required. ICU then switches to the exam tab (the page the student was on when they clicked Continue) and makes the window fullscreen; if the exam page isn't open yet, that happens when it opens. The sharing page stays open, pinned, as "ICU monitoring". On a Mac, allow Chrome under System Settings → Privacy & Security → Screen Recording the first time. Monitoring runs only on matching exam pages and only until End or the session's end time.
-- Events and screenshots upload to Supabase. A heartbeat every 15 s means that silence of more than 60 s shows up as **monitoring lost**, for example when the extension is disabled or the exam tab is closed.
-- When the exam ends, an **AI suggestion** is generated automatically. An anonymous activity timeline goes to an analysis model (TypeSafe Jev) as one question, and the admin sees the suggested result (for example "Likely cheating: used AI or the web · 82%") with confidence.
-- The admin sees each candidate's risk level (Low/Medium/High), the AI suggestion, a timeline with screenshots, and records the verdict. The suggestion never decides. Data is deleted automatically after 30 days, or earlier by the admin.
+### Architecture
 
-## Repository layout
+<p align="center">
+  <img src="docs/assets/architecture.png" alt="ICU architecture: the student's extension sends events and screenshots to Supabase; the admin dashboard on Vercel reads risk, timeline and screenshots from Supabase; when an exam ends, a Supabase function asks TypeSafe Jev for an AI suggestion" width="900">
+</p>
+
+## Tech stack
+
+| Part | Built with |
+| --- | --- |
+| Chrome extension | Manifest V3, [WXT](https://wxt.dev) 0.21, React 18, TypeScript 5.9, input-otp |
+| Admin dashboard | React 18, Vite 8, React Router 7, Base UI, Sonner; hosted on [Vercel](https://vercel.com) |
+| Backend | [Supabase](https://supabase.com): Auth, Postgres with row-level security, Storage, Edge Functions (Deno), pg_cron and pg_net |
+| AI suggestion | TypeSafe Jev, called from the `ai-analyze` Edge Function (the key stays on the server) |
+| Shared logic | `packages/core`: event catalogue, URL matching, monitoring gaps, risk scoring, warnings |
+| Design | ICU design system (`packages/ui-tokens/icu.css`), Satoshi font, hand-drawn SVG icons |
+| Testing | Vitest (unit and integration), Playwright (browser tests with the real extension), axe-core (accessibility) |
+
+## Links and download
+
+| | |
+| --- | --- |
+| **Admin dashboard (live)** | https://icu-dashboard-ten.vercel.app |
+| **Extension download** | [ICU-extension.zip](https://icu-dashboard-ten.vercel.app/downloads/ICU-extension.zip) (also in this repo at `dashboard/public/downloads/ICU-extension.zip`) |
+
+## Getting started
+
+### For examiners
+
+1. Open the [dashboard](https://icu-dashboard-ten.vercel.app) and choose **I'm an admin**.
+2. Choose **Create an admin account**, enter your name, email and password, and sign in.
+3. Go to **Sessions → Create session**. Fill in the name, the exam platform (a name like `netacad` or a site like `docs.google.com/forms`), a short note about the exam, the date and time, and the warning limit.
+4. Give your students the session's 6-character **code**.
+5. After the exam, open **Needs review**. Pick a candidate, check the findings, timeline, screenshots and AI suggestion, then choose a verdict and **Save verdict**.
+
+### For students
+
+1. [Download the ICU extension](https://icu-dashboard-ten.vercel.app/downloads/ICU-extension.zip) and unzip it.
+2. In Chrome, open `chrome://extensions`, turn on **Developer mode** (top right), click **Load unpacked** and choose the unzipped folder.
+3. Pin ICU to the toolbar, click its icon, choose **I'm a student**, and sign up or sign in.
+4. Open your exam page. In ICU, enter the code from your examiner, click **Find exam**, then **Continue**.
+5. Read the privacy notice, click **I agree & share screen**, and choose your **entire screen**. On a Mac, the first time, allow Chrome under System Settings → Privacy & Security → Screen Recording.
+6. Take your exam. When you finish, click **End exam** in ICU.
+
+## For developers
+
+### Repository layout
 
 ```text
 extension/          Chrome MV3 extension (WXT + React + TypeScript)
-dashboard/          Admin dashboard (Vite + React + Tailwind)
+dashboard/          Admin dashboard (Vite + React); public/downloads holds the extension zip
 packages/core/      Shared rules: event catalogue, URL matching, gaps, risk scoring, warnings, coalescing
-packages/ui-tokens/ Design tokens (CSS variables + Tailwind preset)
+packages/ui-tokens/ Design system: icu.css, icons, logo, student avatars, Satoshi font
 supabase/           migrations/, functions/ (Edge Functions), tests/ (integration), scripts/ (seed/reset)
 e2e/                Playwright tests that load the extension, plus a fixture exam site
+docs/               Plans, requirements, design, tests, build log; assets/ holds the README images
 scripts/            check-secrets.mjs (T44)
+vercel.json         Vercel build settings for the dashboard
 ```
 
-## Setup
+### Set up the backend (Supabase)
 
 **Prerequisites:** Node 20 or later (developed on Node 26), Chrome 120 or later, and a Supabase account (free tier). There's no Docker or local Supabase; everything runs against Supabase Cloud.
 
@@ -74,13 +141,23 @@ scripts/            check-secrets.mjs (T44)
    For a project used only for automated tests, turn automatic analysis off so test runs don't spend model credits: `npx supabase db query --remote "update public.app_settings set ai_auto = false"`.
 6. **Optional, for a quick demo:** in icu-main → Authentication → Sign In / Providers → Email, turn off **Confirm email**. Otherwise new users must click the email link before they can sign in.
 
-## Run
+### Run it locally
 
 - **Dashboard:** `npm run dev:dashboard`, then open http://localhost:5173. Choose "I'm an admin" and create an account.
 - **Extension:** `npm run build -w extension`. In Chrome open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select `extension/.output/chrome-mv3`. Click the extension icon, choose "I'm a student", and sign up. For live reload while developing, use `npm run dev:extension`.
-- To use a deployed dashboard, set `WXT_DASHBOARD_URL` in `.env` before building the extension.
+- To point the extension at a deployed dashboard, set `WXT_DASHBOARD_URL` in `.env` before building.
+- **Make the download zip:** `cd extension && WXT_DASHBOARD_URL=https://icu-dashboard-ten.vercel.app npx wxt zip`, then copy `extension/.output/icuextension-0.1.0-chrome.zip` to `dashboard/public/downloads/ICU-extension.zip`.
 
-## Test
+### Deploy the dashboard to Vercel
+
+The project `icu-dashboard` is already set up. To deploy your own copy:
+
+1. Install the Vercel CLI and sign in: `npm i -g vercel`, then `vercel login`.
+2. Link the project: run `vercel link` from the repository root. `vercel.json` already sets the build (`npm run build -w dashboard`, output `dashboard/dist`) and the single-page-app routing.
+3. Add the two public settings for your main Supabase project: `vercel env add VITE_SUPABASE_URL production` and `vercel env add VITE_SUPABASE_PUBLISHABLE_KEY production`.
+4. Deploy: `vercel deploy --prod`. Deploy from a clean copy of the committed code (for example `git archive HEAD`), so local `.env` files are never uploaded.
+
+### Test
 
 | Command | What | Needs |
 | --- | --- | --- |
@@ -97,8 +174,8 @@ One E2E test (the window-focus part of T28) runs headed, so a Chromium window ap
 
 1. **The day before:** open both Supabase projects in the dashboard and **resume** them if paused. Free projects pause after 7 days of low activity.
 2. Create a Google Form to act as the exam.
-3. **Admin laptop:** run the dashboard, sign in, create a session with exam platform `docs.google.com/forms` (or `netacad`, etc.), and note the code.
-4. **Student laptop:** load the extension, sign in as a student, open the Form, then (on the Form tab) join with the code, click Continue, read the notice, and click **Share screen and start** (choose your entire screen). ICU switches back to the Form and the window goes fullscreen.
+3. **Admin laptop:** open the dashboard (live link above, or run it locally), sign in, create a session with exam platform `docs.google.com/forms` (or `netacad`, etc.), and note the code.
+4. **Student laptop:** install the extension from the zip, sign in as a student, open the Form, then (on the Form tab) join with the code, click Continue, read the notice, and click **I agree & share screen** (choose your entire screen). ICU switches back to the Form and the window goes fullscreen.
 5. **Act out the scenario:** switch to ChatGPT, paste into the Form, and leave fullscreen. Then disable the extension at `chrome://extensions` for about 70 s and turn it back on.
 6. **Admin:** open the session; the candidate shows as **High**. Open the timeline to see each event, the screenshots and the red "Monitoring lost" bar, then set the verdict to "Cheating confirmed".
 
@@ -113,8 +190,19 @@ One E2E test (the window-focus part of T28) runs headed, so a Chromium window ap
 
 More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations).
 
+## Project documents
+
+| | |
+| --- | --- |
+| Why and what | [docs/IDEA.md](docs/IDEA.md) · research: [docs/RESEARCH.md](docs/RESEARCH.md) |
+| Requirements (R1–R35) | [docs/PRD.md](docs/PRD.md) |
+| Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
+| Tests (T1–T65) | [docs/QAD.md](docs/QAD.md) |
+| Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
+| Handoff for UI/UX work | [docs/UI-HANDOFF.md](docs/UI-HANDOFF.md) · backend connection: [docs/BACKEND-HANDOFF.md](docs/BACKEND-HANDOFF.md) |
+
 ## Licences
 
-All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). Fonts in `packages/ui-tokens/fonts`: **Satoshi** is under the ITF Free Font License (fonts/LICENSE-Satoshi-FFL.txt): it may be embedded in this app and extension, but the font files must not be redistributed publicly, so keep this repository private (or remove the Satoshi files and fetch them from fontshare.com) if you publish it.
+All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). The icons are hand-drawn in `packages/ui-tokens/icons.tsx`, and the logo and student avatars were supplied by the project owner.
 
-Bundled fonts (not npm dependencies) are under the SIL Open Font Licence 1.1: Inter and JetBrains Mono, in `packages/ui-tokens/fonts` with their licence texts. The icons are hand-drawn in `packages/ui-tokens/icons.tsx`.
+**Satoshi** (`packages/ui-tokens/fonts`) is under the ITF Free Font License (`fonts/LICENSE-Satoshi-FFL.txt`). It may be embedded in this app and extension, but the font files must not be redistributed on their own, so keep this repository private (or remove the Satoshi files and fetch them from fontshare.com) if you publish it.
