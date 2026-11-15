@@ -16,7 +16,6 @@ Fair, privacy-aware monitoring for online certification exams.</p>
 
 <p align="center">
   <a href="https://icu-dashboard-ten.vercel.app/demo/icu-demo.mp4"><img src="docs/assets/demo-video.png" alt="Play the 30-second ICU demo video" width="800"></a><br>
-  <sub>30 seconds · click to play · music: “Inspired” by Kevin MacLeod (incompetech.com), CC BY 4.0</sub>
 </p>
 
 ## Overview
