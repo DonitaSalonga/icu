@@ -30,8 +30,18 @@ test('T62: each tab switch gets its own screenshot of the tab switched to, taken
   const { exam_tab_id: examTab, exam_window_id: windowId } = await stored(ext);
   await new Promise((r) => setTimeout(r, 1500));
 
-  // Leave the exam for another site.
-  const other = await worker.evaluate(({ url, windowId }) => chrome.tabs.create({ url, windowId, active: true }), { url: OTHER_URL, windowId });
+  // Leave the exam for another site. The warning shows at once (it isn't held back for the screenshot).
+  const { other, warnedAfterMs } = await worker.evaluate(async ({ url, windowId }) => {
+    const t0 = Date.now();
+    const other = await chrome.tabs.create({ url, windowId, active: true });
+    while (Date.now() - t0 < 5000) {
+      if (Object.keys(await chrome.notifications.getAll()).some((k) => k.startsWith('icu-warning-'))) return { other, warnedAfterMs: Date.now() - t0 };
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    return { other, warnedAfterMs: -1 };
+  }, { url: OTHER_URL, windowId });
+  expect(warnedAfterMs).toBeGreaterThanOrEqual(0);
+  expect(warnedAfterMs).toBeLessThan(450);
   await waitForEvents(attemptId, (r) => count(r, 'exam_tab_hidden') === 1 && count(r, 'url_visited') === 1);
   const left = await eventShot(attemptId, 'exam_tab_hidden');
   expect(left.shot).toMatchObject({ reason: 'tab_switch', visible_path: '/other/page.html' });

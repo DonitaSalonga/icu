@@ -29,7 +29,7 @@ const TAB_RENDER_MS = 600;
 const FULLSCREEN_RETRY_MS = 1500;
 const MAX_FULLSCREEN_TRIES = 4;
 const WINDOW_RECHECK_MS = [500, 1500];
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+let lastSwitchAt = 0;
 export const ALARM_NOT_DETECTED = 'icu-not-detected';
 
 const isExamUrl = (attempt: StoredAttempt, url: string | undefined) =>
@@ -161,37 +161,54 @@ async function visibleSite(): Promise<string | undefined> {
 interface RecordOptions {
   /** When the event happened, if earlier than now (server-corrected ms). */
   at?: number;
-  /** A screenshot already taken for this event (e.g. the tab-switch capture). */
-  screenshotId?: string;
-  /** Wait this long before a warning screenshot, so a window the student switched to is on screen. */
+  /**
+   * Take the warning screenshot this long after the event, so a window the student switched to is on
+   * screen. The warning itself shows at once; the event is queued with its screenshot afterwards.
+   */
   settleMs?: number;
 }
 
-async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}, opts: RecordOptions = {}): Promise<void> {
-  let attempt = await activeAttempt();
-  if (!attempt) return;
-  const at = opts.at ?? serverNow(attempt);
-
-  // Warning-triggering events get a screenshot; events within 3 s share one (R16).
-  let screenshotId = opts.screenshotId;
-  if (!screenshotId && WARNING_TYPES.includes(type)) {
-    if (opts.settleMs) {
-      await sleep(opts.settleMs);
-      attempt = (await activeAttempt()) ?? attempt;
-    }
-    const capture = decideCapture(attempt.shot ?? {}, serverNow(attempt), await visibleSite());
-    screenshotId = capture.kind === 'attach' ? capture.shotId : await takeScreenshotLocked(attempt, 'violation', serverNow(attempt));
-  }
-  await enqueueEvent(attempt, type, details, at, screenshotId);
-
+/** Shows a live warning for a warning-type event if the cool-down allows (R12). Caller holds the lock. */
+async function warnLocked(attempt: StoredAttempt, type: EventType, at: number): Promise<void> {
   const limit = attempt.session.warning_limit;
   const { decision, next } = decideWarning(attempt.warnings ?? initialWarningState(), type, at, limit);
-  if (decision.kind !== 'none') {
-    await updateAttempt({ warnings: next });
-    await enqueueEvent(attempt, 'warning_shown', { n: decision.n, limit, reason_type: type }, at);
-    if (decision.kind === 'warn_and_limit') await enqueueEvent(attempt, 'warning_limit_reached', { limit }, at);
-    await showWarning(attempt, decision.n, type, decision.kind !== 'warn');
+  if (decision.kind === 'none') return;
+  await updateAttempt({ warnings: next });
+  await enqueueEvent(attempt, 'warning_shown', { n: decision.n, limit, reason_type: type }, at);
+  if (decision.kind === 'warn_and_limit') await enqueueEvent(attempt, 'warning_limit_reached', { limit }, at);
+  await showWarning(attempt, decision.n, type, decision.kind !== 'warn');
+}
+
+/** Warning screenshot; events within 3 s of the same site share one (R16). Caller holds the lock. */
+async function warningShotLocked(attempt: StoredAttempt): Promise<string | undefined> {
+  const at = serverNow(attempt);
+  const capture = decideCapture(attempt.shot ?? {}, at, await visibleSite());
+  return capture.kind === 'attach' ? capture.shotId : takeScreenshotLocked(attempt, 'violation', at);
+}
+
+/** Runs fn under the lock after a delay, if the attempt is still active. */
+function later(ms: number, fn: (attempt: StoredAttempt) => Promise<void>): void {
+  setTimeout(() => void withLock(async () => {
+    const attempt = await activeAttempt();
+    if (attempt) await fn(attempt);
+    void flush();
+  }), ms);
+}
+
+async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}, opts: RecordOptions = {}): Promise<void> {
+  const attempt = await activeAttempt();
+  if (!attempt) return;
+  const at = opts.at ?? serverNow(attempt);
+  const warns = WARNING_TYPES.includes(type);
+  if (warns && opts.settleMs) {
+    await warnLocked(attempt, type, at);
+    later(opts.settleMs, async (now) => enqueueEvent(now, type, details, at, await warningShotLocked(now)));
+    void flush();
+    return;
   }
+  const screenshotId = warns ? await warningShotLocked(attempt) : undefined;
+  await enqueueEvent(attempt, type, details, at, screenshotId);
+  if (warns) await warnLocked(attempt, type, at);
   void flush();
 }
 
@@ -387,13 +404,15 @@ export function onTabRemoved(tabId: number): Promise<void> {
 /**
  * R10, R16: leaving and returning to the exam tab within its window. Every tab switch also gets its own
  * screenshot, taken once the new tab is on screen (grabbing at once showed the previous tab), and the
- * switch's event carries it. The site-visit capture for the new tab then reuses it.
+ * switch's event carries it. The site-visit capture for the new tab then reuses it. The warning isn't
+ * held back for the screenshot.
  */
 export function onTabActivated(tabId: number, windowId: number): Promise<void> {
   return withLock(async () => {
     const attempt = await activeAttempt();
     // Looking at the ICU monitoring tab itself isn't leaving the exam.
     if (!attempt || tabId === attempt.monitor_tab_id) return;
+    lastSwitchAt = Date.now();
     const at = serverNow(attempt);
     let event: { type: EventType; details: Record<string, unknown> } | undefined;
     if (attempt.exam_tab_id !== undefined && windowId === attempt.exam_window_id) {
@@ -405,13 +424,13 @@ export function onTabActivated(tabId: number, windowId: number): Promise<void> {
         event = { type: 'exam_tab_visible', details: { away_ms: at - attempt.hidden_at } };
       }
     }
-    await sleep(TAB_RENDER_MS);
-    const now = await activeAttempt();
-    if (!now) return;
-    const tab = await browser.tabs.get(tabId).catch(() => undefined);
-    const screenshotId = tab?.active ? await takeScreenshotLocked(now, 'tab_switch', serverNow(now), windowId) : undefined;
-    if (event) await recordEventLocked(event.type, event.details, { at, screenshotId });
-    else void flush();
+    // The warning shows at once; the screenshot, and the event that carries it, follow once the new tab is drawn.
+    if (event && WARNING_TYPES.includes(event.type)) await warnLocked(attempt, event.type, at);
+    later(TAB_RENDER_MS, async (now) => {
+      const tab = await browser.tabs.get(tabId).catch(() => undefined);
+      const screenshotId = tab?.active ? await takeScreenshotLocked(now, 'tab_switch', serverNow(now), windowId) : undefined;
+      if (event) await enqueueEvent(now, event.type, event.details, at, screenshotId);
+    });
   });
 }
 
@@ -428,7 +447,10 @@ const siteSeen = new Map<string, number>();
  * window focused). If it is the active tab of its window, shows a non-exam site, and that tab+site wasn't
  * recorded in the last 10 s, records url_visited with a screenshot of the page.
  */
-export function onSiteMaybeVisible(tabId: number): Promise<void> {
+export async function onSiteMaybeVisible(tabId: number): Promise<void> {
+  // Right after a tab switch, wait for its screenshot so the visit reuses it instead of taking a second one.
+  const wait = lastSwitchAt + TAB_RENDER_MS + 100 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   return withLock(async () => {
     const attempt = await activeAttempt();
     if (!attempt) return;

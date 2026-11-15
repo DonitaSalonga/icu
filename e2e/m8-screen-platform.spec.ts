@@ -117,8 +117,8 @@ test('T61: with no exam page open, Start waits without fullscreen; opening the e
 
   const exam = await context.newPage();
   await exam.goto(EXAM_URL);
-  await expect.poll(async () => (await attemptState(ext)).examUrl).toBe(EXAM_URL);
-  expect(await attemptState(ext)).toMatchObject({ examActive: true, fullscreen_requested: true });
+  // Binding, bringing the tab to the front and requesting fullscreen happen in sequence: wait for all.
+  await expect.poll(async () => { const s = await attemptState(ext); return [s.examUrl, s.examActive, s.fullscreen_requested]; }).toEqual([EXAM_URL, true, true]);
   await expect(monitor.getByRole('button', { name: 'Go to my exam' })).toBeVisible();
   await exam.waitForTimeout(2000);
   await ext.send({ type: 'attempt.end' });

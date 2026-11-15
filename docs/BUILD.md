@@ -177,6 +177,7 @@ Status (planned/in progress/done): done
   - **Found in the user's attempts on icu-main:** one attempt never went fullscreen; no attempt recorded leaving fullscreen; and tab-switch warning screenshots were grabbed before the new tab was drawn, so they showed the exam, and the site visit reused that picture.
   - **Fix:** fullscreen is retried until seen; window state is re-checked after changes and on every heartbeat; every tab switch gets its own `tab_switch` screenshot 600 ms after the switch (migration 011). Label "Tell us about the exam", no example text.
   - **Tests:** T62–T65 added; T39 updated.
+  - **Follow-up (user report: warnings came late on tab switches):** the warning was waiting for the 600 ms screenshot. It now shows at once and the screenshot follows; T62 checks the warning appears within 450 ms. T61's check now waits for the whole bind sequence (the earlier one-off failure).
 
 - 2026-11-15: Second feedback round: start flow and exam info (R34).
   - **Bug:** at Start the window went fullscreen while the ICU monitoring tab was in front, so reaching the exam meant leaving fullscreen, which counted as a warning. **Fix:** the exam tab (the tab the student was on at Continue) is brought to the front before fullscreen; with no exam page open, fullscreen waits until one opens; the monitoring tab isn't "leaving" and has "Go to my exam".
