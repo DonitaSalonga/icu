@@ -58,8 +58,8 @@ export function Login() {
           <button type="submit" className="btn p" style={{ width: '100%', marginTop: 10 }}>{signin ? 'Sign in' : 'Create account'}</button>
         </form>
         <p className="authfoot">
-          {signin ? "Don't have an account? " : 'Already have an account? '}
-          <button type="button" className="linkbtn" onClick={toggle}>{signin ? 'Create an admin account' : 'Sign in'}</button>
+          {signin ? "Don't have an account?" : 'Already have an account?'}
+          <button type="button" className="linkbtn" style={{ display: 'block', margin: '4px auto 0' }} onClick={toggle}>{signin ? 'Create an admin account' : 'Sign in'}</button>
         </p>
         <p className="authfoot" style={{ marginTop: 8 }}>
           <button type="button" className="linkbtn" style={{ fontWeight: 500, color: 'var(--muted)' }} onClick={() => navigate('/')}>Back</button>
