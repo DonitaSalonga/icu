@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Deployed the dashboard to Vercel (https://icu-dashboard-ten.vercel.app) from a clean `git archive` of `main` with `vercel.json` (npm workspaces build, SPA rewrite) and the two public Supabase settings for the main project. Checked: pages and deep links load, the build points at the main project, the demo admin signs in and sees their sessions. Extension packaged as a zip (`wxt zip`) whose Open dashboard button goes to the Vercel site.
+
 - 2026-11-15: Feedback round 3. Sessions (Sessions page and Overview) show the user's monitor-with-pulse icon in a round pastel badge, the same colour per session everywhere (`pastelFor`); the "Danger zone" card became a press-and-hold delete button under Screenshots; breadcrumbs and the top bar removed from every page; logo trimmed so "I Caught You" sits beside it. T39 goes back to Sessions through the sidebar; T40 checks the delete button is gone after deleting. Tests: m4, m6 (0 axe violations, 19 screens), m7 pass. Pastel candidate-review cards were tried and reverted at the user's request (the white cards read better).
 
 - 2026-11-15: Feedback round 2. Candidate review: one "Findings" bar summarises what the candidate did (replaces the separate notes); AI probabilities in their own box; Exam info as labelled sections with dividers, platform chips and a code box; Account says "Examiner". Satoshi is now the only typeface everywhere (titles upright as on the Overview; codes and times use tabular figures); JetBrains Mono removed. T39 checks the findings bar.
