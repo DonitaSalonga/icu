@@ -9,6 +9,7 @@
 | Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
 | Tests (T1–T65) | [docs/QAD.md](docs/QAD.md) |
 | Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
+| Handoff for UI/UX work | [docs/UI-HANDOFF.md](docs/UI-HANDOFF.md) · backend connection: [docs/BACKEND-HANDOFF.md](docs/BACKEND-HANDOFF.md) |
 
 ## How it works
 

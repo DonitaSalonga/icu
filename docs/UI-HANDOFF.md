@@ -1,6 +1,6 @@
 # ICU (I Caught You) — UI/UX handoff
 
-Read before changing how ICU looks or reads. Behaviour, data and privacy rules are in [SDD.md](SDD.md) and [PRD.md](PRD.md); the visual rules are in [DSD.md](DSD.md). Keep both in sync if you change them.
+Read before changing how ICU looks or reads. How the screens connect to the backend (every call, message and error code to keep) is in [BACKEND-HANDOFF.md](BACKEND-HANDOFF.md). Behaviour, data and privacy rules are in [SDD.md](SDD.md) and [PRD.md](PRD.md); the visual rules are in [DSD.md](DSD.md). Keep both in sync if you change them.
 
 ## Where the UI lives
 
