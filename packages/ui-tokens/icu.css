@@ -292,11 +292,5 @@ table.t tr.click{cursor:pointer}
 .plats small{color:var(--muted);font-size:13.5px}
 .codebox{display:inline-block;padding:6px 12px;border-radius:10px;background:var(--sunken);font-size:16px;letter-spacing:.12em}
 
-/* Feedback 2026-11-15: candidate-review cards in the Overview pastels. Muted text, lines and sunken fills
-   follow the card so contrast holds on every colour. */
-.card.pc,.findings.pc{border-color:transparent;--muted:var(--on-pastel);--line:rgba(29,26,23,.14);--sunken:rgba(255,253,249,.55)}
-.pc.yellow{background:var(--p-yellow)}.pc.pink{background:var(--p-pink)}.pc.sage{background:var(--p-sage)}.pc.blue{background:var(--p-blue)}
-.pc .probbox{background:rgba(255,253,249,.55);border-color:transparent}
-.pc .radio{background:rgba(255,253,249,.55)}.pc .radio.on{background:var(--surface)}
 .delrow{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}
 .delrow .hold{width:auto;padding:0 20px}

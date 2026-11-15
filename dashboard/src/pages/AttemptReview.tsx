@@ -147,7 +147,7 @@ export function AttemptReview() {
 
       <div className="cols">
         <div style={{ display: 'grid', gap: 24, minWidth: 0 }}>
-          <section className="card pc pink" aria-labelledby="tlh">
+          <section className="card" aria-labelledby="tlh">
             <h2 id="tlh" style={{ marginBottom: 16 }}>Timeline</h2>
             {typeCounts.length > 0 && (
               <div role="group" aria-label="Filter event types" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -192,7 +192,7 @@ export function AttemptReview() {
             )}
           </section>
 
-          <section className="card pc blue" aria-labelledby="sh">
+          <section className="card" aria-labelledby="sh">
             <h2 id="sh" style={{ marginBottom: 16 }}>Screenshots ({shots.length})</h2>
             {shots.length === 0 ? (
               <div className="empty"><b>No screenshots</b></div>
@@ -245,7 +245,7 @@ function Findings({ events, gaps, notFullscreen, forcedHigh, deletedAt }: { even
   const stopped = count(events, 'screen_share_stopped');
   if (stopped) items.push({ text: `Stopped screen sharing ${times(stopped)}`, icon: 'alert', tone: 'alert' });
   return (
-    <section className="findings pc yellow" aria-label="Summary of findings">
+    <section className="findings" aria-label="Summary of findings">
       <span className="fl">Findings</span>
       <ul>
         {items.length === 0 ? <li className="fi ok"><Icon name="check" size={16} /> Nothing unusual recorded</li> : items.map((it) => (
@@ -259,7 +259,7 @@ function Findings({ events, gaps, notFullscreen, forcedHigh, deletedAt }: { even
 function Breakdown({ score }: { score: Score }) {
   const cell = { paddingLeft: 0 };
   return (
-    <section className="card pc sage" aria-labelledby="rb">
+    <section className="card" aria-labelledby="rb">
       <div className="cardhead"><h2 id="rb">Risk breakdown</h2><span className="num" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-.03em' }} aria-label={`Score ${score.score}`}>{score.score}</span></div>
       <table className="t">
         <thead>
@@ -304,7 +304,7 @@ function VerdictCard({ attempt, onSaved }: { attempt: AttemptRow; onSaved: () =>
   };
 
   return (
-    <section className="card pc pink" aria-labelledby="vd">
+    <section className="card" aria-labelledby="vd">
       <h2 id="vd" style={{ marginBottom: 14 }}>Your verdict</h2>
       <div role="radiogroup" aria-labelledby="vd">
         {VERDICTS.map((v) => (
