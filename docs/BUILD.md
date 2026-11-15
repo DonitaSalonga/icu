@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Repo recreated public on GitHub with the clean history, and connected to the Vercel project `icu-dashboard` for auto-deploy: pushes to `main` deploy to production, other branches get preview deployments (both have the two public Supabase settings).
+
 - 2026-11-15: Repo made public-ready (user request). Satoshi now loads from Fontshare's servers (https URLs from the Fontshare API in `icu.css`); the font files and their licence text were deleted from the repo and purged from its history, as the ITF Free Font License forbids them in a public repository. History rewritten to drop the Claude co-author trailers (user request). README: Licences section removed. A history scan found no local secret values.
 
 - 2026-11-15: The role choice at `/` always shows, even when signed in (the README's sign-up link used to jump straight to the dashboard); a signed-in visitor sees "Signed in as … · Open dashboard · Sign out". T39 checks it. README: transparent logo, sign-up link, developer setup, demo checklist and project documents removed.
