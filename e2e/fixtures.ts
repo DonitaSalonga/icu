@@ -140,12 +140,18 @@ export const count = (rows: EventRow[], type: string) => rows.filter((r) => r.ty
 
 /** Signs in as student-1, joins a new session and starts monitoring with the exam page open. */
 /** The real Start flow (Q36/Q37): consent on the notice page, share the entire screen, start. */
+/** The consent popout only enables its agree button once the notice has been scrolled to the end (R7). */
+export async function scrollNoticeToEnd(notice: Page): Promise<void> {
+  await notice.getByLabel('Privacy notice text').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+}
+
 export async function shareScreenAndStart(context: BrowserContext, ext: ExtensionDriver): Promise<Page> {
   const notice = await context.newPage();
   await notice.goto(`chrome-extension://${ext.extensionId}/notice.html`);
   await notice.getByLabel('I am 18 or older').check();
   await notice.getByLabel(/I have read this notice/).check();
-  await notice.getByRole('button', { name: 'Share screen and start' }).click();
+  await scrollNoticeToEnd(notice);
+  await notice.getByRole('button', { name: 'I agree & share screen' }).click();
   await notice.getByRole('heading', { name: 'ICU monitoring' }).waitFor({ timeout: 15_000 });
   return notice;
 }

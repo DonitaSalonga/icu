@@ -18,7 +18,8 @@ test('T55: AI suggestion shown in session detail and candidate review; Re-analyz
   });
 
   await login(page);
-  await page.goto(`${DASH}/sessions/${session.id}`);
+  // Needs review lists both ended candidates with their AI suggestion (High first).
+  await page.goto(`${DASH}/review`);
   const first = page.locator('tbody tr').first();
   await expect(first).toContainText('Likely cheating: used AI or the web · 82%');
   await expect(page.locator('tbody tr').nth(1)).toContainText('—'); // student2 not analyzed

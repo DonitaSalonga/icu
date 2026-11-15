@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     "./tokens.css": "./tokens.css",
-    "./tailwind-preset": "./tailwind-preset.js"
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./icons": "./icons.tsx",
+    "./icu.css": "./icu.css"
   }
 }

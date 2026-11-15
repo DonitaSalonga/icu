@@ -1,105 +1,87 @@
-// Sessions list and Create session dialog (R4, R5; DSD § Layout "Sessions list").
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+// Sessions list and Create session dialog (R4, R5; design "Dashboard · Sessions" and "Create session").
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { describeExamSite, isValidExamSite, normalizeExamSite } from '@icu/core';
-import { loadSummaries, SESSION_COLUMNS, sessionStatus, type SessionRow } from '../lib/data';
+import { useAdminData } from '../lib/admin-data';
+import { sessionStatus } from '../lib/data';
 import { errorText, supabase } from '../supabase';
-import { Alert, Button, Dialog, Field, formatDateTime } from '../ui';
+import { Alert, Dialog, Icon, scheduleDot, Seg, StatusPill, Toast } from '../ui';
 
-type Row = SessionRow & { candidates: number; high: number };
+type Filter = 'all' | 'live' | 'upcoming' | 'ended';
+const STATUS_OF: Record<Filter, string | undefined> = { all: undefined, live: 'Active', upcoming: 'Upcoming', ended: 'Ended' };
 
 export function Sessions() {
-  const [rows, setRows] = useState<Row[]>();
-  const [error, setError] = useState<string>();
+  const { loading, error, sessions, attempts, reload } = useAdminData();
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState<{ name: string; code: string }>();
+  const [toast, setToast] = useState<string>();
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      const { data, error } = await supabase!.from('exam_sessions').select(SESSION_COLUMNS).order('starts_at', { ascending: false });
-      if (error) throw error;
-      const withCounts = await Promise.all(
-        (data as SessionRow[]).map(async (s) => {
-          const attempts = await loadSummaries(s);
-          return { ...s, candidates: attempts.length, high: attempts.filter((a) => a.risk.level === 'high').length };
-        }),
-      );
-      setRows(withCounts);
-    } catch (e) {
-      setError(errorText(e as { message: string }));
-    }
-  }, []);
-
-  useEffect(() => void load(), [load]);
+  const rows = useMemo(
+    () =>
+      sessions.map((s) => {
+        const mine = attempts.filter((a) => a.session.id === s.id);
+        return { ...s, candidates: mine.length, high: mine.filter((a) => a.risk.level === 'high').length };
+      }),
+    [sessions, attempts],
+  );
+  const shown = rows.filter((s) => {
+    const want = STATUS_OF[filter];
+    if (want && sessionStatus(s) !== want) return false;
+    const q = query.trim().toLowerCase();
+    return !q || s.name.toLowerCase().includes(q) || s.url_patterns.join(' ').toLowerCase().includes(q);
+  });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Exam sessions</h1>
-        <Button onClick={() => setCreating(true)}>Create session</Button>
+    <>
+      <div className="head">
+        <div><h1 className="h1">Sessions</h1><p className="sub">Exam sessions you created</p></div>
+        <button type="button" className="btn p" onClick={() => setCreating(true)}><Icon name="plus" size={18} /> Create session</button>
       </div>
-      {created && (
-        <div role="status" className="flex flex-wrap items-center gap-3 rounded-md bg-risk-low-bg p-4 text-sm text-risk-low-fg">
-          <span>“{created.name}” created. Give students this code:</span>
-          <span className="font-mono text-code">{created.code}</span>
-          <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(created.code)}>Copy code</Button>
-        </div>
-      )}
       {error && <Alert>{error}</Alert>}
-      {!rows && !error && <p className="text-sm text-muted">Loading…</p>}
-      {rows?.length === 0 && (
-        <div className="flex flex-col items-start gap-3 rounded-md border border-border p-6">
-          <p className="text-sm">No sessions yet. Create one, then give students its code.</p>
-          <Button onClick={() => setCreating(true)}>Create session</Button>
+      <section className="card" aria-label="Sessions">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <Seg<Filter> label="Session status" value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All' }, { value: 'live', label: 'Live' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'ended', label: 'Ended' }]} />
+          <div style={{ position: 'relative', flex: 1, maxWidth: 360, minWidth: 220 }}>
+            <span style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }}><Icon name="search" size={18} /></span>
+            <label htmlFor="q" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>Search sessions</label>
+            <input id="q" className="in" style={{ paddingLeft: 42 }} placeholder="Search sessions" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
         </div>
-      )}
-      {rows && rows.length > 0 && (
-        <>
-          <table className="hidden w-full text-left text-sm md:table">
-            <thead className="bg-surface">
-              <tr>
-                {['Name', 'Code', 'Exam platform', 'Window', 'Status', 'Candidates', 'High risk'].map((h) => (
-                  <th key={h} scope="col" className="p-2">{h}</th>
-                ))}
-              </tr>
-            </thead>
+        <div className="tw">
+          <table className="t">
+            <thead><tr>{['Name', 'Exam platform', 'Schedule', 'Status', 'Candidates', 'High risk'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>
-              {rows.map((s) => (
-                <tr key={s.id} className="border-b border-border hover:bg-surface">
-                  <td className="p-2"><Link className="text-primary underline" to={`/sessions/${s.id}`}>{s.name}</Link></td>
-                  <td className="p-2 font-mono">{s.code}</td>
-                  <td className="p-2">{s.url_patterns.join(', ')}</td>
-                  <td className="p-2">{formatDateTime(s.starts_at)} – {formatDateTime(s.ends_at)}</td>
-                  <td className="p-2">{sessionStatus(s)}</td>
-                  <td className="p-2">{s.candidates}</td>
-                  <td className="p-2">{s.high}</td>
+              {shown.map((r) => (
+                <tr key={r.id}>
+                  <td><Link className="lk" to={`/sessions/${r.id}`}>{r.name}</Link><small>{r.description?.split('\n')[0] || 'No description'}</small></td>
+                  <td><span style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{r.url_patterns.map((p) => <span key={p} className="chip" title={describeExamSite(p)}>{p}</span>)}</span></td>
+                  <td className="num" style={{ whiteSpace: 'nowrap' }}>{scheduleDot(r)}</td>
+                  <td><StatusPill status={sessionStatus(r)} /></td>
+                  <td className="num">{r.candidates}</td>
+                  <td className="num">{r.high}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <ul className="flex flex-col gap-3 md:hidden">
-            {rows.map((s) => (
-              <li key={s.id} className="rounded-md border border-border p-4 text-sm shadow-1">
-                <Link className="font-semibold text-primary underline" to={`/sessions/${s.id}`}>{s.name}</Link>
-                <p className="font-mono">{s.code} · {sessionStatus(s)}</p>
-                <p>{s.url_patterns.join(', ')}</p>
-                <p className="text-muted">{formatDateTime(s.starts_at)} – {formatDateTime(s.ends_at)}</p>
-                <p>{s.candidates} candidates · {s.high} high risk</p>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+        </div>
+        {loading && <div className="empty" role="status"><b>Loading…</b></div>}
+        {!loading && rows.length === 0 && <div className="empty"><b>No sessions yet</b>Create one, then give students its code.</div>}
+        {!loading && rows.length > 0 && shown.length === 0 && <div className="empty"><b>No sessions match</b>Try another filter or search.</div>}
+      </section>
       <CreateSessionDialog
         open={creating}
         onClose={() => setCreating(false)}
-        onCreated={(name, code) => {
+        onCreated={() => {
           setCreating(false);
-          setCreated({ name, code });
-          void load();
+          setFilter('all');
+          setQuery('');
+          setToast('Session created.');
+          void reload();
         }}
       />
-    </div>
+      <Toast message={toast} onDone={() => setToast(undefined)} />
+    </>
   );
 }
 
@@ -109,159 +91,109 @@ const timeValue = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 /** Local date (yyyy-mm-dd) + time (hh:mm) → Date, or undefined if either is missing. */
 const combine = (date: string, time: string) => (date && time ? new Date(`${date}T${time}`) : undefined);
 
-/** The exam platform type box (2026-11-15): platform names or websites, shown as removable chips. */
-function PlatformInput({ value, onChange, error }: { value: string[]; onChange: (v: string[]) => void; error?: string }) {
-  const [draft, setDraft] = useState('');
-  const [draftError, setDraftError] = useState<string>();
-  const add = () => {
-    const entry = normalizeExamSite(draft);
-    if (!entry) return;
-    if (!isValidExamSite(entry)) return setDraftError('Type a platform name like netacad, or a website like skillsbuild.org or docs.google.com/forms.');
-    if (!value.includes(entry)) onChange([...value, entry]);
-    setDraft('');
-    setDraftError(undefined);
-  };
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor="s-platform" className="text-sm font-semibold">Exam platform</label>
-      <div className="flex gap-2">
-        <input
-          id="s-platform"
-          className={`min-h-[36px] flex-1 rounded-sm border px-3 text-sm ${draftError || error ? 'border-danger' : 'border-border-strong'}`}
-          placeholder="e.g. netacad, ibm, docs.google.com/forms"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-              e.preventDefault();
-              add();
-            }
-          }}
-          aria-describedby="s-platform-hint"
-          aria-invalid={draftError || error ? true : undefined}
-        />
-        <Button type="button" variant="secondary" onClick={add}>Add</Button>
-      </div>
-      <p id="s-platform-hint" className="text-xs text-muted">
-        Type the platform or website students take the exam on, then press Enter. Every page of that platform counts as the exam; other websites, and other tabs, don't.
-      </p>
-      {draft && !draftError && isValidExamSite(normalizeExamSite(draft)) && (
-        <p className="text-xs text-muted">Will monitor {describeExamSite(normalizeExamSite(draft))}.</p>
-      )}
-      {(draftError || error) && <p className="text-xs text-danger">{draftError ?? error}</p>}
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label="Exam platforms">
-          {value.map((v) => (
-            <li key={v} className="flex items-center gap-1 rounded-full border border-border-strong bg-surface py-0.5 pl-3 pr-1 text-sm" title={`Monitors ${describeExamSite(v)}`}>
-              {v}
-              <button type="button" className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-bg" aria-label={`Remove ${v}`} onClick={() => onChange(value.filter((x) => x !== v))}>
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (name: string, code: string) => void }) {
+function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const now = new Date();
   const later = new Date(now.getTime() + 60 * 60_000);
   const [name, setName] = useState('');
+  const [plat, setPlat] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [about, setAbout] = useState('');
-  const [startDate, setStartDate] = useState(dateValue(now));
-  const [startTime, setStartTime] = useState(timeValue(now));
-  const [endDate, setEndDate] = useState(dateValue(later));
-  const [endTime, setEndTime] = useState(timeValue(later));
-  const [warningLimit, setWarningLimit] = useState('3');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [serverError, setServerError] = useState<string>();
+  const [d1, setD1] = useState(dateValue(now));
+  const [t1, setT1] = useState(timeValue(now));
+  const [d2, setD2] = useState(dateValue(later));
+  const [t2, setT2] = useState(timeValue(later));
+  const [limit, setLimit] = useState('3');
+  const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Enter a name.';
-    if (platforms.length === 0) e.platforms = 'Add at least one exam platform.';
-    const starts = combine(startDate, startTime);
-    const ends = combine(endDate, endTime);
-    if (!starts) e.starts = 'Choose a start date and time.';
-    if (!ends || (starts && ends <= starts)) e.ends = 'The end must be after the start.';
-    const wl = Number(warningLimit);
-    if (!Number.isInteger(wl) || wl < 1 || wl > 10) e.warningLimit = 'Choose a whole number from 1 to 10.';
-    return e;
+  const addPlat = () => {
+    const entry = normalizeExamSite(plat);
+    if (!entry) return;
+    if (!isValidExamSite(entry)) return setError('Type a platform name like netacad, or a website like skillsbuild.org or docs.google.com/forms.');
+    if (!platforms.includes(entry)) setPlatforms([...platforms, entry]);
+    setPlat('');
+    setError(undefined);
   };
 
-  const submit = async (ev: FormEvent) => {
-    ev.preventDefault();
-    const e = validate();
-    setErrors(e);
-    setServerError(undefined);
-    if (Object.keys(e).length) return;
+  const create = async () => {
+    setError(undefined);
+    const starts = combine(d1, t1);
+    const ends = combine(d2, t2);
+    const wl = Number(limit);
+    if (!name.trim()) return setError('Enter a name.');
+    if (platforms.length === 0) return setError('Add at least one exam platform.');
+    if (!starts || !ends || ends <= starts) return setError('The end must be after the start.');
+    if (!Number.isInteger(wl) || wl < 1 || wl > 10) return setError('Choose a warning limit from 1 to 10.');
     setSaving(true);
-    // Risk thresholds use the server defaults (Medium from 10, High from 25; 2026-11-15 feedback).
-    const { data, error } = await supabase!.rpc('create_session', {
+    // Risk thresholds use the server defaults (Medium from 10, High from 25).
+    const { error } = await supabase!.rpc('create_session', {
       p_name: name.trim(),
       p_url_patterns: platforms,
-      p_starts_at: combine(startDate, startTime)!.toISOString(),
-      p_ends_at: combine(endDate, endTime)!.toISOString(),
-      p_warning_limit: Number(warningLimit),
+      p_starts_at: starts.toISOString(),
+      p_ends_at: ends.toISOString(),
+      p_warning_limit: wl,
       p_description: about.trim() || null,
     });
     setSaving(false);
-    if (error) return setServerError(errorText(error));
-    onCreated(name.trim(), (data as { code: string }).code);
+    if (error) return setError(errorText(error));
+    onCreated();
     setName('');
     setPlatforms([]);
+    setPlat('');
     setAbout('');
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title="Create exam session">
-      <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={(e) => void submit(e)} noValidate>
-        <div className="md:col-span-2">
-          <Field id="s-name" label="Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} error={errors.name} />
+    <Dialog open={open} onClose={onClose} titleId="dt">
+      <h2 id="dt">Create exam session</h2>
+      <div className="field"><label htmlFor="n">Name</label><input id="n" className="in" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} /></div>
+      <div className="field">
+        <label htmlFor="pl">Exam platform</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input id="pl" className="in" placeholder="e.g. netacad, ibm, docs.google.com/forms" value={plat} onChange={(e) => setPlat(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPlat(); } }} />
+          <button type="button" className="btn s" onClick={addPlat}>Add</button>
         </div>
-        <div className="md:col-span-2">
-          <PlatformInput value={platforms} onChange={setPlatforms} error={errors.platforms} />
+        <div role="list" aria-label="Exam platforms" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+          {platforms.map((p) => (
+            <span key={p} role="listitem" className="chip" title={`Monitors ${describeExamSite(p)}`}>
+              {p}
+              <button type="button" aria-label={`Remove ${p}`} onClick={() => setPlatforms(platforms.filter((x) => x !== p))}><Icon name="close" size={14} /></button>
+            </span>
+          ))}
         </div>
-        <div className="flex flex-col gap-1 md:col-span-2">
-          <label htmlFor="s-about" className="text-sm font-semibold">Tell us about the exam <span className="font-normal text-muted">(optional)</span></label>
-          <textarea
-            id="s-about"
-            className="rounded-sm border border-border-strong p-2 text-sm"
-            rows={2}
-            maxLength={500}
-            value={about}
-            onChange={(e) => setAbout(e.target.value)}
-            aria-describedby="s-about-hint"
-          />
-          <p id="s-about-hint" className="text-xs text-muted">Students see this before they start. {about.length} / 500</p>
-        </div>
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold">Starts</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <Field id="s-start-date" label="Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            <Field id="s-start-time" label="Time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        <p className="hint">Type the platform or website students take the exam on, then press Enter. Every page of that platform counts as the exam; other websites, and other tabs, don't.</p>
+      </div>
+      <div className="field">
+        <label htmlFor="ab">Tell us about the exam <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(optional)</span></label>
+        <textarea id="ab" className="in" value={about} onChange={(e) => setAbout(e.target.value.slice(0, 500))} />
+        <p className="hint">Students see this before they start. {about.length} / 500</p>
+      </div>
+      <div className="two">
+        <div>
+          <p className="lab">Starts</p>
+          <div className="two" style={{ gap: 8 }}>
+            <div><label htmlFor="d1" className="hint" style={{ margin: '0 0 4px', display: 'block' }}>Date</label><input id="d1" className="in" type="date" value={d1} onChange={(e) => setD1(e.target.value)} /></div>
+            <div><label htmlFor="t1" className="hint" style={{ margin: '0 0 4px', display: 'block' }}>Time</label><input id="t1" className="in" type="time" value={t1} onChange={(e) => setT1(e.target.value)} /></div>
           </div>
-          {errors.starts && <p className="text-xs text-danger">{errors.starts}</p>}
-        </fieldset>
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold">Ends</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <Field id="s-end-date" label="Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            <Field id="s-end-time" label="Time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-          </div>
-          {errors.ends && <p className="text-xs text-danger">{errors.ends}</p>}
-        </fieldset>
-        <Field id="s-limit" label="Warning limit" type="number" min={1} max={10} value={warningLimit} onChange={(e) => setWarningLimit(e.target.value)} error={errors.warningLimit} hint="Warnings before the candidate is flagged High." />
-        {serverError && <div className="md:col-span-2"><Alert>{serverError}</Alert></div>}
-        <div className="flex gap-2 md:col-span-2">
-          <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create session'}</Button>
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
         </div>
-      </form>
+        <div>
+          <p className="lab">Ends</p>
+          <div className="two" style={{ gap: 8 }}>
+            <div><label htmlFor="d2" className="hint" style={{ margin: '0 0 4px', display: 'block' }}>Date</label><input id="d2" className="in" type="date" value={d2} onChange={(e) => setD2(e.target.value)} /></div>
+            <div><label htmlFor="t2" className="hint" style={{ margin: '0 0 4px', display: 'block' }}>Time</label><input id="t2" className="in" type="time" value={t2} onChange={(e) => setT2(e.target.value)} /></div>
+          </div>
+        </div>
+      </div>
+      <div className="field" style={{ marginTop: 18, maxWidth: 240 }}>
+        <label htmlFor="lim">Warning limit</label>
+        <input id="lim" className="in" type="number" min={1} max={10} value={limit} onChange={(e) => setLimit(e.target.value)} />
+        <p className="hint">Warnings before the candidate is flagged High.</p>
+      </div>
+      {error && <p className="err" role="alert" style={{ marginBottom: 12 }}>{error}</p>}
+      <div className="actions">
+        <button type="button" className="btn s" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn p" disabled={!name.trim() || saving} onClick={() => void create()}>{saving ? 'Creating…' : 'Create session'}</button>
+      </div>
     </Dialog>
   );
 }

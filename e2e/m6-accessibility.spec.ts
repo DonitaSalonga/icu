@@ -6,11 +6,13 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { resetData, TEST_PASSWORD, TEST_USERS } from '../supabase/scripts/testEnv';
 import { DASH, login, seed } from './dashboard-helpers';
-import { createSession, EXAM_URL, expect, test } from './fixtures';
+import { createSession, EXAM_URL, expect, scrollNoticeToEnd, test } from './fixtures';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 async function scan(page: Page, label: string) {
+  // The design fades content in (".rise"); measure contrast once every animation has finished.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
   const { violations, passes } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   console.log(`[axe] ${label}: ${passes.length} rules passed, ${violations.length} violated`);
   const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
@@ -49,23 +51,32 @@ test('T41: extension popup and notice screens have no serious axe violations', a
   await popup.getByLabel('Email').fill(TEST_USERS.student1.email);
   await popup.getByLabel('Password').fill(TEST_PASSWORD);
   await popup.getByRole('button', { name: 'Sign in' }).click();
-  await popup.getByLabel('Session code').waitFor();
+  await popup.getByLabel('Exam code').waitFor();
   await scan(popup, 'popup: join');
-  await popup.getByLabel('Session code').fill(session.code);
-  await popup.getByRole('button', { name: 'Join exam' }).click();
+  await popup.getByLabel('Exam code').fill(session.code);
+  await popup.getByRole('button', { name: 'Find exam' }).click();
   await popup.getByRole('button', { name: 'Continue' }).waitFor();
   await scan(popup, 'popup: session summary');
   const [notice] = await Promise.all([context.waitForEvent('page'), popup.getByRole('button', { name: 'Continue' }).click()]);
-  await notice.getByRole('heading', { name: /privacy notice/i }).waitFor();
+  await notice.getByRole('heading', { name: /privacy & terms/i }).waitFor();
   await scan(notice, 'notice page');
   await notice.getByLabel('I am 18 or older').check();
   await notice.getByLabel(/I have read this notice/).check();
-  await notice.getByRole('button', { name: 'Share screen and start' }).click();
+  await scrollNoticeToEnd(notice);
+  await notice.getByRole('button', { name: 'I agree & share screen' }).click();
   await notice.getByRole('heading', { name: 'ICU monitoring' }).waitFor();
   await scan(notice, 'monitoring tab');
   await popup.reload();
   await popup.getByRole('button', { name: 'End exam' }).waitFor();
   await scan(popup, 'popup: monitoring');
+});
+
+test('T41: welcome page has no serious axe violations', async ({ context, extensionId }) => {
+  const welcome = await context.newPage();
+  await welcome.goto(`chrome-extension://${extensionId}/welcome.html`);
+  await welcome.getByRole('heading', { name: 'Welcome to ICU' }).waitFor();
+  await expect(welcome.getByRole('heading', { name: /Pin ICU/ })).toBeVisible();
+  await scan(welcome, 'welcome page');
 });
 
 test('T41: dashboard screens and dialogs have no serious axe violations', async ({ page }) => {
@@ -76,10 +87,21 @@ test('T41: dashboard screens and dialogs have no serious axe violations', async 
   await page.goto(`${DASH}/login`);
   await scan(page, 'dashboard: login');
   await login(page);
+  await scan(page, 'dashboard: overview');
+  await page.goto(`${DASH}/sessions`);
+  await page.getByRole('heading', { name: 'Sessions' }).waitFor();
+  await page.locator('tbody tr').first().waitFor();
   await scan(page, 'dashboard: sessions');
   await page.getByRole('button', { name: 'Create session' }).first().click();
   await scan(page, 'dashboard: create-session dialog');
   await page.keyboard.press('Escape');
+  await page.goto(`${DASH}/review`);
+  await page.getByRole('heading', { name: 'Needs review' }).first().waitFor();
+  await page.locator('tbody tr').first().waitFor();
+  await scan(page, 'dashboard: needs review');
+  await page.goto(`${DASH}/account`);
+  await page.getByRole('heading', { name: 'Account', level: 1 }).waitFor();
+  await scan(page, 'dashboard: account');
   await page.goto(`${DASH}/sessions/${session.id}`);
   await page.locator('tbody tr').first().waitFor();
   await scan(page, 'dashboard: session detail');
@@ -89,8 +111,6 @@ test('T41: dashboard screens and dialogs have no serious axe violations', async 
   await page.getByRole('button', { name: 'Screenshot' }).first().click();
   await scan(page, 'dashboard: screenshot lightbox');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Delete candidate data' }).click();
-  await scan(page, 'dashboard: delete dialog');
 });
 
 test('T41: keyboard-only — chooser, login, create session, dialog Esc returns focus', async ({ page }) => {
@@ -103,7 +123,12 @@ test('T41: keyboard-only — chooser, login, create session, dialog Esc returns 
   await page.keyboard.press('Tab');
   await page.keyboard.type(TEST_PASSWORD);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Exam sessions' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+
+  // The sidebar is reachable by keyboard: Tab to Sessions, press Enter.
+  await tabTo(page, /^\s*Sessions/);
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Sessions' })).toBeVisible();
 
   await tabTo(page, /^\s*Create session/);
   await page.keyboard.press('Enter');

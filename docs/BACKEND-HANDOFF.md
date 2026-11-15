@@ -132,7 +132,7 @@ The UI calls `send<T>(message)` from `extension/lib/send.ts`. It always resolves
 | `{ type: 'attempt.join', code }` | popup | `JoinResult { attempt_id, status, session }` |
 | `{ type: 'attempt.openNotice' }` | popup ("Continue") | Opens `notice.html`. **Send it from the exam tab**: the tab the student is on becomes the preferred exam tab |
 | `{ type: 'attempt.start', age_confirmed, consent_version }` | notice | Refused with `ICU_SCREEN_SHARE_REQUIRED` unless the screen is shared first. `consent_version` must be `NOTICE_VERSION` |
-| `{ type: 'screen.started' }` / `{ type: 'screen.stopped' }` | notice | Report the whole-screen share; the notice tab becomes the pinned "ICU monitoring" tab |
+| `{ type: 'screen.started' }` / `{ type: 'screen.stopped' }` | notice | Report the whole-screen share; the notice page (a small popup window, DSD v2) becomes the "ICU monitoring" window. Focusing that window isn't leaving the exam |
 | `{ type: 'attempt.reshare' }` | popup ("Share screen again") | Opens `notice.html?reshare=1` |
 | `{ type: 'attempt.focusExam' }` | monitoring tab ("Go to my exam") | Brings the exam tab to the front; `ICU_EXAM_NOT_OPEN` if there isn't one |
 | `{ type: 'attempt.end' }` | popup ("End exam") | `{ ended_at }`; sends `monitor.stop` to the monitoring tab |

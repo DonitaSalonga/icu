@@ -1,10 +1,14 @@
-// Popup screens (DSD.md § Layout: sign-in → join → session summary → monitoring status).
-// R1: signed-out users first choose Student or Admin; admins are sent to the dashboard.
+// Popup (design "Extension · Popup" and "Extension · Student sign in"): role chooser → student sign in → join an
+// exam → exam card → monitoring. R1: signed-out users first choose Student or Admin; admins use the dashboard.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Icon } from '@icu/ui-tokens/icons';
 import type { AttemptStatus, AuthState, JoinResult } from '@icu/core';
 import { DASHBOARD_URL } from '../../lib/env';
 import { errorText, send } from '../../lib/send';
-import { Alert, Button, ExamAbout, Field, formatTime } from '../../lib/ui';
+import { formatElapsed, formatTime, PopupHeader } from '../../lib/ui';
+
+type Result = { ok: boolean; code?: string; message?: string };
+type Run = (fn: () => Promise<Result>) => Promise<boolean>;
 
 export function App() {
   const [auth, setAuth] = useState<AuthState>();
@@ -31,7 +35,7 @@ export function App() {
     return () => clearInterval(timer);
   }, [refresh]);
 
-  const run = async (fn: () => Promise<{ ok: boolean; code?: string; message?: string }>) => {
+  const run: Run = async (fn) => {
     setError(undefined);
     const res = await fn();
     if (!res.ok) setError(errorText(res.code ?? '', res.message ?? ''));
@@ -40,168 +44,184 @@ export function App() {
   };
 
   return (
-    <main className="flex min-h-[200px] flex-col gap-4 p-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">ICU <span className="text-sm font-normal text-muted">I Caught You</span></h1>
-        {auth?.signedIn && status?.state !== 'active' && (
-          <button className="text-sm text-primary underline" onClick={() => void run(() => send({ type: 'auth.signOut' }))}>
-            Sign out
-          </button>
-        )}
-      </header>
-      {error && <Alert>{error}</Alert>}
+    <div style={{ width: 360, minHeight: 600, overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
+      <PopupHeader />
       {!auth ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="hint" style={{ padding: '0 16px' }}>Loading…</p>
       ) : !auth.configured ? (
-        <Alert>{errorText('ICU_NOT_CONFIGURED', '')}</Alert>
+        <p className="err" role="alert" style={{ padding: '0 16px' }}>{errorText('ICU_NOT_CONFIGURED', '')}</p>
       ) : !auth.signedIn ? (
-        <RoleChooser run={run} />
+        <Signedout run={run} error={error} />
       ) : auth.role === 'admin' ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm">This is an admin account. Use the dashboard.</p>
-          <Button onClick={() => void browser.tabs.create({ url: DASHBOARD_URL })}>Open dashboard</Button>
+        <div className="card" style={{ margin: '4px 16px', padding: 22, borderRadius: 20 }}>
+          <p style={{ marginBottom: 14 }}>This is an admin account. Use the dashboard.</p>
+          <button type="button" className="btn p" style={{ width: '100%' }} onClick={() => void browser.tabs.create({ url: DASHBOARD_URL })}>Open dashboard</button>
+          <button type="button" className="btn g" style={{ width: '100%', marginTop: 6 }} onClick={() => void run(() => send({ type: 'auth.signOut' }))}>Sign out</button>
         </div>
       ) : (
-        <StudentHome status={status} run={run} name={auth.full_name ?? ''} />
+        <StudentHome status={status} run={run} error={error} />
       )}
-    </main>
-  );
-}
-
-type Run = (fn: () => Promise<{ ok: boolean; code?: string; message?: string }>) => Promise<boolean>;
-
-/** R1: the first screen when signed out. Admins don't use the extension, so Admin opens the dashboard. */
-function RoleChooser({ run }: { run: Run }) {
-  const [student, setStudent] = useState(false);
-  if (student) return <SignIn run={run} onBack={() => setStudent(false)} />;
-  const option = 'flex flex-col items-start gap-1 rounded-md border border-border-strong p-4 text-left hover:bg-surface';
-  return (
-    <div className="flex flex-col gap-3" role="group" aria-labelledby="chooser-heading">
-      <h2 id="chooser-heading" className="text-base font-semibold">Sign up or sign in as</h2>
-      <button className={option} onClick={() => setStudent(true)}>
-        <span className="font-semibold">I'm a student</span>
-        <span className="text-sm text-muted">Take an exam with monitoring.</span>
-      </button>
-      <button className={option} onClick={() => void browser.tabs.create({ url: DASHBOARD_URL })}>
-        <span className="font-semibold">I'm an admin</span>
-        <span className="text-sm text-muted">Opens the dashboard to create and review exams.</span>
-      </button>
     </div>
   );
 }
 
-function SignIn({ run, onBack }: { run: Run; onBack: () => void }) {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+/** R1: the first screen when signed out, then student sign in / create account. */
+function Signedout({ run, error }: { run: Run; error?: string }) {
+  const [student, setStudent] = useState(false);
+  const [create, setCreate] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [pw, setPw] = useState('');
   const [fullName, setFullName] = useState('');
+  const [local, setLocal] = useState<string>();
   const [info, setInfo] = useState<string>();
+
+  if (!student) {
+    return (
+      <div style={{ padding: '8px 16px 0' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', marginBottom: 16 }}>Sign up or sign in as</h1>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button type="button" className="card pick" style={{ padding: 16, borderRadius: 20 }} onClick={() => setStudent(true)}>
+            <span className="av" style={{ width: 36, height: 36, marginBottom: 14 }}><Icon name="student" /></span>
+            <b style={{ display: 'block', fontSize: 15 }}>I'm a student</b>
+            <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6 }}>Take an exam with monitoring.</p>
+          </button>
+          <button type="button" className="card pick" style={{ padding: 16, borderRadius: 20 }} onClick={() => void browser.tabs.create({ url: DASHBOARD_URL })}>
+            <span className="av" style={{ width: 36, height: 36, marginBottom: 14 }}><Icon name="shield" /></span>
+            <b style={{ display: 'block', fontSize: 15 }}>I'm an admin</b>
+            <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6 }}>Opens the dashboard to create and review exams.</p>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setLocal(undefined);
     setInfo(undefined);
-    if (mode === 'signin') {
-      await run(() => send({ type: 'auth.signIn', email, password }));
+    if (!email.includes('@')) return setLocal('Enter your email address.');
+    if (pw.length < 6) return setLocal('Password must be at least 6 characters.');
+    if (!create) {
+      await run(() => send({ type: 'auth.signIn', email, password: pw }));
       return;
     }
     // Accounts created in the extension are always students (R1, R2).
-    const res = await send<{ needsConfirmation?: boolean }>({ type: 'auth.signUp', email, password, full_name: fullName, role: 'student' });
+    const res = await send<{ needsConfirmation?: boolean }>({ type: 'auth.signUp', email, password: pw, full_name: fullName, role: 'student' });
     await run(async () => res);
     if (res.ok && res.data.needsConfirmation) setInfo('Check your email to confirm your account, then sign in.');
   };
+  const shown = local ?? error;
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={(e) => void submit(e)}>
-      <h2 className="text-base font-semibold">{mode === 'signin' ? 'Student sign in' : 'Create a student account'}</h2>
-      {mode === 'signup' && (
-        <Field id="name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} autoComplete="name" />
-      )}
-      <Field id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-      <Field id="password" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
-      {info && <p role="status" className="text-sm">{info}</p>}
-      <Button type="submit">{mode === 'signin' ? 'Sign in' : 'Create account'}</Button>
-      <button type="button" className="text-sm text-primary underline" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
-        {mode === 'signin' ? 'Create an account' : 'I already have an account'}
-      </button>
-      <button type="button" className="text-sm text-primary underline" onClick={onBack}>Back</button>
+    <form className="card" style={{ margin: '4px 16px', padding: 22, borderRadius: 20 }} onSubmit={(e) => void submit(e)} noValidate>
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 14 }}>{create ? 'Create a student account' : 'Student sign in'}</h1>
+      {create && <div className="field"><label htmlFor="n">Full name</label><input id="n" className="in" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} autoComplete="name" /></div>}
+      <div className="field"><label htmlFor="e">Email</label><input id="e" className="in" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
+      <div className="field"><label htmlFor="p">Password</label><input id="p" className="in" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete={create ? 'new-password' : 'current-password'} /></div>
+      {shown && <p className="err" role="alert" style={{ margin: '-8px 0 12px' }}>{shown}</p>}
+      {info && <p className="hint" role="status" style={{ margin: '-8px 0 12px' }}>{info}</p>}
+      <button type="submit" className="btn p" style={{ width: '100%' }}>{create ? 'Create account' : 'Sign in'}</button>
+      <button type="button" className="btn g" style={{ width: '100%', marginTop: 6 }} onClick={() => { setCreate(!create); setLocal(undefined); }}>{create ? 'I already have an account' : 'Create an account'}</button>
+      <button type="button" className="btn g" style={{ width: '100%', marginTop: 2 }} onClick={() => setStudent(false)}>Back</button>
     </form>
   );
 }
 
-function StudentHome({ status, run, name }: { status?: AttemptStatus; run: Run; name: string }) {
+function StudentHome({ status, run, error }: { status?: AttemptStatus; run: Run; error?: string }) {
   const [code, setCode] = useState('');
-  if (!status) return <p className="text-sm text-muted">Loading…</p>;
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!status) return <p className="hint" style={{ padding: '0 16px' }}>Loading…</p>;
 
-  if (status.state === 'idle') {
+  if (status.state === 'active') return <Monitoring status={status} run={run} error={error} />;
+
+  if (status.state === 'ended') {
     return (
-      <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void run(() => send<JoinResult>({ type: 'attempt.join', code })); }}>
-        <p className="text-sm">Signed in as {name}.</p>
-        <Field id="code" label="Session code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required maxLength={8} className="min-h-[44px] rounded-sm border border-border-strong px-3 font-mono text-code uppercase" autoComplete="off" />
-        <Button type="submit">Join exam</Button>
-      </form>
-    );
-  }
-
-  const session = status.session!;
-  const summary = (
-    <section className="rounded-md border border-border bg-surface p-3 text-sm">
-      <p className="font-semibold">{session.name}</p>
-      <ExamAbout session={session} />
-      <p className="text-muted">Examiner: {session.admin_name} ({session.admin_email})</p>
-      <p className="text-muted">{formatTime(session.starts_at)} – {formatTime(session.ends_at)}</p>
-    </section>
-  );
-
-  if (status.state === 'joined') {
-    const notOpen = Date.now() < Date.parse(session.starts_at);
-    return (
-      <div className="flex flex-col gap-3">
-        {summary}
-        {notOpen && <p className="text-sm">This exam opens at {formatTime(session.starts_at)}.</p>}
-        <Button disabled={notOpen} onClick={() => void run(() => send({ type: 'attempt.openNotice' }))}>Continue</Button>
-        <Button variant="secondary" onClick={() => void run(() => send({ type: 'attempt.reset' }))}>Use a different code</Button>
+      <div style={{ padding: '24px 20px' }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, fontStyle: 'italic', letterSpacing: '-.03em', marginBottom: 8 }}>Exam ended.</h1>
+        <p style={{ color: 'var(--muted)', marginBottom: 24 }}>Your examiner will review the session. You can close this window.</p>
+        <button type="button" className="btn p" style={{ width: '100%' }} onClick={() => void run(() => send({ type: 'attempt.reset' }))}>Join another exam</button>
       </div>
     );
   }
 
-  if (status.state === 'active') {
-    return (
-      <div className="flex flex-col gap-3">
-        {summary}
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          {status.upload_failing ? (
-            <><span aria-hidden className="h-2 w-2 rounded-full bg-risk-med-fg" /> Reconnecting…</>
-          ) : (
-            <><span aria-hidden className="h-2 w-2 rounded-full bg-success" /> Monitoring</>
-          )}
-        </p>
-        {!status.exam_tab_bound && <p className="text-sm">Open your exam page in this browser to continue.</p>}
-        {!status.screen_sharing && (
-          <div role="alert" className="flex flex-col gap-2 rounded-md bg-risk-high-bg p-3 text-sm text-risk-high-fg">
-            <p>Screen sharing has stopped. Your exam requires sharing your entire screen.</p>
-            <Button onClick={() => void run(() => send({ type: 'attempt.reshare' }))}>Share screen again</Button>
-          </div>
-        )}
-        <dl className="grid grid-cols-2 gap-1 text-xs text-muted">
-          <dt>Last heartbeat</dt>
-          <dd>{status.last_heartbeat_at ? new Date(status.last_heartbeat_at).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' }) : '—'}</dd>
-          <dt>Warnings</dt>
-          <dd>{status.warnings ? `${status.warnings.n} of ${status.warnings.limit}` : '—'}</dd>
-          <dt>Events waiting to upload</dt>
-          <dd>{status.queue_size}</dd>
-        </dl>
-        <Button variant="danger" onClick={() => { if (confirm('End the exam? Monitoring stops.')) void run(() => send({ type: 'attempt.end' })); }}>
-          End exam
-        </Button>
-      </div>
-    );
-  }
+  const session = status.state === 'joined' ? status.session : undefined;
+  // Finding a different exam replaces the joined one (R8: one attempt at a time).
+  const find = async () => {
+    if (session) await send({ type: 'attempt.reset' });
+    await run(() => send<JoinResult>({ type: 'attempt.join', code }));
+    setCode('');
+  };
+  const notOpen = session ? Date.now() < Date.parse(session.starts_at) : false;
 
   return (
-    <div className="flex flex-col gap-3">
-      {summary}
-      <p className="text-sm font-semibold">Exam ended.</p>
-      <Button variant="secondary" onClick={() => void run(() => send({ type: 'attempt.reset' }))}>Join another exam</Button>
+    <div style={{ padding: '4px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700 }}>Join an exam</h1>
+        <button type="button" className="btn g sm" onClick={() => void run(() => send({ type: 'auth.signOut' }))}>Sign out</button>
+      </div>
+      <form className="card" style={{ padding: 20, borderRadius: 20 }} onSubmit={(e) => { e.preventDefault(); void find(); }}>
+        <label className="lab" htmlFor="code">Exam code</label>
+        <input
+          id="code"
+          className="in mono"
+          style={{ textTransform: 'uppercase', letterSpacing: '.3em', textAlign: 'center', fontSize: 20 }}
+          maxLength={6}
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          placeholder="------"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {error && <p className="err" role="alert">{error}</p>}
+        <button type="submit" className="btn p" style={{ width: '100%', marginTop: 14 }} disabled={code.length < 6}>Find exam</button>
+      </form>
+      {session && (
+        <div className="card rise" style={{ marginTop: 14, padding: 18, borderRadius: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <b style={{ fontSize: 16 }}>{session.name}</b>
+            {notOpen ? <span className="pill">Opens {formatTime(session.starts_at)}</span> : <span className="pill live"><span className="dot" />Open now</span>}
+          </div>
+          <p style={{ color: 'var(--muted)', fontSize: 14, margin: '8px 0 14px' }}>
+            {session.description ? `${session.description.replace(/\.?\s*$/, '.')} ` : ''}Exam platform: {session.url_patterns.join(', ')}. Examiner: {session.admin_name}
+          </p>
+          <button type="button" className="btn p" style={{ width: '100%' }} disabled={notOpen} onClick={() => void run(() => send({ type: 'attempt.openNotice' }))}>Continue</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Active attempt: the design's "ICU monitoring" view (privacy board, monitoring state), plus Share screen again. */
+function Monitoring({ status, run, error }: { status: AttemptStatus; run: Run; error?: string }) {
+  const elapsed = status.started_at ? formatElapsed(Date.now() - Date.parse(status.started_at)) : '—';
+  return (
+    <div style={{ padding: '24px 20px' }}>
+      {status.upload_failing ? (
+        <span className="pill md" style={{ marginBottom: 16 }}><span className="tri" />Reconnecting…</span>
+      ) : (
+        <span className="pill live" style={{ marginBottom: 16 }}><span className="dot" />Monitoring</span>
+      )}
+      <h1 style={{ fontSize: 30, fontWeight: 800, fontStyle: 'italic', letterSpacing: '-.03em', margin: '16px 0 8px' }}>ICU monitoring</h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
+        {status.exam_tab_bound ? 'Your exam is open.' : 'Now open your exam in this browser.'} <span className="mono num">{elapsed}</span>
+        {status.warnings && ` · Warnings ${status.warnings.n} of ${status.warnings.limit}`}
+      </p>
+      {!status.screen_sharing && (
+        <div className="alertrow" role="alert" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+          <Icon name="alert" size={18} /> Screen sharing has stopped.
+          <button type="button" className="btn p" style={{ width: '100%' }} onClick={() => void run(() => send({ type: 'attempt.reshare' }))}>Share screen again</button>
+        </div>
+      )}
+      {error && <p className="err" role="alert" style={{ marginBottom: 12 }}>{error}</p>}
+      <button type="button" className="btn p" style={{ width: '100%', marginBottom: 12 }} disabled={!status.exam_tab_bound} onClick={() => void run(() => send({ type: 'attempt.focusExam' }))}>
+        <Icon name="monitor" size={18} /> Go to my exam
+      </button>
+      <button type="button" className="btn s" style={{ width: '100%' }} onClick={() => { if (window.confirm('End the exam now?')) void run(() => send({ type: 'attempt.end' })); }}>End exam</button>
+      <p className="hint" style={{ marginTop: 16 }}>{status.screen_sharing ? 'Screen sharing is on. Keep the ICU monitoring window open until the exam ends.' : 'Your exam requires sharing your entire screen.'}</p>
     </div>
   );
 }

@@ -1,105 +1,154 @@
-// Shared dashboard UI pieces (DSD.md § Components).
-import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+// Shared dashboard UI pieces, built from the ICU redesign (DSD v2) file's classes (packages/ui-tokens/icu.css).
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { RiskLevel } from '@icu/core';
+import { Icon } from '@icu/ui-tokens/icons';
 
-type Variant = 'primary' | 'secondary' | 'danger';
+export { Icon };
 
-export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  const styles = {
-    primary: 'bg-primary text-primary-on hover:bg-primary-hover',
-    secondary: 'border border-border-strong bg-bg text-text hover:bg-surface',
-    danger: 'bg-danger text-primary-on hover:opacity-90',
-  }[variant];
-  return <button className={`min-h-[36px] rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`} {...props} />;
+/** Overlays sit in the app frame, outside the scrolling page, as in the design (scrim, dialog, toast, lightbox). */
+export function Overlay({ children }: { children: ReactNode }) {
+  const host = document.querySelector('.app') ?? document.body;
+  return createPortal(children, host);
 }
 
-export function Field({ label, id, error, hint, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; id: string; error?: string; hint?: string }) {
-  const describedBy = [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(' ') || undefined;
+const RISK = {
+  high: { cls: 'hi', shape: 'sq', text: 'High' },
+  medium: { cls: 'md', shape: 'tri', text: 'Medium' },
+  low: { cls: 'lo', shape: 'dot', text: 'Low' },
+} as const;
+
+/** Risk level with a shape and text, never colour alone. */
+export function RiskPill({ level, score }: { level: RiskLevel; score?: number }) {
+  const r = RISK[level];
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-semibold">{label}</label>
-      <input
-        id={id}
-        className={`min-h-[36px] rounded-sm border px-3 text-sm ${error ? 'border-danger' : 'border-border-strong'}`}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        {...props}
-      />
-      {hint && <p id={`${id}-hint`} className="text-xs text-muted">{hint}</p>}
-      {error && <p id={`${id}-error`} className="text-xs text-danger">{error}</p>}
-    </div>
-  );
-}
-
-export function Alert({ children }: { children: ReactNode }) {
-  return <p role="alert" className="rounded-md bg-risk-high-bg p-3 text-sm text-risk-high-fg">{children}</p>;
-}
-
-/** Risk level with icon shape and text, never colour alone (DSD § Accessibility). */
-export function RiskBadge({ level, score }: { level: RiskLevel; score?: number }) {
-  const map = {
-    low: { icon: '●', text: 'Low', cls: 'bg-risk-low-bg text-risk-low-fg' },
-    medium: { icon: '▲', text: 'Medium', cls: 'bg-risk-med-bg text-risk-med-fg' },
-    high: { icon: '■', text: 'High', cls: 'bg-risk-high-bg text-risk-high-fg' },
-  }[level];
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${map.cls}`}>
-      <span aria-hidden>{map.icon}</span>
-      {map.text}
-      {score !== undefined && <span className="font-normal">· {score}</span>}
+    <span className={`pill ${r.cls}`}>
+      <span className={r.shape} />
+      {r.text}
+      {score !== undefined && ` · ${score}`}
     </span>
   );
 }
 
-export const VERDICTS = [
-  { value: 'cleared', label: 'Cleared', cls: 'bg-risk-low-bg text-risk-low-fg' },
-  { value: 'suspicious', label: 'Suspicious', cls: 'bg-risk-med-bg text-risk-med-fg' },
-  { value: 'cheating_confirmed', label: 'Cheating confirmed', cls: 'bg-risk-high-bg text-risk-high-fg' },
-] as const;
-
-export function VerdictBadge({ verdict }: { verdict: string | null }) {
-  const v = VERDICTS.find((x) => x.value === verdict);
-  if (!v) return <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs text-muted">Not reviewed</span>;
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${v.cls}`}>{v.label}</span>;
+export function StatusPill({ status }: { status: 'Upcoming' | 'Active' | 'Ended' }) {
+  if (status === 'Active') return <span className="pill live"><span className="dot" />Live</span>;
+  return <span className="pill">{status}</span>;
 }
 
-/** Modal dialog on the native <dialog> element: focus is trapped, Esc closes, focus returns to the trigger. */
-export function Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
+/** Segmented control with a sliding thumb (design "seg"); buttons are toggles with aria-pressed. */
+export function Seg<T extends string>({ label, options, value, onChange }: { label: string; options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  const pos = Math.max(0, options.findIndex((o) => o.value === value));
   return (
-    <dialog ref={ref} onClose={onClose} aria-labelledby="dialog-title" className="w-[min(640px,calc(100vw-32px))] rounded-lg p-0 shadow-3 backdrop:bg-black/40">
-      <div className="flex flex-col gap-4 p-6">
-        <h2 id="dialog-title" className="text-lg font-semibold">{title}</h2>
-        {children}
-      </div>
-    </dialog>
-  );
-}
-
-export function Toast({ message, onDone }: { message?: string; onDone: () => void }) {
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(onDone, 5000);
-    return () => clearTimeout(t);
-  }, [message, onDone]);
-  if (!message) return null;
-  return (
-    <div role="status" className="fixed bottom-4 right-4 rounded-md bg-text px-4 py-3 text-sm text-bg shadow-2">
-      {message}
+    <div className={`seg n${options.length}`} role="group" aria-label={label}>
+      <span className={`thumb p${pos}`} aria-hidden="true" />
+      {options.map((o) => (
+        <button key={o.value} type="button" className={o.value === value ? 'on' : ''} aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
 
+/**
+ * Dialog (design "scrim" + "dlg"). Focus moves into the dialog, Tab stays inside, Esc closes, and focus
+ * returns to whatever opened it. It is always rendered so the open/close transitions play.
+ */
+export function Dialog({ open, onClose, titleId, children }: { open: boolean; onClose: () => void; titleId: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (open) {
+      opener.current = document.activeElement as HTMLElement | null;
+      el.querySelector<HTMLElement>('input, textarea, select, button')?.focus();
+    } else if (opener.current) {
+      opener.current.focus();
+      opener.current = null;
+    }
+  }, [open]);
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+    }
+    if (e.key !== 'Tab' || !ref.current) return;
+    const items = [...ref.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, textarea, select')];
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+  };
+  return (
+    <Overlay>
+      <div className={`scrim ${open ? 'open' : ''}`} onClick={onClose} />
+      <div ref={ref} className={`dlg ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-hidden={!open} onKeyDown={onKeyDown} {...(open ? {} : { inert: '' })}>
+        {children}
+        <button type="button" className="iconbtn x" aria-label="Close" onClick={onClose}><Icon name="close" /></button>
+      </div>
+    </Overlay>
+  );
+}
+
+/** Toast (design "toast"): slides up for 3.2 s. */
+export function Toast({ message, onDone }: { message?: string; onDone: () => void }) {
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(onDone, 3200);
+    return () => clearTimeout(t);
+  }, [message, onDone]);
+  return (
+    <Overlay>
+      <div className={`toast ${message ? 'show' : ''}`} role="status" aria-live="polite">
+        <Icon name="check" size={18} />
+        <span>{message}</span>
+      </div>
+    </Overlay>
+  );
+}
+
+export function Alert({ children }: { children: ReactNode }) {
+  return <p className="err" role="alert">{children}</p>;
+}
+
+export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+  return <div className="empty"><b>{title}</b>{children}</div>;
+}
+
+export function Loading() {
+  return <div className="empty" role="status"><b>Loading…</b></div>;
+}
+
+export const VERDICTS = [
+  { value: 'cleared', label: 'Cleared' },
+  { value: 'suspicious', label: 'Suspicious' },
+  { value: 'cheating_confirmed', label: 'Cheating confirmed' },
+] as const;
+
 const TZ = 'Asia/Manila';
-export const formatDateTime = (iso: string) => new Date(iso).toLocaleString('en-PH', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' });
+/** "Nov 15, 2026, 3:30 PM" */
+export const formatDateTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+/** "Nov 15, 3:30 PM" */
+export const formatShort = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+/** "15:30:16" */
 export const formatTime = (iso: string | Date) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: TZ, hour12: false });
-export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-PH', { timeZone: TZ, dateStyle: 'medium' });
+export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' });
+
+const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+const monthDay = (iso: string) => new Date(iso).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' });
+/** "3:25 – 4:55 PM" (AM/PM shown once when both ends share it). */
+export function timeRange(startIso: string, endIso: string): string {
+  const a = clock(startIso);
+  const b = clock(endIso);
+  return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)} – ${b}` : `${a} – ${b}`;
+}
+/** "Nov 15 · 3:25 – 4:55 PM" (sessions table). */
+export const scheduleDot = (s: { starts_at: string; ends_at: string }) => `${monthDay(s.starts_at)} · ${timeRange(s.starts_at, s.ends_at)}`;
+/** "Nov 15, 3:25 – 4:55 PM" (overview). */
+export const scheduleComma = (s: { starts_at: string; ends_at: string }) => `${monthDay(s.starts_at)}, ${timeRange(s.starts_at, s.ends_at)}`;
+/** "Nov 15, 2026, 3:25 PM – 4:55 PM" (exam info). */
+export const scheduleFull = (s: { starts_at: string; ends_at: string }) => `${formatDateTime(s.starts_at)} – ${clock(s.ends_at)}`;
 
 export function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -107,3 +156,5 @@ export function formatDuration(ms: number): string {
   if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
   return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
+
+export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('') || '?';

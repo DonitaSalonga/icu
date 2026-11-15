@@ -13,14 +13,14 @@ Read before changing how ICU looks or reads. How the screens connect to the back
 | Dashboard pages | `dashboard/src/pages/*.tsx` | RoleChooser, Login, Sessions (with create dialog), SessionDetail, AttemptReview |
 | Dashboard components | `dashboard/src/ui.tsx`, `dashboard/src/components/AiSuggestion.tsx` | Badges, Dialog (native `<dialog>`), Toast, AI card |
 | Labels and wording | `dashboard/src/lib/labels.ts`, `packages/core/src/ai.ts`, `packages/core/src/warnings.ts` | Event and AI-suggestion wording |
-| Design tokens | `packages/ui-tokens/tokens.css`, `tailwind-preset.js` | Use tokens, never raw colours. Control borders use `border-border-strong` (WCAG 1.4.11) |
+| Design system | `packages/ui-tokens/icu.css` (the design file's stylesheet + bundled fonts), `packages/ui-tokens/icons.tsx` (its icons, `Icon` and `Tile`) | Both apps import only `icu.css`; pages use its classes (`card`, `btn p/s/g/d`, `pill hi/md/lo/live`, `seg`, `t`, `dlg`, `toast`, …). There's no Tailwind in the pages any more |
 
 ## Rules to keep
 
 - **Wording:** the AI suggestion is a suggestion. Keep "your verdict is the decision"; never present the tool as deciding guilt (Philippine NPC advisory, RESEARCH F23).
 - **Colour:** risk, verdict and AI badges always pair colour with text (and an icon for risk).
 - **Accessibility:** WCAG 2.2 AA. Visible focus, labels on every input, keyboard-only use, 24 px minimum targets, reduced motion respected.
-- **Test selectors:** the E2E tests find elements by role and visible text, e.g. buttons "I'm a student", "Sign in", "Join exam", "Continue", "Share screen and start", "Share entire screen", "Share screen again", "Go to my exam", "End exam", "Create session", "Save verdict", "Delete candidate data", "Re-analyze"; headings "Exam sessions", "Admin sign in", "AI suggestion", "Risk breakdown", "ICU monitoring"; fields "Exam platform", "Tell us about the exam", "Name", "Date", "Time"; list "Exam platforms"; region "Exam info"; text "Now open your exam in this browser." If you rename text, update `e2e/*.spec.ts` in the same change.
+- **Test selectors:** the E2E tests find elements by role and visible text, e.g. buttons "I'm a student", "Sign in", "Find exam", "Continue", "I agree & share screen", "Share entire screen", "Share screen again", "Go to my exam", "End exam", "Create session", "Save verdict", "Hold to delete candidate data", "Re-analyze", "Screenshot"; headings "Overview", "Sessions", "Needs review", "Account", "Admin sign in", "Privacy & terms", "AI suggestion", "Risk breakdown", "ICU monitoring", "Welcome to ICU"; fields "Email", "Password", "Exam code", "Exam platform", "Tell us about the exam", "Name", "Date", "Time"; document "Privacy notice text"; list "Exam platforms"; region "Exam info"; navigation "Main" and "Breadcrumb"; text "Now open your exam in this browser." If you rename text, update `e2e/*.spec.ts` in the same change.
 
 ## Checks before handing back
 

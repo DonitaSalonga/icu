@@ -3,7 +3,7 @@
 import type { Message, Response } from '@icu/core';
 import { ALARM_END, ALARM_HEARTBEAT, ALARM_SCREENSHOT, attemptStatus, endAttempt, joinSession, openNotice, openReshare, recover, resetAttempt, startAttempt } from '../lib/attempt';
 import { authState, signIn, signOut, signUp } from '../lib/auth';
-import { isConfigured } from '../lib/env';
+import { isConfigured, TEST_TIMINGS } from '../lib/env';
 import { toErrorResponse } from '../lib/errors';
 import { flush } from '../lib/queue';
 import {
@@ -54,7 +54,7 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
     case 'attempt.focusExam':
       return focusExamTab();
     case 'screen.started':
-      return onScreenStarted(sender.tab?.id);
+      return onScreenStarted(sender.tab?.id, sender.tab?.windowId);
     case 'screen.stopped':
       return onScreenStopped();
     case 'cs.hello': {
@@ -119,5 +119,9 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onStartup.addListener(() => void recover());
+  // DSD v2: a one-time welcome page. Not in test builds, where it would add a tab to every run.
+  browser.runtime.onInstalled.addListener(({ reason }) => {
+    if (reason === 'install' && !TEST_TIMINGS) void browser.tabs.create({ url: browser.runtime.getURL('/welcome.html') });
+  });
   if (isConfigured()) void recover().catch((e) => console.warn('[icu] recover failed', e));
 });

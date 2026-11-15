@@ -33,6 +33,8 @@ export interface StoredAttempt {
   last_heartbeat_at?: string;
   /** Whole-screen sharing (D9): the pinned notice tab that holds the stream. */
   monitor_tab_id?: number;
+  /** The window holding the monitoring page (a small popup window, DSD v2); focusing it isn't leaving the exam. */
+  monitor_window_id?: number;
   screen_sharing?: boolean;
   /** Last page seen in the exam tab, for exam_page_changed (rule 3). */
   last_exam_path?: string;

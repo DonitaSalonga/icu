@@ -2,7 +2,7 @@
 
 Visual and interaction rules implementing the requirements in [PRD.md](PRD.md). How the screens connect to the backend is in [BACKEND-HANDOFF.md](BACKEND-HANDOFF.md); test selectors are in [UI-HANDOFF.md](UI-HANDOFF.md).
 Updated: 2026-11-15 (v2: warm theme, sidebar dashboard, expandable extension cards, popout consent window)
-Status: draft for user review; the design direction was approved by the user on 2026-11-15, and the popout window was prototyped. It isn't built yet.
+Status: **built** (2026-11-15). The user supplied the final design file, "ICU redesign (DSD v2).html" (13 boards: 8 dashboard, 5 extension). It was integrated exactly: its stylesheet is `packages/ui-tokens/icu.css` (unchanged, plus its bundled Inter and JetBrains Mono files and a few documented additions at the end), its icons are `packages/ui-tokens/icons.tsx`, and every screen uses its markup and classes. **Where this document and the design file differ (exact colours, sizes, wording), the design file wins.** Deviations kept on purpose: the ICU tile's letters are drawn by CSS as a logo (WCAG 1.4.3 exemption), a role-chooser `<button>` lays out like the design's links, the notice mentions tab-switch screenshots and the popout window (NOTICE_VERSION 2026-11-15.3), and the student's exam card adds the exam platform.
 
 **Direction (user, 2026-11-15):**
 - **Dashboard:** clean, organised and easy to navigate, in the style of the "Halcyon" reference: a warm cream canvas, white cards, an orange accent, a left sidebar with icons, breadcrumbs, a large italic page title, stat cards and calm tables.

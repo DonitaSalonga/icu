@@ -32,7 +32,22 @@ export async function openNotice(): Promise<void> {
   // The page the student is on now is most likely the exam: prefer it at Start.
   const [current] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   await updateAttempt({ start_tab_id: current?.id });
-  await browser.tabs.create({ url: browser.runtime.getURL('/notice.html') });
+  await openPopout('/notice.html', current?.windowId);
+}
+
+const POPOUT = { width: 480, height: 680 };
+
+/**
+ * DSD v2: the privacy notice and, after Start, the monitoring view live in a small popup window centred over
+ * the student's window. That page holds the screen share (D9), so it stays open during the exam; Chrome on macOS
+ * won't minimize it, so it sits behind the fullscreen exam (RESEARCH F32).
+ */
+async function openPopout(path: '/notice.html' | '/notice.html?reshare=1', overWindowId?: number): Promise<void> {
+  const over = await (overWindowId !== undefined ? browser.windows.get(overWindowId) : browser.windows.getLastFocused()).catch(() => undefined);
+  const centre = over?.left !== undefined && over.width !== undefined && over.top !== undefined && over.height !== undefined
+    ? { left: Math.round(over.left + (over.width - POPOUT.width) / 2), top: Math.round(over.top + Math.max(0, (over.height - POPOUT.height) / 2)) }
+    : {};
+  await browser.windows.create({ url: browser.runtime.getURL(path), type: 'popup', focused: true, ...POPOUT, ...centre });
 }
 
 export async function ensureAlarms(endsAtLocalMs: number): Promise<void> {
@@ -132,5 +147,5 @@ export async function recover(): Promise<void> {
 
 /** Opens the page where the student shares their screen again after it stopped. */
 export async function openReshare(): Promise<void> {
-  await browser.tabs.create({ url: browser.runtime.getURL('/notice.html?reshare=1') });
+  await openPopout('/notice.html?reshare=1');
 }

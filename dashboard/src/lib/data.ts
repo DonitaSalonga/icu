@@ -88,3 +88,18 @@ export async function loadAnalysis(attemptId: string): Promise<AiAnalysis | null
   if (error) throw error;
   return data as AiAnalysis | null;
 }
+
+// ---------------------------------------------------------------------------
+// Overview and Needs review (DSD v2). Built from the existing calls only.
+// ---------------------------------------------------------------------------
+
+export type ReviewAttempt = ScoredAttempt & { session: SessionRow };
+
+/** An attempt that has ended, by its own status or because the session window closed. */
+export function isEnded(a: Pick<AttemptSummary, 'status' | 'started_at'>, session: Pick<SessionRow, 'ends_at'>): boolean {
+  if (!a.started_at) return false;
+  return a.status === 'ended' || (a.status === 'active' && Date.now() >= Date.parse(session.ends_at));
+}
+
+/** "Needs review": an ended candidate without a verdict. */
+export const needsReview = (a: ReviewAttempt): boolean => isEnded(a, a.session) && !a.verdict;

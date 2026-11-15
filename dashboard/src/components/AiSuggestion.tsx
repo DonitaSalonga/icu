@@ -1,22 +1,21 @@
-// AI suggestion card and badge (R32; DSD § Components "AI suggestion"). Wording always makes clear that
+// AI suggestion card and badge (R32; design "Dashboard · Candidate review"). Wording always makes clear that
 // the suggestion can be wrong and that the admin decides.
 import { useCallback, useEffect, useState } from 'react';
 import { AI_SUGGESTION_LABELS, confidenceLevel, isCheatingSuggestion, type AiSuggestion } from '@icu/core';
 import { loadAnalysis, type AiAnalysis } from '../lib/data';
 import { errorText, supabase } from '../supabase';
-import { Alert, Button, formatDateTime } from '../ui';
+import { formatDateTime } from '../ui';
 
 const label = (s: string | null) => (s ? AI_SUGGESTION_LABELS[s as AiSuggestion] ?? s : '');
 const pct = (n: number | undefined) => `${Math.round((n ?? 0) * 100)}%`;
 
 export function AiBadge({ analysis }: { analysis?: AiAnalysis }) {
-  if (!analysis) return <span className="text-xs text-muted">—</span>;
-  if (analysis.status === 'pending') return <span className="text-xs text-muted">Analyzing…</span>;
-  if (analysis.status === 'failed' || !analysis.suggestion) return <span className="text-xs text-muted">Unavailable</span>;
-  const cheating = isCheatingSuggestion(analysis.suggestion);
-  const cls = cheating ? 'bg-risk-high-bg text-risk-high-fg' : analysis.suggestion === 'needs_review' ? 'bg-risk-med-bg text-risk-med-fg' : 'bg-risk-low-bg text-risk-low-fg';
+  if (!analysis) return <>—</>;
+  if (analysis.status === 'pending') return <span className="pill">Analyzing…</span>;
+  if (analysis.status === 'failed' || !analysis.suggestion) return <span className="pill">Unavailable</span>;
+  const cls = isCheatingSuggestion(analysis.suggestion) ? 'hi' : analysis.suggestion === 'needs_review' ? 'md' : 'lo';
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`} title="AI suggestion; the verdict is yours">
+    <span className={`pill ${cls}`} title="AI suggestion; the verdict is yours">
       {label(analysis.suggestion)} · {pct(analysis.probabilities?.[analysis.suggestion])}
     </span>
   );
@@ -55,45 +54,46 @@ export function AiSuggestionCard({ attemptId, canAnalyze }: { attemptId: string;
 
   const s = analysis?.suggestion ?? null;
   const done = analysis?.status === 'done' && s;
+  const pending = analysis?.status === 'pending';
   return (
-    <section className="rounded-md border border-border-strong p-4" aria-labelledby="ai-heading" aria-live="polite">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="ai-heading" className="text-lg font-semibold">AI suggestion</h2>
+    <section className="card" aria-labelledby="ai" aria-live="polite">
+      <div className="cardhead">
+        <h2 id="ai">AI suggestion</h2>
         {canAnalyze && (
-          <Button variant="secondary" onClick={() => void reanalyze()} disabled={analysis?.status === 'pending'}>
-            {analysis ? 'Re-analyze' : 'Analyze'}
-          </Button>
+          <button type="button" className="btn s sm" disabled={pending} onClick={() => void reanalyze()}>
+            {pending ? 'Analyzing…' : analysis ? 'Re-analyze' : 'Analyze'}
+          </button>
         )}
       </div>
-      {analysis === undefined && <p className="text-sm text-muted">Loading…</p>}
-      {analysis === null && <p className="text-sm text-muted">Not analyzed yet. Analysis runs automatically when the exam ends.</p>}
-      {analysis?.status === 'pending' && <p className="text-sm text-muted">Analyzing the activity timeline…</p>}
-      {analysis?.status === 'failed' && <p className="text-sm text-muted">AI analysis unavailable{analysis.error ? `: ${analysis.error}` : ''}. Use the timeline and risk score, or try again.</p>}
+      {analysis === undefined && <p className="hint" style={{ margin: 0 }}>Loading…</p>}
+      {analysis === null && <p className="hint" style={{ margin: 0 }}>Not analyzed yet. Analysis runs automatically when the exam ends.</p>}
+      {pending && <p className="hint" style={{ margin: 0 }}>Analyzing the activity timeline…</p>}
+      {analysis?.status === 'failed' && <p className="hint" style={{ margin: 0 }}>AI analysis unavailable{analysis.error ? `: ${analysis.error}` : ''}. Use the timeline and risk score, or try again.</p>}
       {done && (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-base">
-            <span className="font-semibold">{label(s)}</span> · {pct(analysis.probabilities?.[s])}
-            {analysis.confidence !== null && <span className="text-muted"> · confidence {confidenceLevel(analysis.confidence).toLowerCase()}</span>}
+        <>
+          <p style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35, marginBottom: 14 }}>
+            {label(s)}{' '}
+            <span style={{ fontWeight: 400, color: 'var(--muted)' }}>
+              · {pct(analysis.probabilities?.[s])}{analysis.confidence !== null && ` · confidence ${confidenceLevel(analysis.confidence).toLowerCase()}`}
+            </span>
           </p>
-          <ul className="flex flex-col gap-1" aria-label="Probability of each option">
+          <div role="list" style={{ display: 'grid', gap: 12, fontSize: 14 }} aria-label="Probability of each option">
             {Object.entries(AI_SUGGESTION_LABELS).map(([key, text]) => {
               const p = analysis.probabilities?.[key] ?? 0;
               return (
-                <li key={key} className="grid grid-cols-[1fr_auto] items-center gap-x-3 text-xs">
-                  <span>{text}</span>
-                  <span className="w-10 text-right">{pct(p)}</span>
-                  <span className="col-span-2 h-1.5 rounded-full bg-surface" aria-hidden>
-                    <span className={`block h-1.5 rounded-full ${key === s ? 'bg-primary' : 'bg-border-strong'}`} style={{ width: `${Math.round(p * 100)}%` }} />
-                  </span>
-                </li>
+                <div key={key} role="listitem">
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{text}</span><span className="num">{pct(p)}</span></div>
+                  <div className="bar"><i className={key === s ? '' : 'g'} style={{ width: `${Math.round(p * 100)}%` }} /></div>
+                </div>
               );
             })}
-          </ul>
-          {analysis.analyzed_at && <p className="text-xs text-muted">Analyzed {formatDateTime(analysis.analyzed_at)}</p>}
-        </div>
+          </div>
+        </>
       )}
-      <p className="mt-2 text-xs text-muted">A suggestion only. It can be wrong; your verdict is the decision.</p>
-      {error && <Alert>{error}</Alert>}
+      <p className="hint" style={{ marginTop: 14 }}>
+        {done && analysis.analyzed_at ? `Analyzed ${formatDateTime(analysis.analyzed_at)}. ` : ''}A suggestion only. It can be wrong; your verdict is the decision.
+      </p>
+      {error && <p className="err" role="alert">{error}</p>}
     </section>
   );
 }

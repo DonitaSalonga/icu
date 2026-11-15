@@ -8,22 +8,25 @@ const AUTO_HIDE_MS = 10_000;
 const STYLE = `
   :host { all: initial; }
   .bar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
-    display: flex; align-items: center; gap: 12px; max-height: 64px; overflow: hidden;
-    padding: 10px 16px; box-sizing: border-box;
-    background: #fef3c7; color: #92400e; border-bottom: 2px solid #92400e;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
-    font: 14px/20px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    transform: translateY(0); transition: transform 200ms ease-out;
+    position: fixed; top: 12px; left: 50%; z-index: 2147483647;
+    display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box;
+    width: min(560px, calc(100vw - 16px)); max-height: 72px; overflow: hidden;
+    padding: 12px 16px; border-radius: 16px;
+    background: #faefc5; color: #7a5200; border-left: 4px solid #7a5200;
+    box-shadow: 0 6px 16px rgb(28 25 23 / 0.08);
+    font: 14px/20px 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    transform: translate(-50%, 0); opacity: 1; transition: transform 200ms ease-out, opacity 200ms ease-out;
   }
-  .bar.hidden { transform: translateY(-110%); transition: transform 150ms ease-in; }
+  .bar.hidden { transform: translate(-50%, -140%); opacity: 0; pointer-events: none; transition: transform 150ms ease-in, opacity 150ms ease-in; }
+  @media (max-width: 480px) { .bar { max-height: 84px; } }
   .text { flex: 1; }
   .text strong { font-weight: 600; }
+  .extra { display: block; }
   button {
-    min-width: 24px; min-height: 32px; padding: 0 12px; border-radius: 8px; cursor: pointer;
-    border: 1px solid #92400e; background: #ffffff; color: #92400e; font: inherit; font-weight: 600;
+    min-width: 24px; min-height: 32px; padding: 0 12px; border-radius: 10px; cursor: pointer;
+    border: 1px solid #7a5200; background: #fffdf9; color: #7a5200; font: inherit; font-weight: 600;
   }
-  button:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+  button:focus-visible { outline: 2px solid #b4501e; outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .bar, .bar.hidden { transition: none; } }
 `;
 
@@ -66,7 +69,7 @@ export function createBanner(): Banner {
       const label = limitReached ? 'Warning limit reached' : `Warning ${n} of ${limit}`;
       textEl.innerHTML = '';
       const strong = document.createElement('strong');
-      strong.textContent = `⚠️ ${label}: `;
+      strong.textContent = `${label}: `;
       textEl.append(strong, document.createTextNode(text));
       bar.classList.remove('hidden');
       schedule();

@@ -1,4 +1,2 @@
-@import '@icu/ui-tokens/tokens.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* The ICU redesign (DSD v2) stylesheet and its bundled fonts, shared with the dashboard. */
+@import '@icu/ui-tokens/icu.css';

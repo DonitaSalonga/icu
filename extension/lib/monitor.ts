@@ -508,7 +508,8 @@ export function onWindowFocusChanged(windowId: number): Promise<void> {
       }
       return;
     }
-    if (popupPorts > 0 || attempt.blurred_at !== undefined) return;
+    // The extension's own popup, or the ICU monitoring window ("Go to my exam"), isn't leaving the exam.
+    if (popupPorts > 0 || attempt.blurred_at !== undefined || windowId === attempt.monitor_window_id) return;
     await updateAttempt({ blurred_at: serverNow(attempt) });
     await recordEventLocked('window_blur', {}, { at: serverNow(attempt), settleMs: TAB_RENDER_MS });
   });
@@ -556,13 +557,15 @@ export async function onContentEvent(senderTabId: number | undefined, senderTabU
 // ---------------------------------------------------------------------------
 
 /** The notice page started (or re-started) sharing: remember and pin it as the "ICU monitoring" tab. */
-export function onScreenStarted(tabId: number | undefined): Promise<void> {
+export function onScreenStarted(tabId: number | undefined, windowId: number | undefined): Promise<void> {
   return withLock(async () => {
     const attempt = await loadAttempt();
     if (!attempt || attempt.state === 'ended' || tabId === undefined) throw new IcuError('ICU_NO_JOINED_ATTEMPT');
     const wasActive = attempt.state === 'active';
-    await updateAttempt({ monitor_tab_id: tabId, screen_sharing: true });
-    await browser.tabs.update(tabId, { pinned: true }).catch(() => undefined);
+    await updateAttempt({ monitor_tab_id: tabId, monitor_window_id: windowId, screen_sharing: true });
+    // Opened as a tab in a normal window (e.g. directly), keep it out of the way as a pinned tab.
+    const win = windowId !== undefined ? await browser.windows.get(windowId).catch(() => undefined) : undefined;
+    if (win?.type === 'normal') await browser.tabs.update(tabId, { pinned: true }).catch(() => undefined);
     if (wasActive) await recordEventLocked('screen_share_started');
   });
 }

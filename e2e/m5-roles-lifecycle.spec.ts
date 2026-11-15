@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NOTICE_VERSION } from '@icu/core';
 import { resetData, serviceClient, TEST_PASSWORD, TEST_URL, TEST_USERS } from '../supabase/scripts/testEnv';
-import { createSession, EXAM_URL, expect, heartbeats, launch, startExam, test } from './fixtures';
+import { createSession, EXAM_URL, expect, heartbeats, launch, scrollNoticeToEnd, startExam, test } from './fixtures';
 
 const DASH = 'http://localhost:5174';
 
@@ -40,7 +40,7 @@ test('T26: wrong-role accounts are turned away in each app', async ({ context, e
   await popup.getByLabel('Password').fill(TEST_PASSWORD);
   await popup.getByRole('button', { name: 'Sign in' }).click();
   await expect(popup.getByText('This is an admin account. Use the dashboard.')).toBeVisible();
-  await expect(popup.getByLabel('Session code')).toHaveCount(0);
+  await expect(popup.getByLabel('Exam code')).toHaveCount(0);
 
   const dash = await context.newPage();
   await dash.goto(`${DASH}/login`);
@@ -48,7 +48,7 @@ test('T26: wrong-role accounts are turned away in each app', async ({ context, e
   await dash.getByLabel('Password').fill(TEST_PASSWORD);
   await dash.getByRole('button', { name: 'Sign in' }).click();
   await expect(dash.getByText('This is a student account. Use the Chrome extension.')).toBeVisible();
-  await expect(dash.getByRole('heading', { name: 'Exam sessions' })).toHaveCount(0);
+  await expect(dash.getByRole('heading', { name: 'Overview' })).toHaveCount(0);
 });
 
 test('T27 + R15: student flow through the popup and notice; uninstall token works, cleared at End', async ({ context, extensionId }) => {
@@ -61,19 +61,23 @@ test('T27 + R15: student flow through the popup and notice; uninstall token work
   await popup.getByLabel('Email').fill(TEST_USERS.student1.email);
   await popup.getByLabel('Password').fill(TEST_PASSWORD);
   await popup.getByRole('button', { name: 'Sign in' }).click();
-  await popup.getByLabel('Session code').fill(session.code.toLowerCase());
-  await popup.getByRole('button', { name: 'Join exam' }).click();
+  await popup.getByLabel('Exam code').fill(session.code.toLowerCase());
+  await popup.getByRole('button', { name: 'Find exam' }).click();
   await expect(popup.getByText(/Examiner: Admin A/)).toBeVisible();
 
   const [notice] = await Promise.all([context.waitForEvent('page'), popup.getByRole('button', { name: 'Continue' }).click()]);
-  await expect(notice.getByRole('heading', { name: 'ICU privacy notice: exam monitoring' })).toBeVisible();
+  await expect(notice.getByRole('heading', { name: 'Privacy & terms' })).toBeVisible();
   await expect(notice.getByText(/Data Privacy Act of 2012/)).toBeVisible();
   await expect(notice.getByText(/admin-a@test.local/).first()).toBeVisible();
-  const start = notice.getByRole('button', { name: 'Share screen and start' });
+  const start = notice.getByRole('button', { name: 'I agree & share screen' });
   await expect(start).toBeDisabled();
   await notice.getByLabel('I am 18 or older').check();
   await expect(start).toBeDisabled();
   await notice.getByLabel(/I have read this notice/).check();
+  // Both boxes ticked is not enough: the whole notice must be scrolled to the end first (R7).
+  await expect(start).toBeDisabled();
+  await expect(notice.getByText('Scroll to the end to continue')).toBeVisible();
+  await scrollNoticeToEnd(notice);
   await expect(start).toBeEnabled();
   await start.click();
   await expect(notice.getByRole('heading', { name: 'ICU monitoring' })).toBeVisible();

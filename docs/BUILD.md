@@ -173,6 +173,12 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: **DSD v2 built from the user's design file** ("ICU redesign (DSD v2).html").
+  - **Dashboard:** sidebar shell; Overview, Sessions + create dialog, Session detail, Needs review, Candidate review (timeline, screenshots, breakdown, AI card, verdict, press-and-hold delete), Account; admin sign in.
+  - **Extension:** popup (chooser, student sign in, join, exam card, monitoring, ended); Privacy & terms in a 480 × 680 popup window with the scroll gate and progress bar, which becomes the ICU monitoring window; welcome page on install.
+  - **Same backend calls throughout** (BACKEND-HANDOFF); the shared loader for Overview and Needs review came from the designer agent's draft. The design's verdict card has no note field; an existing note is kept on save. Notice version 2026-11-15.3.
+  - **Tests:** T27, T39, T40 (hold to delete), T41 (new screens; scans wait for the fade-in), T55 (AI badge now on Needs review), T60 (popup window type), T61 updated.
+
 - 2026-11-15: Third feedback round: fullscreen and tab-switch screenshots (R35).
   - **Found in the user's attempts on icu-main:** one attempt never went fullscreen; no attempt recorded leaving fullscreen; and tab-switch warning screenshots were grabbed before the new tab was drawn, so they showed the exam, and the site visit reused that picture.
   - **Fix:** fullscreen is retried until seen; window state is re-checked after changes and on every heartbeat; every tab switch gets its own `tab_switch` screenshot 600 ms after the switch (migration 011). Label "Tell us about the exam", no example text.

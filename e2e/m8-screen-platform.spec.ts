@@ -1,6 +1,6 @@
 // 2026-11-15: whole-screen sharing (D9, Q36/Q37) and exam platforms typed by the admin (rules 1–3).
 import { resetData, serviceClient } from '../supabase/scripts/testEnv';
-import { count, createSession, EXAM_URL, events, expect, OTHER_URL, shareScreenAndStart, startExam, test, waitForEvents } from './fixtures';
+import { count, createSession, EXAM_URL, events, expect, OTHER_URL, scrollNoticeToEnd, shareScreenAndStart, startExam, test, waitForEvents } from './fixtures';
 import { TEST_PASSWORD, TEST_USERS } from '../supabase/scripts/testEnv';
 
 test.beforeEach(async () => {
@@ -89,12 +89,19 @@ test('T60: Start brings the exam tab to the front; the ICU tab and "Go to my exa
   const monitor = await noticeOpened;
   await monitor.getByLabel('I am 18 or older').check();
   await monitor.getByLabel(/I have read this notice/).check();
-  await monitor.getByRole('button', { name: 'Share screen and start' }).click();
+  await scrollNoticeToEnd(monitor);
+  await monitor.getByRole('button', { name: 'I agree & share screen' }).click();
   await monitor.getByRole('heading', { name: 'ICU monitoring' }).waitFor({ timeout: 15_000 });
 
   await expect.poll(async () => (await attemptState(ext)).examActive).toBe(true);
   const state = await attemptState(ext);
   expect(state).toMatchObject({ examUrl: EXAM_URL, fullscreen_requested: true });
+  // DSD v2: Continue opened the notice in its own small popup window, which now holds the screen share.
+  const popoutType = await ext.inWorker(async () => {
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { monitor_window_id: number };
+    return (await chrome.windows.get(a.monitor_window_id)).type;
+  });
+  expect(popoutType).toBe('popup'); // (its 480 px width isn't checkable here: Playwright resizes pages it controls)
 
   // Looking at the ICU monitoring tab, then "Go to my exam", doesn't count as leaving the exam.
   await ext.inWorker(async () => {
@@ -112,7 +119,6 @@ test('T60: Start brings the exam tab to the front; the ICU tab and "Go to my exa
 test('T61: with no exam page open, Start waits without fullscreen; opening the exam page binds it', async ({ context, ext }) => {
   const { attemptId, monitor } = await startExam(context, ext, { openExam: false });
   await expect(monitor.getByText('Now open your exam in this browser.')).toBeVisible();
-  await expect(monitor.getByText('localhost', { exact: false }).first()).toBeVisible();
   expect((await attemptState(ext)).fullscreen_requested).toBeFalsy();
 
   const exam = await context.newPage();

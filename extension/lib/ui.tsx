@@ -1,51 +1,25 @@
-// Small shared UI pieces for extension pages, following DSD.md § Components.
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import { describeExamSite, type SessionSummary } from '@icu/core';
+// Shared pieces for extension pages, built from the ICU redesign (DSD v2) file's classes (packages/ui-tokens/icu.css).
+import { Tile } from '@icu/ui-tokens/icons';
 
-export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
-  const styles = {
-    primary: 'bg-primary text-primary-on hover:bg-primary-hover',
-    secondary: 'border border-border-strong bg-bg text-text hover:bg-surface',
-    danger: 'bg-danger text-primary-on hover:opacity-90',
-  }[variant];
-  return <button className={`min-h-[44px] rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`} {...props} />;
-}
+const TZ = 'Asia/Manila';
 
-export function Field({ label, id, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; id: string; error?: string }) {
+/** Popup header (design "Extension · Popup"): tile, "ICU", "I Caught You". */
+export function PopupHeader() {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-semibold">{label}</label>
-      <input
-        id={id}
-        className={`min-h-[44px] rounded-sm border px-3 text-sm ${error ? 'border-danger' : 'border-border-strong'}`}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...props}
-      />
-      {error && <p id={`${id}-error`} className="text-xs text-danger">{error}</p>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 16px 12px' }}>
+      <Tile size={32} fontSize={12} />
+      <b style={{ fontSize: 19, letterSpacing: '-.01em' }}>ICU</b>
+      <span style={{ color: 'var(--muted)' }}>I Caught You</span>
     </div>
   );
 }
 
-export function Alert({ children }: { children: ReactNode }) {
-  return <p role="alert" className="rounded-md bg-risk-high-bg p-3 text-sm text-risk-high-fg">{children}</p>;
-}
-
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(iso).toLocaleString('en-US', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-/** Where to take the exam and what it is (2026-11-15), so the student knows which site to open. */
-export function ExamAbout({ session }: { session: SessionSummary }) {
-  return (
-    <>
-      {session.description && <p className="whitespace-pre-line">{session.description}</p>}
-      <p>
-        Exam platform:{' '}
-        {session.url_patterns.map((p, i) => (
-          <span key={p} title={describeExamSite(p)}>{i > 0 && ', '}<strong>{p}</strong></span>
-        ))}
-      </p>
-    </>
-  );
+/** "00:12:04" */
+export function formatElapsed(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, '0')).join(':');
 }
