@@ -2,7 +2,7 @@
 
 Visual and interaction rules implementing the requirements in [PRD.md](PRD.md). How the screens connect to the backend is in [BACKEND-HANDOFF.md](BACKEND-HANDOFF.md); test selectors are in [UI-HANDOFF.md](UI-HANDOFF.md).
 Updated: 2026-11-15 (v2: warm theme, sidebar dashboard, expandable extension cards, popout consent window)
-Status: draft for user review; the design direction was approved by the user on 2026-11-15, but it isn't built yet.
+Status: draft for user review; the design direction was approved by the user on 2026-11-15, and the popout window was prototyped. It isn't built yet.
 
 **Direction (user, 2026-11-15):**
 - **Dashboard:** clean, organised and easy to navigate, in the style of the "Halcyon" reference: a warm cream canvas, white cards, an orange accent, a left sidebar with icons, breadcrumbs, a large italic page title, stat cards and calm tables.
@@ -17,7 +17,7 @@ The product has these UI surfaces, and all of them use these rules:
 | **Popup** | Extension toolbar popup | 360 px wide, height up to 600 px | R1–R3, R6, R8 |
 | **Welcome page** (new) | Extension page opened once after install | Fluid, centred column of at most 640 px | R1, R33 |
 | **Consent popout** (replaces the notice page) | A small extension window (`chrome.windows.create`, `type: 'popup'`), centred on screen | 480 × 640 px | R7, R26, R33 |
-| **Monitoring window** | The same popout window after Start, showing a compact status view; it is then minimized | 480 × 640 px, minimized | R33, R34 |
+| **Monitoring window** | The same popout window after Start, showing a compact status view; it stays open behind the fullscreen exam (macOS won't minimize it, see Feasibility) | 480 × 640 px | R33, R34 |
 | **Warning banner** | Injected into the exam page inside a closed shadow root (so the page's CSS can't affect it) | Floating card, top centre | R13, R17 |
 | **Dashboard** | Web app: role chooser, login, then the app shell with Overview, Sessions, Session detail, Needs review, Candidate review and Account | Responsive from 360 px, designed for ≥ 1280 px | R1–R5, R19–R23, R34 |
 
@@ -280,11 +280,18 @@ Each component lists its states. "Focus" always means a 2 px `--color-primary` o
 - **Sharing:**
   1. Clicking **I agree & share screen** opens Chrome's picker, entire screen only (the user gesture is required).
   2. On success, the window switches to the compact **monitoring** view: "ICU monitoring · keep this window open", a status line, and **Go to my exam**.
-  3. Then it **minimizes itself**.
+  3. It stays open. Once the exam window goes fullscreen, it's behind the exam and out of view. It doesn't minimize; see Feasibility.
 - **Closing:** closing it stops sharing and is recorded (`screen_share_stopped`, a warning). **Share screen again** reopens the same window in re-share mode.
-- **Feasibility (to verify before building, D9):**
-  - The stream must stay alive while a `type: 'popup'` window is minimized, and `chooseDesktopMedia` must work from that window.
-  - **If either fails:** use the fallback the user accepted, the same dialog design shown on top of the ICU tab (today's notice tab with a cream scrim), which then stays as the pinned monitoring tab.
+- **Feasibility (prototype, 2026-11-15, headed Chromium on macOS, RESEARCH F32):**
+  - **Works:**
+    - from a `type: 'popup'` window: Chrome's entire-screen picker, `getUserMedia`, and Start;
+    - live whole-screen frames at +2 s, +15 s and +70 s, with the picture content changing.
+  - **Doesn't work:** `chrome.windows.update(…, { state: 'minimized' })` on the popup window. Chrome returns `normal` and the window stays open, retried after 0 s, 3 s and 6 s while the exam window was fullscreen.
+  - **Decision (user):** keep the popout window. After Start it stays open as "ICU monitoring" behind the fullscreen exam, with no pinned tab, and closing it is still recorded. The fallback (the same dialog on the ICU tab) isn't needed.
+  - **Build notes:**
+    - Focusing the monitoring window must not count as leaving the exam: exempt its window ID the way the popup port is exempted.
+    - Pin the page only when it's in a normal window.
+    - In Playwright, the window type can be checked but its 480 px width can't, because Playwright resizes the pages it controls.
 
 ### Banner
 
@@ -361,7 +368,7 @@ The design above needs these changes. Each is small, and none needs a backend ch
 
 1. **New routes:** `/overview` (the landing page after sign-in), `/review` and `/account`. Existing routes stay.
 2. **Consent popout:**
-   - `notice.html` opens in a `type: 'popup'` window instead of a tab, and minimizes after Start.
+   - `notice.html` opens in a `type: 'popup'` window instead of a tab and stays open after Start (behind the fullscreen exam).
    - Recovery and "Share screen again" target that window.
    - The extension already holds the stream in this page, so the logic is unchanged; only the container changes.
    - Prototype it first (see Feasibility).
