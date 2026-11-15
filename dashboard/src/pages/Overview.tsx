@@ -3,7 +3,7 @@
 // loads (lib/admin-data); no new backend calls.
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { avatarFor } from '@icu/ui-tokens/avatars';
+import { avatarFor, pastelFor } from '@icu/ui-tokens/avatars';
 import { useAuth } from '../auth';
 import { useAdminData } from '../lib/admin-data';
 import { needsReview, RISK_ORDER, sessionStatus, type ReviewAttempt } from '../lib/data';
@@ -170,7 +170,7 @@ export function Overview() {
           <ul className="rows">
             {liveAndUpcoming.map((s, i) => (
               <li key={s.id} className="rowcard" style={{ animationDelay: `${i * 40}ms` }} onClick={() => navigate(`/sessions/${s.id}`)}>
-                <span className={`rowicon ${['yellow', 'pink', 'sage', 'blue'][i % 4]}`}><Icon name="monitor" /></span>
+                <span className={`rowicon ${pastelFor(s.id)}`}><Icon name="pulse" /></span>
                 <div className="rowmain">
                   <Link className="rt" to={`/sessions/${s.id}`} onClick={(e) => e.stopPropagation()}>{s.name}</Link>
                   <p>{s.url_patterns.join(', ')} · {scheduleComma(s)} · {candidatesIn(s.id)} candidates</p>

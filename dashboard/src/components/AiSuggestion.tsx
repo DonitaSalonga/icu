@@ -56,7 +56,7 @@ export function AiSuggestionCard({ attemptId, canAnalyze }: { attemptId: string;
   const done = analysis?.status === 'done' && s;
   const pending = analysis?.status === 'pending';
   return (
-    <section className="card" aria-labelledby="ai" aria-live="polite">
+    <section className="card pc yellow" aria-labelledby="ai" aria-live="polite">
       <div className="cardhead">
         <h2 id="ai">AI suggestion</h2>
         {canAnalyze && (

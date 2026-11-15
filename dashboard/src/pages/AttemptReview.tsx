@@ -1,6 +1,6 @@
 // Candidate review (R18, R20–R23; design "Dashboard · Candidate review").
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { findGaps, scoreAttempt, type Gap, type Score } from '@icu/core';
 import type { IconName } from '@icu/ui-tokens/icons';
 import { avatarFor } from '@icu/ui-tokens/avatars';
@@ -147,7 +147,7 @@ export function AttemptReview() {
 
       <div className="cols">
         <div style={{ display: 'grid', gap: 24, minWidth: 0 }}>
-          <section className="card" aria-labelledby="tlh">
+          <section className="card pc pink" aria-labelledby="tlh">
             <h2 id="tlh" style={{ marginBottom: 16 }}>Timeline</h2>
             {typeCounts.length > 0 && (
               <div role="group" aria-label="Filter event types" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -192,7 +192,7 @@ export function AttemptReview() {
             )}
           </section>
 
-          <section className="card" aria-labelledby="sh">
+          <section className="card pc blue" aria-labelledby="sh">
             <h2 id="sh" style={{ marginBottom: 16 }}>Screenshots ({shots.length})</h2>
             {shots.length === 0 ? (
               <div className="empty"><b>No screenshots</b></div>
@@ -207,13 +207,13 @@ export function AttemptReview() {
               </div>
             )}
           </section>
+          {!attempt.data_deleted_at && <DeleteData sessionId={session.id} attempt={attempt} onDeleted={() => { notify('Candidate data deleted.'); refresh(); }} />}
         </div>
 
         <div className="sticky" style={{ display: 'grid', gap: 24 }}>
           <Breakdown score={score} />
           {!attempt.data_deleted_at && <AiSuggestionCard attemptId={attempt.id} canAnalyze={Boolean(attempt.started_at)} />}
           <VerdictCard attempt={attempt} onSaved={() => { notify('Verdict saved.'); refresh(); }} />
-          <DangerZone sessionId={session.id} attempt={attempt} onDeleted={() => { notify('Candidate data deleted.'); refresh(); }} />
         </div>
       </div>
 
@@ -245,7 +245,7 @@ function Findings({ events, gaps, notFullscreen, forcedHigh, deletedAt }: { even
   const stopped = count(events, 'screen_share_stopped');
   if (stopped) items.push({ text: `Stopped screen sharing ${times(stopped)}`, icon: 'alert', tone: 'alert' });
   return (
-    <section className="findings" aria-label="Summary of findings">
+    <section className="findings pc yellow" aria-label="Summary of findings">
       <span className="fl">Findings</span>
       <ul>
         {items.length === 0 ? <li className="fi ok"><Icon name="check" size={16} /> Nothing unusual recorded</li> : items.map((it) => (
@@ -259,7 +259,7 @@ function Findings({ events, gaps, notFullscreen, forcedHigh, deletedAt }: { even
 function Breakdown({ score }: { score: Score }) {
   const cell = { paddingLeft: 0 };
   return (
-    <section className="card" aria-labelledby="rb">
+    <section className="card pc sage" aria-labelledby="rb">
       <div className="cardhead"><h2 id="rb">Risk breakdown</h2><span className="num" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-.03em' }} aria-label={`Score ${score.score}`}>{score.score}</span></div>
       <table className="t">
         <thead>
@@ -304,7 +304,7 @@ function VerdictCard({ attempt, onSaved }: { attempt: AttemptRow; onSaved: () =>
   };
 
   return (
-    <section className="card" aria-labelledby="vd">
+    <section className="card pc pink" aria-labelledby="vd">
       <h2 id="vd" style={{ marginBottom: 14 }}>Your verdict</h2>
       <div role="radiogroup" aria-labelledby="vd">
         {VERDICTS.map((v) => (
@@ -323,8 +323,9 @@ function VerdictCard({ attempt, onSaved }: { attempt: AttemptRow; onSaved: () =>
 
 const HOLD_MS = 1400;
 
-/** R23: press and hold (pointer, or Enter/Space) for 1.4 s to delete the candidate's data. */
-function DangerZone({ sessionId, attempt, onDeleted }: { sessionId: string; attempt: AttemptRow; onDeleted: () => void }) {
+/** R23: press and hold (pointer, or Enter/Space) for 1.4 s to delete the candidate's data. A button under the
+ *  screenshots (feedback 2026-11-15) instead of a "Danger zone" card; once deleted, Findings says so. */
+function DeleteData({ sessionId, attempt, onDeleted }: { sessionId: string; attempt: AttemptRow; onDeleted: () => void }) {
   const [holding, setHolding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -353,33 +354,23 @@ function DangerZone({ sessionId, attempt, onDeleted }: { sessionId: string; atte
   };
 
   return (
-    <section className="card" aria-labelledby="dz">
-      <h2 id="dz" style={{ marginBottom: 8 }}>Danger zone</h2>
-      {attempt.data_deleted_at ? (
-        <>
-          <p style={{ marginBottom: 12 }}>Candidate data deleted. This cannot be undone.</p>
-          <Link className="btn s" to="/review">Back to Needs review</Link>
-        </>
-      ) : (
-        <>
-          <p className="hint" style={{ margin: '0 0 12px' }}>Removes this candidate’s screenshots and events. This cannot be undone. Press and hold to confirm.</p>
-          <button
-            type="button"
-            className={`btn d hold ${holding ? 'go' : ''}`}
-            disabled={busy}
-            onPointerDown={start}
-            onPointerUp={end}
-            onPointerLeave={end}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) start(); } }}
-            onKeyUp={end}
-          >
-            <span className="fill" />
-            <span className="lbl2" style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Icon name="alert" size={18} /> {busy ? 'Deleting…' : 'Hold to delete candidate data'}</span>
-          </button>
-          {error && <p className="err" role="alert">{error}</p>}
-        </>
-      )}
-    </section>
+    <div className="delrow">
+      <button
+        type="button"
+        className={`btn d hold ${holding ? 'go' : ''}`}
+        disabled={busy}
+        onPointerDown={start}
+        onPointerUp={end}
+        onPointerLeave={end}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) start(); } }}
+        onKeyUp={end}
+      >
+        <span className="fill" />
+        <span className="lbl2" style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Icon name="alert" size={18} /> {busy ? 'Deleting…' : 'Hold to delete candidate data'}</span>
+      </button>
+      <span className="hint" style={{ margin: 0 }}>Removes the screenshots and events. This cannot be undone.</span>
+      {error && <p className="err" role="alert" style={{ width: '100%' }}>{error}</p>}
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { describeExamSite, isValidExamSite, normalizeExamSite } from '@icu/core';
+import { pastelFor } from '@icu/ui-tokens/avatars';
 import { useAdminData } from '../lib/admin-data';
 import { sessionStatus } from '../lib/data';
 import { errorText, supabase } from '../supabase';
@@ -68,7 +69,7 @@ export function Sessions() {
         <ul className="rows" key={`${filter}|${query}`} aria-label="Exam sessions">
           {shown.map((r, i) => (
             <li key={r.id} className="rowcard" style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate(`/sessions/${r.id}`)}>
-              <span className={`rowicon ${['yellow', 'pink', 'sage', 'blue'][i % 4]}`}><Icon name="monitor" /></span>
+              <span className={`rowicon ${pastelFor(r.id)}`}><Icon name="pulse" /></span>
               <div className="rowmain">
                 <Link className="rt" to={`/sessions/${r.id}`} onClick={(e) => e.stopPropagation()}>{r.name}</Link>
                 <p>{r.url_patterns.join(', ')}{r.description ? ` · ${r.description.split('\n')[0]}` : ''}</p>

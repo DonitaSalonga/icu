@@ -32,8 +32,8 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   await expect(info).toContainText('CCNA 1 final exam, 60 questions');
   await expect(info).toContainText('docs.google.com/forms pages');
   await expect(info).toContainText(code);
-  // The breadcrumb leads back to Sessions.
-  await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Sessions' }).click();
+  // The sidebar leads back to Sessions (breadcrumbs removed, feedback 2026-11-15).
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Sessions' }).click();
 
   // Session detail: High candidate first.
   await page.getByRole('link', { name: 'Seeded quiz' }).click();
@@ -105,8 +105,8 @@ test('T40: verdict save and change; delete data with press-and-hold', async ({ p
   await page.keyboard.down('Enter');
   await page.waitForTimeout(1700);
   await page.keyboard.up('Enter');
-  await expect(page.getByText('Candidate data deleted. This cannot be undone.')).toBeVisible();
   await expect(page.getByText(/Data deleted on/)).toBeVisible();
+  await expect(hold).toHaveCount(0);
   await expect(page.getByText('No screenshots', { exact: true })).toBeVisible();
   const { data: left } = await serviceClient().storage.from('screenshots').list(`${session.id}/${attempts.student1}`);
   expect(left).toEqual([]);

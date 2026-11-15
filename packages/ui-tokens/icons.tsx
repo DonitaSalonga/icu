@@ -27,6 +27,13 @@ const SHAPES = {
       <path d="M8 20h8M12 16v4" />
     </>
   ),
+  // Monitor with a pulse line (user-supplied session icon, 2026-11-15).
+  pulse: (
+    <>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4M6.5 10h3l1.5-2.5 2 5 1.5-2.5h3" />
+    </>
+  ),
   camera: (
     <>
       <rect x="3" y="6" width="18" height="13" rx="2" />
