@@ -1,12 +1,14 @@
 // Shared dashboard UI pieces, built from the ICU redesign (DSD v2) file's classes (packages/ui-tokens/icu.css).
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import type { ReactElement, ReactNode, RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import { Dialog as BaseDialog } from '@base-ui/react/dialog';
+import { toast, Toaster } from 'sonner';
 import type { RiskLevel } from '@icu/core';
 import { Icon } from '@icu/ui-tokens/icons';
 
 export { Icon };
 
-/** Overlays sit in the app frame, outside the scrolling page, as in the design (scrim, dialog, toast, lightbox). */
+/** Overlays sit in the app frame, outside the scrolling page, as in the design (the screenshot lightbox). */
 export function Overlay({ children }: { children: ReactNode }) {
   const host = document.querySelector('.app') ?? document.body;
   return createPortal(children, host);
@@ -51,62 +53,45 @@ export function Seg<T extends string>({ label, options, value, onChange }: { lab
 }
 
 /**
- * Dialog (design "scrim" + "dlg"). Focus moves into the dialog, Tab stays inside, Esc closes, and focus
- * returns to whatever opened it. It is always rendered so the open/close transitions play.
+ * Dialog (design "scrim" + "dlg") on Base UI: it handles focus moving in, staying in, Esc, and returning to
+ * the trigger, plus the screen-reader semantics. The design's open/close transitions run through Base UI's
+ * data-starting-style / data-ending-style attributes (icu.css additions).
  */
-export function Dialog({ open, onClose, titleId, children }: { open: boolean; onClose: () => void; titleId: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const opener = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open) {
-      opener.current = document.activeElement as HTMLElement | null;
-      el.querySelector<HTMLElement>('input, textarea, select, button')?.focus();
-    } else if (opener.current) {
-      opener.current.focus();
-      opener.current = null;
-    }
-  }, [open]);
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-    }
-    if (e.key !== 'Tab' || !ref.current) return;
-    const items = [...ref.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, textarea, select')];
-    const first = items[0];
-    const last = items[items.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
-  };
+export function Dialog({ open, onOpenChange, title, trigger, initialFocus, children }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  trigger: ReactElement;
+  initialFocus?: RefObject<HTMLElement | null>;
+  children: ReactNode;
+}) {
   return (
-    <Overlay>
-      <div className={`scrim ${open ? 'open' : ''}`} onClick={onClose} />
-      <div ref={ref} className={`dlg ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-hidden={!open} onKeyDown={onKeyDown} {...(open ? {} : { inert: '' })}>
-        {children}
-        <button type="button" className="iconbtn x" aria-label="Close" onClick={onClose}><Icon name="close" /></button>
-      </div>
-    </Overlay>
+    <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
+      <BaseDialog.Trigger render={trigger} />
+      <BaseDialog.Portal>
+        <BaseDialog.Backdrop className="scrim open" style={{ position: 'fixed' }} />
+        <BaseDialog.Popup className="dlg open" style={{ position: 'fixed' }} initialFocus={initialFocus}>
+          <BaseDialog.Title>{title}</BaseDialog.Title>
+          {children}
+          <BaseDialog.Close className="iconbtn x" aria-label="Close"><Icon name="close" /></BaseDialog.Close>
+        </BaseDialog.Popup>
+      </BaseDialog.Portal>
+    </BaseDialog.Root>
   );
 }
 
-/** Toast (design "toast"): slides up for 3.2 s. */
-export function Toast({ message, onDone }: { message?: string; onDone: () => void }) {
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, [message, onDone]);
+/** Toasts (design "toast") through Sonner: stacking, auto-dismiss and a polite live region. */
+export function Toasts() {
   return (
-    <Overlay>
-      <div className={`toast ${message ? 'show' : ''}`} role="status" aria-live="polite">
-        <Icon name="check" size={18} />
-        <span>{message}</span>
-      </div>
-    </Overlay>
+    <Toaster
+      position="bottom-center"
+      duration={3200}
+      icons={{ success: <Icon name="check" size={18} /> }}
+      toastOptions={{ unstyled: true, classNames: { toast: 'icu-toast' } }}
+    />
   );
 }
+export const notify = (message: string) => toast.success(message);
 
 export function Alert({ children }: { children: ReactNode }) {
   return <p className="err" role="alert">{children}</p>;

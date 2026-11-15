@@ -12,7 +12,8 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 async function scan(page: Page, label: string) {
   // The design fades content in (".rise"); measure contrast once every animation has finished.
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
+  // (Endless ones, like the code box's blinking caret, never finish and are ignored.)
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
   const { violations, passes } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   console.log(`[axe] ${label}: ${passes.length} rules passed, ${violations.length} violated`);
   const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
@@ -88,6 +89,11 @@ test('T41: dashboard screens and dialogs have no serious axe violations', async 
   await scan(page, 'dashboard: login');
   await login(page);
   await scan(page, 'dashboard: overview');
+  // Account menu (Base UI) from the sidebar user card.
+  await page.getByRole('button', { name: /Admin A/ }).click();
+  await page.getByRole('menuitem', { name: 'Account' }).waitFor();
+  await scan(page, 'dashboard: account menu');
+  await page.keyboard.press('Escape');
   await page.goto(`${DASH}/sessions`);
   await page.getByRole('heading', { name: 'Sessions' }).waitFor();
   await page.locator('tbody tr').first().waitFor();

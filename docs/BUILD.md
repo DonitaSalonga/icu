@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: UI libraries (user request): **Sonner** for dashboard toasts, **Base UI** for the create-session dialog and a new account menu on the sidebar user card, **input-otp** for the six-box exam code in the popup. All MIT, pinned (sonner 2.0.8, @base-ui/react 1.9.0, input-otp 1.5.0). Tests T39–T41, T25–T27, T60 pass; the T41 scan adds the account menu.
+
 - 2026-11-15: **DSD v2 built from the user's design file** ("ICU redesign (DSD v2).html").
   - **Dashboard:** sidebar shell; Overview, Sessions + create dialog, Session detail, Needs review, Candidate review (timeline, screenshots, breakdown, AI card, verdict, press-and-hold delete), Account; admin sign in.
   - **Extension:** popup (chooser, student sign in, join, exam card, monitoring, ended); Privacy & terms in a 480 × 680 popup window with the scroll gate and progress bar, which becomes the ICU monitoring window; welcome page on install.

@@ -21,7 +21,7 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   await expect(page.getByRole('list', { name: 'Exam platforms' })).toContainText('docs.google.com/forms');
   await page.getByLabel(/Tell us about the exam/).fill('CCNA 1 final exam, 60 questions');
   await page.getByRole('dialog').getByRole('button', { name: 'Create session' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Session created.' })).toBeVisible();
+  await expect(page.getByText('Session created.')).toBeVisible(); // Sonner toast (polite live region)
   await expect(page.getByRole('row', { name: /Created in E2E/ })).toContainText('docs.google.com/forms');
 
   // Clicking a session shows what the exam is (2026-11-15 feedback), and its code.
@@ -82,7 +82,7 @@ test('T40: verdict save and change; delete data with press-and-hold', async ({ p
   await page.getByLabel('Suspicious').check();
   const saved = () => page.waitForResponse((r) => r.url().includes('/rpc/set_verdict') && r.ok());
   await Promise.all([saved(), page.getByRole('button', { name: 'Save verdict' }).click()]);
-  await expect(page.getByRole('status').filter({ hasText: 'Verdict saved.' })).toBeVisible();
+  await expect(page.getByText('Verdict saved.')).toBeVisible();
   await page.getByLabel('Cheating confirmed').check();
   await Promise.all([saved(), page.getByRole('button', { name: 'Save verdict' }).click()]);
   const { data: verdictRow } = await serviceClient().from('attempts').select('verdict').eq('id', attempts.student1!).single();

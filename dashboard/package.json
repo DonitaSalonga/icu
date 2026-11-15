@@ -10,12 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
     "@icu/core": "*",
     "@icu/ui-tokens": "*",
     "@supabase/supabase-js": "2.119.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "7.18.5"
+    "react-router-dom": "7.18.5",
+    "sonner": "2.0.8"
   },
   "devDependencies": {
     "@types/react": "18.3.31",

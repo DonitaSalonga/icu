@@ -1,6 +1,7 @@
 // The admin app shell from the ICU redesign (DSD v2) file: sidebar, breadcrumbs, sticky top bar, page area.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, matchPath, NavLink, useLocation } from 'react-router-dom';
+import { Link, matchPath, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Menu } from '@base-ui/react/menu';
 import { Icon, Tile, type IconName } from '@icu/ui-tokens/icons';
 import { useAuth } from '../auth';
 import { useAdminData } from '../lib/admin-data';
@@ -51,6 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
   const { needsReviewCount } = useAdminData();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const main = useRef<HTMLElement>(null);
 
@@ -84,8 +86,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         {profile && (
           <div className="userwrap">
             <div className="user">
-              <span className="av" aria-hidden="true">{initials(profile.full_name)}</span>
-              <p><b>{profile.full_name}</b><span>{profile.email}</span></p>
+              {/* Account menu (Base UI): keyboard and screen-reader handling for the menu. */}
+              <Menu.Root>
+                <Menu.Trigger className="usermenu">
+                  <span className="av" aria-hidden="true">{initials(profile.full_name)}</span>
+                  <p><b>{profile.full_name}</b><span>{profile.email}</span></p>
+                </Menu.Trigger>
+                <Menu.Portal>
+                  <Menu.Positioner side="top" align="start" sideOffset={8} className="menupos">
+                    <Menu.Popup className="menu">
+                      <Menu.Item className="menuitem" onClick={() => navigate('/account')}><Icon name="account" /> Account</Menu.Item>
+                      <Menu.Item className="menuitem" onClick={() => void supabase?.auth.signOut()}><Icon name="logout" /> Sign out</Menu.Item>
+                    </Menu.Popup>
+                  </Menu.Positioner>
+                </Menu.Portal>
+              </Menu.Root>
               <button type="button" className="iconbtn" aria-label="Sign out" onClick={() => void supabase?.auth.signOut()}>
                 <Icon name="logout" />
               </button>

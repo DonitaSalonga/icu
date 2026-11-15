@@ -115,6 +115,6 @@ More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitat
 
 ## Licences
 
-All production dependencies are MIT or 0BSD (checked 2026-11-14). The bundled Inter and JetBrains Mono fonts (`packages/ui-tokens/fonts`) are under the SIL Open Font License 1.1.
+All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). The bundled Inter and JetBrains Mono fonts (`packages/ui-tokens/fonts`) are under the SIL Open Font License 1.1.
 
 Bundled fonts (not npm dependencies) are under the SIL Open Font Licence 1.1: Inter and JetBrains Mono, in `packages/ui-tokens/fonts` with their licence texts. The icons are hand-drawn in `packages/ui-tokens/icons.tsx`.

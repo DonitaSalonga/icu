@@ -1,6 +1,7 @@
 // Popup (design "Extension · Popup" and "Extension · Student sign in"): role chooser → student sign in → join an
 // exam → exam card → monitoring. R1: signed-out users first choose Student or Admin; admins use the dashboard.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { OTPInput, REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { Icon } from '@icu/ui-tokens/icons';
 import type { AttemptStatus, AuthState, JoinResult } from '@icu/core';
 import { DASHBOARD_URL } from '../../lib/env';
@@ -165,16 +166,26 @@ function StudentHome({ status, run, error }: { status?: AttemptStatus; run: Run;
       </div>
       <form className="card" style={{ padding: 20, borderRadius: 20 }} onSubmit={(e) => { e.preventDefault(); void find(); }}>
         <label className="lab" htmlFor="code">Exam code</label>
-        <input
+        {/* input-otp: six boxes with paste, backspace and arrow-key handling over one real, labelled input. */}
+        <OTPInput
           id="code"
-          className="in mono"
-          style={{ textTransform: 'uppercase', letterSpacing: '.3em', textAlign: 'center', fontSize: 20 }}
           maxLength={6}
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-          placeholder="------"
+          onChange={(v) => setCode(v.toUpperCase())}
+          pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+          inputMode="text"
           autoComplete="off"
           spellCheck={false}
+          pasteTransformer={(text) => text.toUpperCase().replace(/[^A-Z0-9]/g, '')}
+          render={({ slots }) => (
+            <div className="otp-slots" aria-hidden="true">
+              {slots.map((s, i) => (
+                <div key={i} className={`otp-slot ${s.isActive ? 'on' : ''}`}>
+                  {s.char ?? (s.hasFakeCaret ? <span className="otp-caret" /> : null)}
+                </div>
+              ))}
+            </div>
+          )}
         />
         {error && <p className="err" role="alert">{error}</p>}
         <button type="submit" className="btn p" style={{ width: '100%', marginTop: 14 }} disabled={code.length < 6}>Find exam</button>

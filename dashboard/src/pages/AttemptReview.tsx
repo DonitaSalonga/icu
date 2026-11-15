@@ -9,7 +9,7 @@ import { deleteAttemptData } from '../lib/deleteAttempt';
 import { attemptStatus, SESSION_COLUMNS, type SessionRow } from '../lib/data';
 import { eventLabel, TYPE_NAMES } from '../lib/labels';
 import { errorText, supabase } from '../supabase';
-import { Alert, formatDate, formatDateTime, formatDuration, formatTime, Icon, Overlay, RiskPill, Toast, VERDICTS } from '../ui';
+import { Alert, formatDate, formatDateTime, formatDuration, formatTime, Icon, notify, Overlay, RiskPill, VERDICTS } from '../ui';
 
 interface EventRow {
   id: string;
@@ -59,7 +59,6 @@ export function AttemptReview() {
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
   const [error, setError] = useState<string>();
-  const [toast, setToast] = useState<string>();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<number>();
 
@@ -210,13 +209,12 @@ export function AttemptReview() {
         <div className="sticky" style={{ display: 'grid', gap: 24 }}>
           <Breakdown score={score} />
           {!attempt.data_deleted_at && <AiSuggestionCard attemptId={attempt.id} canAnalyze={Boolean(attempt.started_at)} />}
-          <VerdictCard attempt={attempt} onSaved={() => { setToast('Verdict saved.'); refresh(); }} />
-          <DangerZone sessionId={session.id} attempt={attempt} onDeleted={() => { setToast('Candidate data deleted.'); refresh(); }} />
+          <VerdictCard attempt={attempt} onSaved={() => { notify('Verdict saved.'); refresh(); }} />
+          <DangerZone sessionId={session.id} attempt={attempt} onDeleted={() => { notify('Candidate data deleted.'); refresh(); }} />
         </div>
       </div>
 
       <Lightbox shots={shots} events={events} index={lightbox} onClose={() => setLightbox(undefined)} />
-      <Toast message={toast} onDone={() => setToast(undefined)} />
     </>
   );
 }

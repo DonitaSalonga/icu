@@ -13,6 +13,7 @@ import { RoleChooser } from './pages/RoleChooser';
 import { SessionDetail } from './pages/SessionDetail';
 import { Sessions } from './pages/Sessions';
 import { isConfigured, supabase } from './supabase';
+import { Toasts } from './ui';
 
 /** R3: only admins use the dashboard. */
 function AdminLayout() {
@@ -32,6 +33,7 @@ function AdminLayout() {
   return (
     <AdminDataProvider>
       <AppShell><Outlet /></AppShell>
+      <Toasts />
     </AdminDataProvider>
   );
 }

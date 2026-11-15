@@ -1,11 +1,11 @@
 // Sessions list and Create session dialog (R4, R5; design "Dashboard · Sessions" and "Create session").
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { describeExamSite, isValidExamSite, normalizeExamSite } from '@icu/core';
 import { useAdminData } from '../lib/admin-data';
 import { sessionStatus } from '../lib/data';
 import { errorText, supabase } from '../supabase';
-import { Alert, Dialog, Icon, scheduleDot, Seg, StatusPill, Toast } from '../ui';
+import { Alert, Dialog, Icon, notify, scheduleDot, Seg, StatusPill } from '../ui';
 
 type Filter = 'all' | 'live' | 'upcoming' | 'ended';
 const STATUS_OF: Record<Filter, string | undefined> = { all: undefined, live: 'Active', upcoming: 'Upcoming', ended: 'Ended' };
@@ -13,7 +13,6 @@ const STATUS_OF: Record<Filter, string | undefined> = { all: undefined, live: 'A
 export function Sessions() {
   const { loading, error, sessions, attempts, reload } = useAdminData();
   const [creating, setCreating] = useState(false);
-  const [toast, setToast] = useState<string>();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -36,7 +35,18 @@ export function Sessions() {
     <>
       <div className="head">
         <div><h1 className="h1">Sessions</h1><p className="sub">Exam sessions you created</p></div>
-        <button type="button" className="btn p" onClick={() => setCreating(true)}><Icon name="plus" size={18} /> Create session</button>
+        <CreateSessionDialog
+          open={creating}
+          onOpenChange={setCreating}
+          trigger={<button type="button" className="btn p"><Icon name="plus" size={18} /> Create session</button>}
+          onCreated={() => {
+            setCreating(false);
+            setFilter('all');
+            setQuery('');
+            notify('Session created.');
+            void reload();
+          }}
+        />
       </div>
       {error && <Alert>{error}</Alert>}
       <section className="card" aria-label="Sessions">
@@ -69,18 +79,6 @@ export function Sessions() {
         {!loading && rows.length === 0 && <div className="empty"><b>No sessions yet</b>Create one, then give students its code.</div>}
         {!loading && rows.length > 0 && shown.length === 0 && <div className="empty"><b>No sessions match</b>Try another filter or search.</div>}
       </section>
-      <CreateSessionDialog
-        open={creating}
-        onClose={() => setCreating(false)}
-        onCreated={() => {
-          setCreating(false);
-          setFilter('all');
-          setQuery('');
-          setToast('Session created.');
-          void reload();
-        }}
-      />
-      <Toast message={toast} onDone={() => setToast(undefined)} />
     </>
   );
 }
@@ -91,7 +89,8 @@ const timeValue = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 /** Local date (yyyy-mm-dd) + time (hh:mm) → Date, or undefined if either is missing. */
 const combine = (date: string, time: string) => (date && time ? new Date(`${date}T${time}`) : undefined);
 
-function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+function CreateSessionDialog({ open, onOpenChange, trigger, onCreated }: { open: boolean; onOpenChange: (open: boolean) => void; trigger: ReactElement; onCreated: () => void }) {
+  const nameRef = useRef<HTMLInputElement>(null);
   const now = new Date();
   const later = new Date(now.getTime() + 60 * 60_000);
   const [name, setName] = useState('');
@@ -144,9 +143,8 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
   };
 
   return (
-    <Dialog open={open} onClose={onClose} titleId="dt">
-      <h2 id="dt">Create exam session</h2>
-      <div className="field"><label htmlFor="n">Name</label><input id="n" className="in" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} /></div>
+    <Dialog open={open} onOpenChange={onOpenChange} title="Create exam session" trigger={trigger} initialFocus={nameRef}>
+      <div className="field"><label htmlFor="n">Name</label><input ref={nameRef} id="n" className="in" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} /></div>
       <div className="field">
         <label htmlFor="pl">Exam platform</label>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -191,7 +189,7 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
       </div>
       {error && <p className="err" role="alert" style={{ marginBottom: 12 }}>{error}</p>}
       <div className="actions">
-        <button type="button" className="btn s" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn s" onClick={() => onOpenChange(false)}>Cancel</button>
         <button type="button" className="btn p" disabled={!name.trim() || saving} onClick={() => void create()}>{saving ? 'Creating…' : 'Create session'}</button>
       </div>
     </Dialog>
