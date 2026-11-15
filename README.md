@@ -104,17 +104,6 @@ ICU warns students and flags what it sees, but it never ends an exam or decides 
 
 More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations).
 
-## Project documents
-
-| | |
-| --- | --- |
-| Why and what | [docs/IDEA.md](docs/IDEA.md) · research: [docs/RESEARCH.md](docs/RESEARCH.md) |
-| Requirements (R1–R35) | [docs/PRD.md](docs/PRD.md) |
-| Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
-| Tests (T1–T65) | [docs/QAD.md](docs/QAD.md) |
-| Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
-| Handoff for UI/UX work | [docs/UI-HANDOFF.md](docs/UI-HANDOFF.md) · backend connection: [docs/BACKEND-HANDOFF.md](docs/BACKEND-HANDOFF.md) |
-
 ## Licences
 
 All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). The icons are hand-drawn in `packages/ui-tokens/icons.tsx`, and the logo and student avatars were supplied by the project owner.

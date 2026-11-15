@@ -9,6 +9,13 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   const { session } = await seed();
   await login(page);
 
+  // The sign-up page (the README link) still shows the choice when signed in, with a way back to the dashboard.
+  await page.goto(DASH);
+  await expect(page.getByRole('heading', { name: 'Sign up or sign in as' })).toBeVisible();
+  await expect(page.getByText(/Signed in as/)).toBeVisible();
+  await page.getByRole('link', { name: 'Open dashboard' }).click();
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
+
   // The sidebar leads from Overview to Sessions.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Sessions' }).click();
   await expect(page.getByRole('heading', { name: 'Sessions' })).toBeVisible();
