@@ -2,7 +2,7 @@
 // admins; students use the extension (R1).
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { PublicPage } from '../components/PublicPage';
+import { Logo } from '@icu/ui-tokens/icons';
 import { useAuth } from '../auth';
 import { supabase } from '../supabase';
 
@@ -35,25 +35,36 @@ export function Login() {
     else if (!data.session) setInfo('Check your email to confirm your account, then sign in.');
   };
 
+  const signin = mode === 'signin';
+  const toggle = () => { setMode(signin ? 'signup' : 'signin'); setError(undefined); setInfo(undefined); };
+
+  // Centred card with the brand on top (feedback 2026-11-15, after the user's sign-in inspiration; no Google button).
   return (
-    <PublicPage title="Admin">
-      <section className="card" style={{ maxWidth: 440 }} aria-labelledby="as">
-        <form onSubmit={(e) => void submit(e)} noValidate>
-          <h2 id="as" style={{ marginBottom: 18 }}>{mode === 'signin' ? 'Admin sign in' : 'Create an admin account'}</h2>
-          {mode === 'signup' && (
-            <div className="field"><label htmlFor="nm">Full name</label><input id="nm" className="in" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} autoComplete="name" /></div>
+    <div className="pub">
+      <main className="card authcard rise">
+        <div className="brand pubbrand">
+          <Logo height={34} />
+          <span><span>I Caught You</span></span>
+        </div>
+        <form onSubmit={(e) => void submit(e)} noValidate aria-labelledby="as">
+          <h1 id="as">{signin ? 'Admin sign in' : 'Create an admin account'}</h1>
+          {!signin && (
+            <div className="field"><label className="sr" htmlFor="nm">Full name</label><input id="nm" className="in" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} autoComplete="name" /></div>
           )}
-          <div className="field"><label htmlFor="em">Email</label><input id="em" className="in" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
-          <div className="field"><label htmlFor="pw">Password</label><input id="pw" className="in" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} /></div>
+          <div className="field"><label className="sr" htmlFor="em">Email</label><input id="em" className="in" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
+          <div className="field"><label className="sr" htmlFor="pw">Password</label><input id="pw" className="in" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={signin ? 'current-password' : 'new-password'} /></div>
           {error && <p className="err" role="alert">{error}</p>}
           {info && <p className="hint" role="status">{info}</p>}
-          <button type="submit" className="btn p" style={{ width: '100%', marginTop: 8 }}>{mode === 'signin' ? 'Sign in' : 'Create account'}</button>
-          <button type="button" className="btn g" style={{ width: '100%', marginTop: 8 }} onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(undefined); }}>
-            {mode === 'signin' ? 'Create an admin account' : 'I already have an account'}
-          </button>
-          <button type="button" className="btn g" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/')}>Back</button>
+          <button type="submit" className="btn p" style={{ width: '100%', marginTop: 10 }}>{signin ? 'Sign in' : 'Create account'}</button>
         </form>
-      </section>
-    </PublicPage>
+        <p className="authfoot">
+          {signin ? "Don't have an account? " : 'Already have an account? '}
+          <button type="button" className="linkbtn" onClick={toggle}>{signin ? 'Create an admin account' : 'Sign in'}</button>
+        </p>
+        <p className="authfoot" style={{ marginTop: 8 }}>
+          <button type="button" className="linkbtn" style={{ fontWeight: 500, color: 'var(--muted)' }} onClick={() => navigate('/')}>Back</button>
+        </p>
+      </main>
+    </div>
   );
 }

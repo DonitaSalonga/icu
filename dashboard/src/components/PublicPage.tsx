@@ -1,20 +1,22 @@
 import type { ReactNode } from 'react';
 import { Logo } from '@icu/ui-tokens/icons';
 
-/** Signed-out screens (design "Dashboard · Sign in"): brand, a large italic title, then the content. */
-export function PublicPage({ title, children }: { title: string; children: ReactNode }) {
+/** Signed-out screens, centred on the page (feedback 2026-11-15, after the user's "Sign in or join" inspiration):
+ *  brand, title and an optional subtitle, then the content. */
+export function PublicPage({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '40px 24px' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-        <div className="brand" style={{ padding: '0 0 28px' }}>
+    <div className="pub">
+      <main className="pubcol rise">
+        <div className="brand pubbrand">
           <Logo height={34} />
           <span><span>I Caught You</span></span>
         </div>
-        <main className="rise">
-          <h1 className="h1" style={{ fontSize: 44, marginBottom: 28 }}>{title}</h1>
-          {children}
-        </main>
-      </div>
+        <div>
+          <h1 className="h1 pubtitle">{title}</h1>
+          {subtitle && <p className="pubsub">{subtitle}</p>}
+        </div>
+        {children}
+      </main>
     </div>
   );
 }
