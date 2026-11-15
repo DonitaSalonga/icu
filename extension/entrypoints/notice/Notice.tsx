@@ -20,7 +20,7 @@ function Frame({ children }: { children: ReactNode }) {
   );
 }
 
-const big = { fontSize: 30, fontWeight: 800, fontStyle: 'italic', letterSpacing: '-.03em', marginBottom: 8 } as const;
+const big = { fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', marginBottom: 8 } as const;
 
 export function Notice() {
   const [status, setStatus] = useState<AttemptStatus>();

@@ -143,9 +143,7 @@ export function AttemptReview() {
         </div>
         <RiskPill level={score.level} score={score.score} />
       </div>
-      {attempt.data_deleted_at && <p className="hint" role="status" style={{ marginTop: -12, marginBottom: 20 }}>Data deleted on {formatDate(attempt.data_deleted_at)}.</p>}
-      {notFullscreen && <p className="hint" style={{ marginTop: -12, marginBottom: 20 }}>Not in fullscreen: the exam window never entered fullscreen during this attempt.</p>}
-      {score.forcedHigh && <p className="hint" style={{ marginTop: -12, marginBottom: 20 }}>The warning limit was reached, so this candidate is High risk regardless of score.</p>}
+      <Findings events={events} gaps={gaps.length} notFullscreen={Boolean(notFullscreen)} forcedHigh={score.forcedHigh} deletedAt={attempt.data_deleted_at} />
 
       <div className="cols">
         <div style={{ display: 'grid', gap: 24, minWidth: 0 }}>
@@ -221,6 +219,40 @@ export function AttemptReview() {
 
       <Lightbox shots={shots} events={events} index={lightbox} onClose={() => setLightbox(undefined)} />
     </>
+  );
+}
+
+const count = (events: EventRow[], type: string) => events.filter((e) => e.type === type).length;
+const times = (n: number) => (n === 1 ? 'once' : `${n} times`);
+
+/** One bar summarising what the candidate did (feedback 2026-11-15), instead of separate notes. */
+function Findings({ events, gaps, notFullscreen, forcedHigh, deletedAt }: { events: EventRow[]; gaps: number; notFullscreen: boolean; forcedHigh: boolean; deletedAt: string | null }) {
+  const sites = new Set(events.filter((e) => e.type === 'url_visited').map((e) => `${String(e.details.host ?? '')}${String(e.details.path ?? '')}`)).size;
+  const items: { text: string; icon: IconName; tone?: 'alert' }[] = [];
+  if (deletedAt) items.push({ text: `Data deleted on ${formatDate(deletedAt)}`, icon: 'alert' });
+  if (forcedHigh) items.push({ text: 'Warning limit reached · High regardless of score', icon: 'alert', tone: 'alert' });
+  if (notFullscreen) items.push({ text: 'Never entered fullscreen', icon: 'monitor', tone: 'alert' });
+  const left = count(events, 'exam_tab_hidden');
+  if (left) items.push({ text: `Left the exam tab ${times(left)}`, icon: 'camera' });
+  if (sites) items.push({ text: `Visited ${sites} other site${sites === 1 ? '' : 's'}`, icon: 'external' });
+  const paste = count(events, 'paste');
+  if (paste) items.push({ text: `Pasted ${times(paste)}`, icon: 'copy' });
+  const blur = count(events, 'window_blur');
+  if (blur) items.push({ text: `Left the browser ${times(blur)}`, icon: 'monitor' });
+  const fsExit = count(events, 'fullscreen_exit');
+  if (fsExit) items.push({ text: `Left fullscreen ${times(fsExit)}`, icon: 'monitor' });
+  if (gaps) items.push({ text: `Monitoring lost ${times(gaps)}`, icon: 'alert', tone: 'alert' });
+  const stopped = count(events, 'screen_share_stopped');
+  if (stopped) items.push({ text: `Stopped screen sharing ${times(stopped)}`, icon: 'alert', tone: 'alert' });
+  return (
+    <section className="findings" aria-label="Summary of findings">
+      <span className="fl">Findings</span>
+      <ul>
+        {items.length === 0 ? <li className="fi ok"><Icon name="check" size={16} /> Nothing unusual recorded</li> : items.map((it) => (
+          <li key={it.text} className={`fi ${it.tone ?? ''}`}><Icon name={it.icon} size={16} /> {it.text}</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

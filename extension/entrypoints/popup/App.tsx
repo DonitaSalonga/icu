@@ -145,7 +145,7 @@ function StudentHome({ status, run, error }: { status?: AttemptStatus; run: Run;
   if (status.state === 'ended') {
     return (
       <div style={{ padding: '24px 20px' }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, fontStyle: 'italic', letterSpacing: '-.03em', marginBottom: 8 }}>Exam ended.</h1>
+        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', marginBottom: 8 }}>Exam ended.</h1>
         <p style={{ color: 'var(--muted)', marginBottom: 24 }}>Your examiner will review the session. You can close this window.</p>
         <button type="button" className="btn p" style={{ width: '100%' }} onClick={() => void run(() => send({ type: 'attempt.reset' }))}>Join another exam</button>
       </div>
@@ -219,7 +219,7 @@ function Monitoring({ status, run, error }: { status: AttemptStatus; run: Run; e
       ) : (
         <span className="pill live" style={{ marginBottom: 16 }}><span className="dot" />Monitoring</span>
       )}
-      <h1 style={{ fontSize: 30, fontWeight: 800, fontStyle: 'italic', letterSpacing: '-.03em', margin: '16px 0 8px' }}>ICU monitoring</h1>
+      <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', margin: '16px 0 8px' }}>ICU monitoring</h1>
       <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
         {status.exam_tab_bound ? 'Your exam is open.' : 'Now open your exam in this browser.'} <span className="mono num">{elapsed}</span>
         {status.warnings && ` · Warnings ${status.warnings.n} of ${status.warnings.limit}`}

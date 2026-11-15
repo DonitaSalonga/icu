@@ -58,7 +58,7 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   const total = page.locator('section', { hasText: 'Risk breakdown' }).getByRole('row', { name: /Total/ });
   await expect(total).toContainText('15');
   await expect(page.locator('.head')).toContainText('High · 15');
-  await expect(page.getByText(/warning limit was reached/)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Summary of findings' })).toContainText('Warning limit reached');
 
   // Filters: hide "Left exam tab" without reloading.
   await page.getByRole('button', { name: /Left exam tab · 2/ }).click();

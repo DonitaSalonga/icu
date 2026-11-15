@@ -1,5 +1,5 @@
 // Session detail (R19, R34; design "Dashboard · Session detail"): stats, candidates (High first) and exam info.
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { avatarFor } from '@icu/ui-tokens/avatars';
 import { describeExamSite } from '@icu/core';
@@ -94,20 +94,22 @@ export function SessionDetail() {
         </section>
         <section className="card sticky" aria-labelledby="ei" role="region">
           <h2 id="ei" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}><Icon name="monitor" /> Exam info</h2>
-          <p className="m" style={{ color: 'var(--muted)' }}>About the exam</p>
-          <p style={{ marginBottom: 14, whiteSpace: 'pre-line' }}>{session.description || 'No description.'}</p>
-          <p style={{ color: 'var(--muted)' }}>Exam platform</p>
-          <p style={{ marginBottom: 14 }}>
-            {session.url_patterns.map((p, i) => (
-              <Fragment key={p}>{i > 0 && <br />}<b>{p}</b>: {describeExamSite(p)}</Fragment>
-            ))}
-          </p>
-          <p style={{ color: 'var(--muted)' }}>Schedule</p>
-          <p style={{ marginBottom: 14 }}>{scheduleFull(session)} ({sessionStatus(session)})</p>
-          <p style={{ color: 'var(--muted)' }}>Warning limit</p>
-          <p style={{ marginBottom: 14 }}>{session.warning_limit} warnings, then the candidate is flagged High</p>
-          <p style={{ color: 'var(--muted)' }}>Code for students</p>
-          <p className="mono">{session.code}</p>
+          <dl className="info">
+            <div><dt>About the exam</dt><dd style={{ whiteSpace: 'pre-line' }}>{session.description || 'No description.'}</dd></div>
+            <div>
+              <dt>Exam platform</dt>
+              <dd>
+                <ul className="plats">
+                  {session.url_patterns.map((p) => (
+                    <li key={p}><span className="chip">{p}</span><small>{describeExamSite(p)}</small></li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+            <div><dt>Schedule</dt><dd>{scheduleFull(session)} <StatusPill status={sessionStatus(session)} /></dd></div>
+            <div><dt>Warning limit</dt><dd><b>{session.warning_limit} warnings</b>, then the candidate is flagged High</dd></div>
+            <div><dt>Code for students</dt><dd><span className="codebox mono">{session.code}</span></dd></div>
+          </dl>
         </section>
       </div>
     </>

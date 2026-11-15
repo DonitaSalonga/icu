@@ -21,7 +21,7 @@ export function Account() {
             <span className="av" style={{ width: 80, height: 80, fontSize: 26 }} aria-hidden="true">{initials(name)}</span>
             <div>
               <p style={{ fontSize: 22, fontWeight: 700 }}>{name}</p>
-              <p style={{ color: 'var(--muted)', marginTop: 2 }}>Admin · Examiner</p>
+              <p style={{ color: 'var(--muted)', marginTop: 2 }}>Examiner</p>
               <p style={{ color: 'var(--muted)' }}>Asia/Manila</p>
             </div>
           </div>

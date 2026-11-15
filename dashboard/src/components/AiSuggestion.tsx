@@ -77,12 +77,12 @@ export function AiSuggestionCard({ attemptId, canAnalyze }: { attemptId: string;
               · {pct(analysis.probabilities?.[s])}{analysis.confidence !== null && ` · confidence ${confidenceLevel(analysis.confidence).toLowerCase()}`}
             </span>
           </p>
-          <div role="list" style={{ display: 'grid', gap: 12, fontSize: 14 }} aria-label="Probability of each option">
+          <div role="list" className="probbox" aria-label="Probability of each option">
             {Object.entries(AI_SUGGESTION_LABELS).map(([key, text]) => {
               const p = analysis.probabilities?.[key] ?? 0;
               return (
                 <div key={key} role="listitem">
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{text}</span><span className="num">{pct(p)}</span></div>
+                  <div className="probrow"><span>{text}</span><b className="num">{pct(p)}</b></div>
                   <div className="bar"><i className={key === s ? '' : 'g'} style={{ width: `${Math.round(p * 100)}%` }} /></div>
                 </div>
               );

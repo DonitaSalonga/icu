@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Feedback round 2. Candidate review: one "Findings" bar summarises what the candidate did (replaces the separate notes); AI probabilities in their own box; Exam info as labelled sections with dividers, platform chips and a code box; Account says "Examiner". Satoshi is now the only typeface everywhere (titles upright as on the Overview; codes and times use tabular figures); JetBrains Mono removed. T39 checks the findings bar.
+
 - 2026-11-15: Design feedback round (user's annotated pages). Satoshi font everywhere (JetBrains Mono kept for codes and times); the user's ICU logo replaces the tile (dashboard, sign-in, popup, welcome, extension icons); Overview with a greeting and pastel stat cards; Sessions and Needs review as clickable row cards with text tabs/filters; six student avatars, chosen per student, in Overview, Needs review, Session detail and Candidate review; candidate timeline and screenshots scroll inside their cards; page and screen switches animate; Account settings layout ("Data kept for" removed). Tests updated (T26, T39, T41, T55, login helper).
 
 - 2026-11-15: UI libraries (user request): **Sonner** for dashboard toasts, **Base UI** for the create-session dialog and a new account menu on the sidebar user card, **input-otp** for the six-box exam code in the popup. All MIT, pinned (sonner 2.0.8, @base-ui/react 1.9.0, input-otp 1.5.0). Tests T39–T41, T25–T27, T60 pass; the T41 scan adds the account menu.
