@@ -396,6 +396,8 @@ All are pure, synchronous and unit-tested ([QAD.md](QAD.md)):
    - a domain plus path also requires the path prefix;
    - patterns with `://` keep their glob meaning.
 6. **Other pages:** a different page inside the exam tab on the platform is recorded as `exam_page_changed` (weight 0, with a screenshot). Any other tab, even on the platform, is a `url_visited` with a screenshot.
+7. **Which tab is the exam (R34):** the popup's Continue stores `start_tab_id`, the tab the student was on. `bindExamTab` prefers it, then the active tab, then any platform tab. On binding it activates the tab and focuses its window, **then** requests window fullscreen, so fullscreen never starts on the ICU monitoring tab. With no exam tab, nothing goes fullscreen until a platform page finishes loading. `onTabActivated` ignores the monitoring tab, and the monitoring page polls `attempt.status` every 2 s to show "Go to my exam" (`attempt.focusExam`) or "Now open your exam".
+8. **About this exam (R34):** `exam_sessions.description` (≤ 500 characters, migration 010). `create_session` takes `p_description` (trimmed, empty → null); `join_session` returns it to the student.
 
 ### F9. AI suggestion (R32, decision D8)
 1. **Trigger:** an update of `attempts.status` to `ended` fires `private.on_attempt_ended()`, which inserts `ai_analyses(status = 'pending')` and calls the `ai-analyze` Edge Function asynchronously through `pg_net`, with the same Vault secrets and `x-icu-cron-secret` header as the retention job. It runs only when `app_settings.ai_auto` is true, which is false in icu-test so test runs don't spend model credits.

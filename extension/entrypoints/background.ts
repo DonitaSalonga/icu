@@ -8,6 +8,7 @@ import { toErrorResponse } from '../lib/errors';
 import { flush } from '../lib/queue';
 import {
   ALARM_NOT_DETECTED,
+  focusExamTab,
   heartbeat,
   onContentEvent,
   onNotDetectedAlarm,
@@ -50,6 +51,8 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
       return resetAttempt();
     case 'attempt.reshare':
       return openReshare();
+    case 'attempt.focusExam':
+      return focusExamTab();
     case 'screen.started':
       return onScreenStarted(sender.tab?.id);
     case 'screen.stopped':

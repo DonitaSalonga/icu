@@ -48,6 +48,13 @@ describe.skipIf(!testEnvConfigured)('M4 review (icu-test)', () => {
     for (const bad of [['two words'], ['exam!'], ['.com']]) {
       expect((await adminA.rpc('create_session', { p_name: 'x', p_url_patterns: bad, p_starts_at: minutes(0), p_ends_at: minutes(5) })).error?.message).toMatch(/ICU_INVALID_INPUT/);
     }
+    // "About this exam" (2026-11-15): optional, at most 500 characters, trimmed, and returned to the student on join.
+    const about = 'CCNA 1 final exam, 60 questions, 1 hour';
+    const described = (await adminA.rpc('create_session', { p_name: 'Described', p_url_patterns: ['netacad'], p_starts_at: minutes(0), p_ends_at: minutes(5), p_description: `  ${about} ` })).data as { id: string; code: string };
+    expect((await adminA.from('exam_sessions').select('description').eq('id', described.id).single()).data?.description).toBe(about);
+    expect((await student.rpc('join_session', { p_code: described.code })).data.session.description).toBe(about);
+    expect((await adminA.from('exam_sessions').select('description').eq('id', platforms.data.id).single()).data?.description).toBeNull();
+    expect((await adminA.rpc('create_session', { p_name: 'x', p_url_patterns: ['netacad'], p_starts_at: minutes(0), p_ends_at: minutes(5), p_description: 'x'.repeat(501) })).error?.message).toMatch(/ICU_INVALID_INPUT/);
   });
 
   it('T19: verdicts are set by the session admin only and hidden from students', async () => {

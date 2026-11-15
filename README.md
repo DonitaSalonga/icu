@@ -5,9 +5,9 @@
 | | |
 | --- | --- |
 | Why and what | [docs/IDEA.md](docs/IDEA.md) · research: [docs/RESEARCH.md](docs/RESEARCH.md) |
-| Requirements (R1–R33) | [docs/PRD.md](docs/PRD.md) |
+| Requirements (R1–R34) | [docs/PRD.md](docs/PRD.md) |
 | Design | [docs/SDD.md](docs/SDD.md) (system) · [docs/DSD.md](docs/DSD.md) (UI) |
-| Tests (T1–T59) | [docs/QAD.md](docs/QAD.md) |
+| Tests (T1–T61) | [docs/QAD.md](docs/QAD.md) |
 | Milestones and status | [docs/BUILD.md](docs/BUILD.md) |
 
 ## How it works
@@ -23,8 +23,8 @@ Student's Chrome                         Supabase Cloud (free tier)             
 └───────────────────────────┘           └──────────────────────────────┘
 ```
 
-- The admin creates an **exam session** (name, the **exam platform** typed as a name like `netacad` or a website like `docs.google.com/forms`, date and time, warning limit) and gives students its 6-character **code**.
-- The student signs in to the extension, enters the code, reads and accepts the privacy notice (Philippine Data Privacy Act, RA 10173), and clicks **Share screen and start**: Chrome asks to share the **entire screen**, which is required. The page stays open, pinned, as "ICU monitoring". On a Mac, allow Chrome under System Settings → Privacy & Security → Screen Recording the first time. Monitoring runs only on matching exam pages and only until End or the session's end time.
+- The admin creates an **exam session** (name, the **exam platform** typed as a name like `netacad` or a website like `docs.google.com/forms`, date and time, warning limit, and an optional **About this exam** note) and gives students its 6-character **code**. Clicking a session shows its exam info.
+- The student signs in to the extension, enters the code, reads and accepts the privacy notice (Philippine Data Privacy Act, RA 10173), and clicks **Share screen and start**: Chrome asks to share the **entire screen**, which is required. ICU then switches to the exam tab (the page the student was on when they clicked Continue) and makes the window fullscreen; if the exam page isn't open yet, that happens when it opens. The sharing page stays open, pinned, as "ICU monitoring". On a Mac, allow Chrome under System Settings → Privacy & Security → Screen Recording the first time. Monitoring runs only on matching exam pages and only until End or the session's end time.
 - Events and screenshots upload to Supabase. A heartbeat every 15 s means that silence of more than 60 s shows up as **monitoring lost**, for example when the extension is disabled or the exam tab is closed.
 - When the exam ends, an **AI suggestion** is generated automatically. An anonymous activity timeline goes to an analysis model (TypeSafe Jev) as one question, and the admin sees the suggested result (for example "Likely cheating: used AI or the web · 82%") with confidence.
 - The admin sees each candidate's risk level (Low/Medium/High), the AI suggestion, a timeline with screenshots, and records the verdict. The suggestion never decides. Data is deleted automatically after 30 days, or earlier by the admin.
@@ -97,7 +97,7 @@ One E2E test (the window-focus part of T28) runs headed, so a Chromium window ap
 1. **The day before:** open both Supabase projects in the dashboard and **resume** them if paused. Free projects pause after 7 days of low activity.
 2. Create a Google Form to act as the exam.
 3. **Admin laptop:** run the dashboard, sign in, create a session with exam platform `docs.google.com/forms` (or `netacad`, etc.), and note the code.
-4. **Student laptop:** load the extension, sign in as a student, open the Form, then join with the code, read the notice, and click **Share screen and start** (choose your entire screen). The window goes fullscreen.
+4. **Student laptop:** load the extension, sign in as a student, open the Form, then (on the Form tab) join with the code, click Continue, read the notice, and click **Share screen and start** (choose your entire screen). ICU switches back to the Form and the window goes fullscreen.
 5. **Act out the scenario:** switch to ChatGPT, paste into the Form, and leave fullscreen. Then disable the extension at `chrome://extensions` for about 70 s and turn it back on.
 6. **Admin:** open the session; the candidate shows as **High**. Open the timeline to see each event, the screenshots and the red "Monitoring lost" bar, then set the verdict to "Cheating confirmed".
 

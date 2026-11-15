@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { AttemptStatus, AuthState, JoinResult } from '@icu/core';
 import { DASHBOARD_URL } from '../../lib/env';
 import { errorText, send } from '../../lib/send';
-import { Alert, Button, Field, formatTime } from '../../lib/ui';
+import { Alert, Button, ExamAbout, Field, formatTime } from '../../lib/ui';
 
 export function App() {
   const [auth, setAuth] = useState<AuthState>();
@@ -146,6 +146,7 @@ function StudentHome({ status, run, name }: { status?: AttemptStatus; run: Run; 
   const summary = (
     <section className="rounded-md border border-border bg-surface p-3 text-sm">
       <p className="font-semibold">{session.name}</p>
+      <ExamAbout session={session} />
       <p className="text-muted">Examiner: {session.admin_name} ({session.admin_email})</p>
       <p className="text-muted">{formatTime(session.starts_at)} – {formatTime(session.ends_at)}</p>
     </section>

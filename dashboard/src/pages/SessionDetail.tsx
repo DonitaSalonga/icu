@@ -1,5 +1,6 @@
 // Session detail (R19; DSD § Components "Data table"): candidates with risk and verdict, High first.
 import { useEffect, useMemo, useState } from 'react';
+import { describeExamSite } from '@icu/core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AiBadge } from '../components/AiSuggestion';
 import { attemptStatus, loadAnalyses, loadSummaries, RISK_ORDER, SESSION_COLUMNS, sessionStatus, type AiAnalysis, type ScoredAttempt, type SessionRow } from '../lib/data';
@@ -59,11 +60,14 @@ export function SessionDetail() {
       <Link to="/sessions" className="text-sm text-primary underline">← Sessions</Link>
       {error && <Alert>{error}</Alert>}
       {session && (
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="text-xl font-semibold">{session.name}</h1>
-          <span className="font-mono">{session.code}</span>
-          <span className="text-sm text-muted">{sessionStatus(session)} · {formatDateTime(session.starts_at)} – {formatDateTime(session.ends_at)}</span>
-        </div>
+        <>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 className="text-xl font-semibold">{session.name}</h1>
+            <span className="font-mono">{session.code}</span>
+            <span className="text-sm text-muted">{sessionStatus(session)}</span>
+          </div>
+          <SessionInfo session={session} />
+        </>
       )}
       {!rows && !error && <p className="text-sm text-muted">Loading…</p>}
       {rows?.length === 0 && <p className="text-sm text-muted">No candidates have joined yet. Share the code {session?.code} with your students.</p>}
@@ -101,5 +105,32 @@ export function SessionDetail() {
         </div>
       )}
     </div>
+  );
+}
+
+/** What the exam is: description, exam platform in plain words, schedule, warning limit and code. */
+function SessionInfo({ session }: { session: SessionRow }) {
+  return (
+    <section aria-labelledby="exam-info" className="rounded-md border border-border p-4 text-sm">
+      <h2 id="exam-info" className="mb-2 font-semibold">Exam info</h2>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-[max-content_1fr]">
+        <dt className="text-muted">About this exam</dt>
+        <dd className="whitespace-pre-line">{session.description ?? <span className="text-muted">No description.</span>}</dd>
+        <dt className="text-muted">Exam platform</dt>
+        <dd>
+          <ul>
+            {session.url_patterns.map((p) => (
+              <li key={p}><span className="font-semibold">{p}</span>: {describeExamSite(p)}</li>
+            ))}
+          </ul>
+        </dd>
+        <dt className="text-muted">Schedule</dt>
+        <dd>{formatDateTime(session.starts_at)} – {formatDateTime(session.ends_at)} ({sessionStatus(session)})</dd>
+        <dt className="text-muted">Warning limit</dt>
+        <dd>{session.warning_limit} warnings, then the candidate is flagged High</dd>
+        <dt className="text-muted">Code for students</dt>
+        <dd className="font-mono">{session.code}</dd>
+      </dl>
+    </section>
   );
 }

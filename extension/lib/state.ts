@@ -10,6 +10,8 @@ export interface StoredAttempt {
   ended_at?: string;
   /** server time − local time, measured at Start; events use server-corrected times. */
   clock_offset_ms: number;
+  /** The tab the student was on when they clicked Continue: preferred as the exam tab at Start. */
+  start_tab_id?: number;
   exam_tab_id?: number;
   exam_window_id?: number;
   /** Server-corrected ms when the exam tab was hidden, while it is hidden (R10). */

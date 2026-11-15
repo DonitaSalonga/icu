@@ -58,7 +58,7 @@ export function Sessions() {
           <table className="hidden w-full text-left text-sm md:table">
             <thead className="bg-surface">
               <tr>
-                {['Name', 'Code', 'Window', 'Status', 'Candidates', 'High risk'].map((h) => (
+                {['Name', 'Code', 'Exam platform', 'Window', 'Status', 'Candidates', 'High risk'].map((h) => (
                   <th key={h} scope="col" className="p-2">{h}</th>
                 ))}
               </tr>
@@ -68,6 +68,7 @@ export function Sessions() {
                 <tr key={s.id} className="border-b border-border hover:bg-surface">
                   <td className="p-2"><Link className="text-primary underline" to={`/sessions/${s.id}`}>{s.name}</Link></td>
                   <td className="p-2 font-mono">{s.code}</td>
+                  <td className="p-2">{s.url_patterns.join(', ')}</td>
                   <td className="p-2">{formatDateTime(s.starts_at)} – {formatDateTime(s.ends_at)}</td>
                   <td className="p-2">{sessionStatus(s)}</td>
                   <td className="p-2">{s.candidates}</td>
@@ -81,6 +82,7 @@ export function Sessions() {
               <li key={s.id} className="rounded-md border border-border p-4 text-sm shadow-1">
                 <Link className="font-semibold text-primary underline" to={`/sessions/${s.id}`}>{s.name}</Link>
                 <p className="font-mono">{s.code} · {sessionStatus(s)}</p>
+                <p>{s.url_patterns.join(', ')}</p>
                 <p className="text-muted">{formatDateTime(s.starts_at)} – {formatDateTime(s.ends_at)}</p>
                 <p>{s.candidates} candidates · {s.high} high risk</p>
               </li>
@@ -168,6 +170,7 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
   const later = new Date(now.getTime() + 60 * 60_000);
   const [name, setName] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [about, setAbout] = useState('');
   const [startDate, setStartDate] = useState(dateValue(now));
   const [startTime, setStartTime] = useState(timeValue(now));
   const [endDate, setEndDate] = useState(dateValue(later));
@@ -204,12 +207,14 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
       p_starts_at: combine(startDate, startTime)!.toISOString(),
       p_ends_at: combine(endDate, endTime)!.toISOString(),
       p_warning_limit: Number(warningLimit),
+      p_description: about.trim() || null,
     });
     setSaving(false);
     if (error) return setServerError(errorText(error));
     onCreated(name.trim(), (data as { code: string }).code);
     setName('');
     setPlatforms([]);
+    setAbout('');
   };
 
   return (
@@ -220,6 +225,20 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
         </div>
         <div className="md:col-span-2">
           <PlatformInput value={platforms} onChange={setPlatforms} error={errors.platforms} />
+        </div>
+        <div className="flex flex-col gap-1 md:col-span-2">
+          <label htmlFor="s-about" className="text-sm font-semibold">About this exam <span className="font-normal text-muted">(optional)</span></label>
+          <textarea
+            id="s-about"
+            className="rounded-sm border border-border-strong p-2 text-sm"
+            rows={2}
+            maxLength={500}
+            placeholder="e.g. CCNA 1 final exam, 60 questions, 1 hour"
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            aria-describedby="s-about-hint"
+          />
+          <p id="s-about-hint" className="text-xs text-muted">Students see this before they start. {about.length} / 500</p>
         </div>
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-semibold">Starts</legend>

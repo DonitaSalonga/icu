@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NOTICE_VERSION, type AttemptStatus } from '@icu/core';
 import { requestScreenShare, serveFrames } from '../../lib/screen';
 import { errorText, send } from '../../lib/send';
-import { Alert, Button, formatTime } from '../../lib/ui';
+import { Alert, Button, ExamAbout, formatTime } from '../../lib/ui';
 
 const reshare = new URLSearchParams(location.search).has('reshare');
 
@@ -32,6 +32,15 @@ export function Notice() {
     browser.runtime.onMessage.addListener(onMessage);
     return () => browser.runtime.onMessage.removeListener(onMessage);
   }, []);
+
+  // While monitoring, keep the exam-tab status fresh: it decides between "Go to my exam" and "open your exam".
+  useEffect(() => {
+    if (!monitoring) return;
+    const refresh = () => void send<AttemptStatus>({ type: 'attempt.status' }).then((res) => res.ok && setStatus(res.data));
+    refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => clearInterval(timer);
+  }, [monitoring]);
 
   useEffect(() => {
     document.title = monitoring ? 'ICU monitoring · keep this tab open' : 'Privacy notice · ICU: I Caught You';
@@ -71,6 +80,8 @@ export function Notice() {
     );
   }
 
+  const session = status?.session;
+
   if (monitoring) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-4 p-6">
@@ -78,12 +89,25 @@ export function Notice() {
         <p role="status" className="rounded-md bg-risk-med-bg p-3 text-risk-med-fg">
           Keep this tab open until the exam ends. Closing it, or clicking “Stop sharing”, is recorded and shown to your examiner.
         </p>
-        <p>Go back to your exam tab. When you finish, open the ICU extension and choose End exam.</p>
+        {status?.exam_tab_bound ? (
+          <>
+            <p>Your exam is open in another tab. When you finish, open the ICU extension and choose End exam.</p>
+            {error && <Alert>{error}</Alert>}
+            <Button className="self-start" onClick={() => void send({ type: 'attempt.focusExam' }).then((res) => !res.ok && setError(errorText(res.code, res.message)))}>
+              Go to my exam
+            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Now open your exam in this browser.</p>
+            {session && <ExamAbout session={session} />}
+            <p className="text-sm text-muted">Your window switches to fullscreen when the exam page opens. When you finish, open the ICU extension and choose End exam.</p>
+          </div>
+        )}
       </main>
     );
   }
 
-  const session = status?.session;
   const examiner = session ? `${session.admin_name} (${session.admin_email})` : 'your examiner';
 
   if (reshare) {
@@ -105,6 +129,11 @@ export function Notice() {
           Exam: {session.name} · {formatTime(session.starts_at)} – {formatTime(session.ends_at)} · Examiner: {examiner}
         </p>
       )}
+      {session && (
+        <div className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm">
+          <ExamAbout session={session} />
+        </div>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold">What we collect</h2>
@@ -114,7 +143,7 @@ export function Notice() {
           <li>When you leave and return to the exam tab or the browser window, and how long you were away.</li>
           <li>New tabs you open, and the addresses of pages you view, as site and page only (for example chatgpt.com/c). Never search terms, form data or anything after a “?”.</li>
           <li>When you copy, cut, paste or right-click on the exam page. Never what you copied or pasted.</li>
-          <li>When the exam window enters or leaves fullscreen. Your exam window switches to fullscreen when you click Start.</li>
+          <li>When the exam window enters or leaves fullscreen. ICU switches you to your exam tab and makes the window fullscreen when you click Start (or, if the exam page isn’t open yet, when you open it).</li>
           <li>When screen sharing starts or stops, a heartbeat every 15 seconds showing that monitoring is on, and the times of any warnings shown to you.</li>
           <li>Your name and email from your account, and when you agreed to this notice.</li>
         </ul>

@@ -1,5 +1,6 @@
 // Small shared UI pieces for extension pages, following DSD.md § Components.
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import { describeExamSite, type SessionSummary } from '@icu/core';
 
 export function Button({ variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   const styles = {
@@ -32,4 +33,19 @@ export function Alert({ children }: { children: ReactNode }) {
 
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/** Where to take the exam and what it is (2026-11-15), so the student knows which site to open. */
+export function ExamAbout({ session }: { session: SessionSummary }) {
+  return (
+    <>
+      {session.description && <p className="whitespace-pre-line">{session.description}</p>}
+      <p>
+        Exam platform:{' '}
+        {session.url_patterns.map((p, i) => (
+          <span key={p} title={describeExamSite(p)}>{i > 0 && ', '}<strong>{p}</strong></span>
+        ))}
+      </p>
+    </>
+  );
 }

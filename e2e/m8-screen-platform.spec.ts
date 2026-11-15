@@ -68,3 +68,60 @@ test('rules 1–3: a platform keyword; other tabs on the platform are visits; ex
   expect(rows.filter((r) => r.type === 'warning_shown').map((r) => r.details.reason_type)).toEqual(['exam_tab_hidden']);
   void events;
 });
+
+// 2026-11-15 feedback: fullscreen went on over the "ICU monitoring" tab, and leaving it to reach the exam counted as a warning.
+const attemptState = (ext: { inWorker: <T>(fn: () => T | Promise<T>) => Promise<T> }) =>
+  ext.inWorker(async () => {
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { exam_tab_id?: number; monitor_tab_id?: number; fullscreen_requested?: boolean };
+    const exam = a.exam_tab_id === undefined ? undefined : await chrome.tabs.get(a.exam_tab_id);
+    return { ...a, examActive: exam?.active ?? false, examUrl: exam?.url };
+  });
+
+test('T60: Start brings the exam tab to the front; the ICU tab and "Go to my exam" are not leaving', async ({ context, ext }) => {
+  const session = await createSession();
+  const exam = await context.newPage();
+  await exam.goto(EXAM_URL);
+  await ext.send({ type: 'auth.signIn', email: TEST_USERS.student1.email, password: TEST_PASSWORD });
+  const { attempt_id: attemptId } = await ext.send<{ attempt_id: string }>({ type: 'attempt.join', code: session.code });
+  // The real popup path: Continue opens the notice from the exam page.
+  const noticeOpened = context.waitForEvent('page', (p) => p.url().endsWith('/notice.html'));
+  await ext.send({ type: 'attempt.openNotice' });
+  const monitor = await noticeOpened;
+  await monitor.getByLabel('I am 18 or older').check();
+  await monitor.getByLabel(/I have read this notice/).check();
+  await monitor.getByRole('button', { name: 'Share screen and start' }).click();
+  await monitor.getByRole('heading', { name: 'ICU monitoring' }).waitFor({ timeout: 15_000 });
+
+  await expect.poll(async () => (await attemptState(ext)).examActive).toBe(true);
+  const state = await attemptState(ext);
+  expect(state).toMatchObject({ examUrl: EXAM_URL, fullscreen_requested: true });
+
+  // Looking at the ICU monitoring tab, then "Go to my exam", doesn't count as leaving the exam.
+  await ext.inWorker(async () => {
+    const a = (await chrome.storage.local.get('icu-attempt'))['icu-attempt'] as { monitor_tab_id: number };
+    await chrome.tabs.update(a.monitor_tab_id, { active: true });
+  });
+  await monitor.getByRole('button', { name: 'Go to my exam' }).click();
+  await expect.poll(async () => (await attemptState(ext)).examActive).toBe(true);
+  await exam.waitForTimeout(2000);
+  await ext.send({ type: 'attempt.end' });
+  const rows = await waitForEvents(attemptId, (r) => r.length > 0);
+  for (const type of ['exam_tab_hidden', 'fullscreen_exit', 'warning_shown', 'url_visited']) expect(count(rows, type), type).toBe(0);
+});
+
+test('T61: with no exam page open, Start waits without fullscreen; opening the exam page binds it', async ({ context, ext }) => {
+  const { attemptId, monitor } = await startExam(context, ext, { openExam: false });
+  await expect(monitor.getByText('Now open your exam in this browser.')).toBeVisible();
+  await expect(monitor.getByText('localhost', { exact: false }).first()).toBeVisible();
+  expect((await attemptState(ext)).fullscreen_requested).toBeFalsy();
+
+  const exam = await context.newPage();
+  await exam.goto(EXAM_URL);
+  await expect.poll(async () => (await attemptState(ext)).examUrl).toBe(EXAM_URL);
+  expect(await attemptState(ext)).toMatchObject({ examActive: true, fullscreen_requested: true });
+  await expect(monitor.getByRole('button', { name: 'Go to my exam' })).toBeVisible();
+  await exam.waitForTimeout(2000);
+  await ext.send({ type: 'attempt.end' });
+  const rows = await waitForEvents(attemptId, (r) => r.length > 0);
+  for (const type of ['exam_tab_hidden', 'fullscreen_exit', 'warning_shown']) expect(count(rows, type), type).toBe(0);
+});

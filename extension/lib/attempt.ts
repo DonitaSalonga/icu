@@ -29,6 +29,9 @@ export async function joinSession(code: string): Promise<JoinResult> {
 }
 
 export async function openNotice(): Promise<void> {
+  // The page the student is on now is most likely the exam: prefer it at Start.
+  const [current] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+  await updateAttempt({ start_tab_id: current?.id });
   await browser.tabs.create({ url: browser.runtime.getURL('/notice.html') });
 }
 

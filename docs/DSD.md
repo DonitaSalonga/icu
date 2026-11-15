@@ -120,7 +120,8 @@ Each component lists its states. "Focus" always means a 2 px `--color-primary` o
 | **AI suggestion card** | — | not analyzed, pending ("Analyzing…", checks every 3 s), failed ("AI analysis unavailable" plus reason and Re-analyze), done | Suggested option in bold, its %, and confidence (High/Medium/Low). A bar per option (chosen option `--color-primary`, others `--color-border-strong`), analyzed time, and always the line "A suggestion only. It can be wrong; your verdict is the decision." `aria-live="polite"` | R32 |
 | **AI suggestion badge** | cheating (risk-high tokens), needs review (risk-med), likely fine (risk-low), Analyzing…, Unavailable, — | — | Short label · %, e.g. "Likely cheating: used AI or the web · 82%" | R32 |
 | **Exam platform input** | — | empty, typing (live "Will monitor …" hint), invalid (red border + message), chips added | Type, then Enter or Add; chips have a × remove button (`aria-label` "Remove …"); the list is labelled "Exam platforms". Replaces the URL-pattern rows (2026-11-15) | R33 |
-| **Monitoring tab** | sharing, ended | — | Pinned page "ICU monitoring · keep this tab open" with a status note; after End: "Exam ended… you can close this tab" | R33 |
+| **Monitoring tab** | exam open, waiting for exam page, ended | — | Pinned page "ICU monitoring · keep this tab open" with a status note. Exam open: "Go to my exam" button. Waiting: "Now open your exam in this browser." with the platform and about text. After End: "Exam ended… you can close this tab" | R33, R34 |
+| **Exam info panel** | — | with or without about text | Session detail, below the title: a region "Exam info" with a definition list: About this exam, Exam platform (entry + plain-words meaning), Schedule, Warning limit, Code for students | R34 |
 | **Empty state** | — | — | One sentence plus a primary action | R5, R19, R20 |
 
 ## Layout and responsive rules

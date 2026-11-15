@@ -173,6 +173,11 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Second feedback round: start flow and exam info (R34).
+  - **Bug:** at Start the window went fullscreen while the ICU monitoring tab was in front, so reaching the exam meant leaving fullscreen, which counted as a warning. **Fix:** the exam tab (the tab the student was on at Continue) is brought to the front before fullscreen; with no exam page open, fullscreen waits until one opens; the monitoring tab isn't "leaving" and has "Go to my exam".
+  - **Exam info:** optional About this exam (migration 010), an Exam info panel in session detail, a platform column in the sessions list, and the platform and about text for the student in the popup and notice. Notice version 2026-11-15.2.
+  - **Tests:** T60, T61 added; T12, T27 and T39 updated.
+
 - 2026-11-15: Design feedback round, plus whole-screen capture.
   - **Dashboard:** removed the admin name from the header; URL patterns replaced by an **Exam platform** type box with chips; separate date and time boxes; risk-threshold inputs removed (server defaults 10/25).
   - **Platforms (D10):** keyword, domain or domain + path. Other tabs on the platform count as visits; exam-tab page changes are logged.

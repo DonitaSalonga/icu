@@ -207,10 +207,11 @@ async function bindExamTabLocked(): Promise<void> {
       return;
     }
   }
+  // Prefer the tab the student was on before the notice, then the active tab, then any exam page.
+  const preferred = attempt.start_tab_id !== undefined ? await browser.tabs.get(attempt.start_tab_id).catch(() => undefined) : undefined;
   const [active] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
-  const tab = active && isExamUrl(attempt, active.url)
-    ? active
-    : (await browser.tabs.query({})).find((t) => isExamUrl(attempt, t.url));
+  const tab = [preferred, active].find((t) => t && isExamUrl(attempt, t.url))
+    ?? (await browser.tabs.query({})).find((t) => isExamUrl(attempt, t.url));
   if (tab?.id === undefined) {
     await updateAttempt({ exam_tab_id: undefined, exam_window_id: undefined, hidden_at: undefined, off_exam: undefined });
     return;
@@ -226,7 +227,22 @@ async function bindExamTabLocked(): Promise<void> {
   });
   await browser.alarms.clear(ALARM_NOT_DETECTED);
   await sendToTab(tab.id, { type: 'sw.activate' });
+  // Bring the exam to the front before fullscreen, so the window doesn't go fullscreen on another tab
+  // (e.g. the "ICU monitoring" tab after Start) and the student doesn't have to leave fullscreen to reach it.
+  await showTab(tab.id, tab.windowId);
   if (next) await requestFullscreenLocked(next);
+}
+
+async function showTab(tabId: number, windowId: number): Promise<void> {
+  await browser.tabs.update(tabId, { active: true }).catch(() => undefined);
+  await browser.windows.update(windowId, { focused: true }).catch(() => undefined);
+}
+
+/** "Go to my exam" on the ICU monitoring tab. */
+export async function focusExamTab(): Promise<void> {
+  const attempt = await activeAttempt();
+  if (attempt?.exam_tab_id === undefined || attempt.exam_window_id === undefined) throw new IcuError('ICU_EXAM_NOT_OPEN');
+  await showTab(attempt.exam_tab_id, attempt.exam_window_id);
 }
 
 export function bindExamTab(): Promise<void> {
@@ -328,6 +344,8 @@ export function onTabActivated(tabId: number, windowId: number): Promise<void> {
   return withLock(async () => {
     const attempt = await activeAttempt();
     if (!attempt || attempt.exam_tab_id === undefined || windowId !== attempt.exam_window_id) return;
+    // Looking at the ICU monitoring tab itself isn't leaving the exam.
+    if (tabId === attempt.monitor_tab_id) return;
     if (tabId !== attempt.exam_tab_id && attempt.hidden_at === undefined) {
       await updateAttempt({ hidden_at: serverNow(attempt) });
       await recordEventLocked('exam_tab_hidden');

@@ -16,12 +16,22 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   await expect(page.getByText('Will monitor docs.google.com/forms pages')).toBeVisible();
   await page.getByLabel('Exam platform').press('Enter');
   await expect(page.getByRole('list', { name: 'Exam platforms' })).toContainText('docs.google.com/forms');
+  await page.getByLabel(/About this exam/).fill('CCNA 1 final exam, 60 questions');
   await page.getByRole('dialog').getByRole('button', { name: 'Create session' }).click();
   const status = page.getByRole('status').filter({ hasText: 'Created in E2E' });
   await expect(status).toBeVisible();
   const code = (await status.locator('.font-mono').textContent())!.trim();
   expect(code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
   await expect(page.getByRole('row', { name: /Created in E2E/ })).toContainText(code);
+  await expect(page.getByRole('row', { name: /Created in E2E/ })).toContainText('docs.google.com/forms');
+
+  // Clicking a session shows what the exam is (2026-11-15 feedback).
+  await page.getByRole('link', { name: 'Created in E2E' }).click();
+  const info = page.getByRole('region', { name: 'Exam info' });
+  await expect(info).toContainText('CCNA 1 final exam, 60 questions');
+  await expect(info).toContainText('docs.google.com/forms pages');
+  await expect(info).toContainText(code);
+  await page.getByRole('link', { name: '← Sessions' }).click();
 
   // Session detail: High candidate first.
   await page.getByRole('link', { name: 'Seeded quiz' }).click();

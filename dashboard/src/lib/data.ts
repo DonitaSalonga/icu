@@ -6,6 +6,8 @@ export interface SessionRow {
   id: string;
   name: string;
   code: string;
+  /** "About this exam", optional (2026-11-15). */
+  description: string | null;
   url_patterns: string[];
   starts_at: string;
   ends_at: string;
@@ -31,7 +33,7 @@ export interface AttemptSummary {
 
 export type ScoredAttempt = AttemptSummary & { risk: Score; warnings: number };
 
-export const SESSION_COLUMNS = 'id, name, code, url_patterns, starts_at, ends_at, warning_limit, threshold_medium, threshold_high';
+export const SESSION_COLUMNS = 'id, name, code, description, url_patterns, starts_at, ends_at, warning_limit, threshold_medium, threshold_high';
 
 export function sessionStatus(s: Pick<SessionRow, 'starts_at' | 'ends_at'>): 'Upcoming' | 'Active' | 'Ended' {
   const now = Date.now();

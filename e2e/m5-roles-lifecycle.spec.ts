@@ -2,6 +2,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { NOTICE_VERSION } from '@icu/core';
 import { resetData, serviceClient, TEST_PASSWORD, TEST_URL, TEST_USERS } from '../supabase/scripts/testEnv';
 import { createSession, EXAM_URL, expect, heartbeats, launch, startExam, test } from './fixtures';
 
@@ -78,7 +79,7 @@ test('T27 + R15: student flow through the popup and notice; uninstall token work
   await expect(notice.getByRole('heading', { name: 'ICU monitoring' })).toBeVisible();
 
   const { data: attempt } = await serviceClient().from('attempts').select('id, status, consent_version, age_confirmed, uninstall_token').eq('status', 'active').single();
-  expect(attempt).toMatchObject({ status: 'active', consent_version: '2026-11-15.1', age_confirmed: true });
+  expect(attempt).toMatchObject({ status: 'active', consent_version: NOTICE_VERSION, age_confirmed: true });
   await popup.reload();
   await expect(popup.getByText('Monitoring', { exact: true })).toBeVisible();
 

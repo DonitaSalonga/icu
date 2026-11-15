@@ -89,6 +89,8 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T57 | R33 | E2E | Join, then try to start without sharing | Refused with `ICU_SCREEN_SHARE_REQUIRED`; attempt stays `joined` |
 | T58 | R33, R16 | E2E (auto-selects "Entire screen") | Start by sharing; paste; wait out the cool-down; close the monitoring tab; share again on `notice.html?reshare=1` | A screenshot is taken from the share; `screen_share_stopped` with its warning; `screen_sharing` false, then `screen_share_started` and true |
 | T59 | R33 | E2E | Session with platform `localhost`; navigate the exam tab to another platform page; open a second platform tab | `exam_page_changed` (no warning), `url_visited` for the second tab, warning only for leaving the exam tab, no `navigated_off_exam` |
+| T60 | R34, R13 | E2E | Open the exam page, join, Continue (popup path), share and start; switch to the ICU monitoring tab; click "Go to my exam"; End | The exam tab is active with fullscreen requested; no `exam_tab_hidden`, `fullscreen_exit`, `warning_shown` or `url_visited` |
+| T61 | R34, R9 | E2E | Share and start with no exam page open, then open it | Monitoring tab says "Now open your exam in this browser." and no fullscreen; on opening, the page binds, comes to the front, fullscreen is requested; then "Go to my exam" shows; no warnings |
 | T52 | R32 | Unit | `buildAnalysisState` on a seeded attempt; on 400+ events | Ordered mm:ss timeline with site, away_s, screenshot_shows and gaps; no names, emails, UUIDs or absolute times in the state; capped at 200 rows keeping important events; exactly one Choice question |
 | T53 | R32 | Unit | Compare option keys and gap rules | Model question keys = dashboard label keys = `SUGGESTIONS`; `gapsFor` equals `findGaps` |
 | T54 | R32, R23 | Integration (real model, 2 requests) | Seed a ChatGPT-and-paste attempt; turn `ai_auto` on; the student ends the attempt; then Re-analyze as the session admin, another admin and the student; delete the data | The trigger produces `done` with a `cheating_*` suggestion, probabilities summing to 1 and model `jev*`. Only the session admin can read and re-request; a second request within 30 s doesn't start another; deletion removes the row; no secret → 401 |
@@ -158,3 +160,4 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | R31 | T48 (plus the existence of T1–T24 as the automated suite) |
 | R32 | T52, T53, T54, T55 |
 | R33 | T1 (platform matching), T12 (platform entries accepted), T57, T58, T59 |
+| R34 | T12 (about text saved, trimmed, returned on join, 500-character limit), T39 (about box, platform column, Exam info panel), T41, T60, T61 |

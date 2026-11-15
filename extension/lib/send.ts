@@ -25,6 +25,7 @@ export function errorText(code: string, fallback: string): string {
     ICU_NO_RESPONSE: 'The extension did not respond. Try again.',
     ICU_SCREEN_SHARE_REQUIRED: 'This exam requires sharing your entire screen. Click Share screen and start, then choose your screen.',
     ICU_SCREEN_PERMISSION: 'Chrome is not allowed to record your screen. On a Mac: System Settings → Privacy & Security → Screen Recording → allow Google Chrome, then restart Chrome.',
+    ICU_EXAM_NOT_OPEN: 'Your exam page is not open yet. Open it in this browser.',
     ICU_SCREEN_SHARE_FAILED: 'Screen sharing could not start. Try again.',
     ICU_RATE_LIMITED: 'Too many wrong codes. Wait 10 minutes, then try again.',
   };
