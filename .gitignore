@@ -15,3 +15,7 @@ test-results/
 !.env.test.example
 supabase/.temp/
 supabase/.branches/
+
+# Remotion renders
+video/out/
+video/public/music.*

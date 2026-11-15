@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.base.json",
+  // Remotion's bundler reads this file as-is (not "extends"), so the JSX mode is repeated here.
+  "compilerOptions": { "noEmit": true, "jsx": "react-jsx" },
+  "include": ["src"]
+}

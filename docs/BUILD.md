@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Demo video setup (user request): new `video/` workspace with Remotion 4.0.539 (pinned), composition `ICUDemo` (30 s, 30 fps, 1920×1080) using the app's own `icu.css`, logo and Satoshi (render waits for the font). `npm run video:studio` previews, `npm run video:render` writes `video/out/icu-demo.mp4`. Music: "Forgotten Chat" by Infraction, to be supplied by the user as `video/public/music.mp3` (gitignored); scenes will be cut to its beat. `video/tsconfig.json` repeats `jsx: react-jsx` because Remotion's loader reads it without `extends`.
+
 - 2026-11-15: Repo recreated public on GitHub with the clean history, and connected to the Vercel project `icu-dashboard` for auto-deploy: pushes to `main` deploy to production, other branches get preview deployments (both have the two public Supabase settings).
 
 - 2026-11-15: Repo made public-ready (user request). Satoshi now loads from Fontshare's servers (https URLs from the Fontshare API in `icu.css`); the font files and their licence text were deleted from the repo and purged from its history, as the ITF Free Font License forbids them in a public repository. History rewritten to drop the Claude co-author trailers (user request). README: Licences section removed. A history scan found no local secret values.

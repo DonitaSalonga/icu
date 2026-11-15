@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/*",
     "extension",
-    "dashboard"
+    "dashboard",
+    "video"
   ],
   "scripts": {
     "build": "npm run build -w extension && npm run build -w dashboard",
@@ -14,6 +15,8 @@
     "test:integration": "vitest run --project integration",
     "dev:extension": "npm run dev -w extension",
     "dev:dashboard": "npm run dev -w dashboard",
+    "video:studio": "npm run studio -w video",
+    "video:render": "npm run render -w video",
     "seed:test": "node supabase/scripts/seed.ts seed",
     "reset:test": "node supabase/scripts/seed.ts reset",
     "db:push": "supabase db push --remote",
