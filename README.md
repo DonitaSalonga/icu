@@ -12,6 +12,13 @@ Fair, privacy-aware monitoring for online certification exams.</p>
   <a href="https://icu-dashboard-ten.vercel.app/downloads/ICU-extension.zip"><b>Download the extension (zip)</b></a>
 </p>
 
+## Demo video
+
+<p align="center">
+  <a href="https://icu-dashboard-ten.vercel.app/demo/icu-demo.mp4"><img src="docs/assets/demo-video.png" alt="Play the 30-second ICU demo video" width="800"></a><br>
+  <sub>30 seconds · click to play · music: “Inspired” by Kevin MacLeod (incompetech.com), CC BY 4.0</sub>
+</p>
+
 ## Overview
 
 **ICU** stands for **"I Caught You"**. It's a university project for exams taken online on someone else's website, such as Google Forms, Cisco NetAcad or Coursera, where the examiner can't see what students do in their browser.
@@ -73,6 +80,7 @@ ICU warns students and flags what it sees, but it never ends an exam or decides 
 | --- | --- |
 | **Sign up or sign in** | https://icu-dashboard-ten.vercel.app/ (choose **I'm a student** or **I'm an admin**; admins then reach the dashboard) |
 | **Extension download** | [ICU-extension.zip](https://icu-dashboard-ten.vercel.app/downloads/ICU-extension.zip) (also in this repo at `dashboard/public/downloads/ICU-extension.zip`) |
+| **Demo video** | [icu-demo.mp4](https://icu-dashboard-ten.vercel.app/demo/icu-demo.mp4) (30 seconds) |
 
 ## Getting started
 
