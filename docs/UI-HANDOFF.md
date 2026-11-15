@@ -1,6 +1,6 @@
 # ICU (I Caught You) — UI/UX handoff
 
-Read before changing how ICU looks or reads. How the screens connect to the backend (every call, message and error code to keep) is in [BACKEND-HANDOFF.md](BACKEND-HANDOFF.md). Behaviour, data and privacy rules are in [SDD.md](SDD.md) and [PRD.md](PRD.md); the visual rules are in [DSD.md](DSD.md). Keep both in sync if you change them.
+Read before changing how ICU looks or reads. How the screens connect to the backend (every call, message and error code to keep) is in [BACKEND-HANDOFF.md](BACKEND-HANDOFF.md). Behaviour, data and privacy rules are in [SDD.md](SDD.md) and [PRD.md](PRD.md); the visual rules are in [DSD.md](DSD.md). **DSD v2 (2026-11-15)** is the approved target design: warm theme, sidebar dashboard (Overview, Sessions, Needs review, Account), expandable popup cards, consent popout window, welcome page. Its last section lists what it changes outside the visuals. Keep both in sync if you change them.
 
 ## Where the UI lives
 
