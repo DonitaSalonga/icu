@@ -173,6 +173,8 @@ Status (planned/in progress/done): done
 
 ## Milestone log
 
+- 2026-11-15: Demo video built (Remotion): seven scenes (intro; examiner creates a session; student joins and shares the screen; tab switch with screenshot and warning; candidate review; AI suggestion and verdict; outro with links and credit), clean and calm with numbered captions, sample data only. Music: "Inspired" by Kevin MacLeod (CC BY 4.0, credited on the end card and in `video/public/MUSIC-CREDIT.txt`), chosen because "Forgotten Chat" by Infraction has no free official download. Beat grid measured with librosa (first beat 0.07 s, 0.4997 s per beat); every scene starts on a bar, and in the rendered MP4 each cut is within 25 ms of a beat. Output `video/out/icu-demo.mp4` (1080p, 30 s, 4.1 MB).
+
 - 2026-11-15: Demo video setup (user request): new `video/` workspace with Remotion 4.0.539 (pinned), composition `ICUDemo` (30 s, 30 fps, 1920×1080) using the app's own `icu.css`, logo and Satoshi (render waits for the font). `npm run video:studio` previews, `npm run video:render` writes `video/out/icu-demo.mp4`. Music: "Forgotten Chat" by Infraction, to be supplied by the user as `video/public/music.mp3` (gitignored); scenes will be cut to its beat. `video/tsconfig.json` repeats `jsx: react-jsx` because Remotion's loader reads it without `extends`.
 
 - 2026-11-15: Repo recreated public on GitHub with the clean history, and connected to the Vercel project `icu-dashboard` for auto-deploy: pushes to `main` deploy to production, other branches get preview deployments (both have the two public Supabase settings).
