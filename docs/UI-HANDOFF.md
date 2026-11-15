@@ -13,7 +13,7 @@ Read before changing how ICU looks or reads. How the screens connect to the back
 | Dashboard pages | `dashboard/src/pages/*.tsx` | RoleChooser, Login, Sessions (with create dialog), SessionDetail, AttemptReview |
 | Dashboard components | `dashboard/src/ui.tsx`, `dashboard/src/components/AiSuggestion.tsx` | Badges, Dialog (native `<dialog>`), Toast, AI card |
 | Labels and wording | `dashboard/src/lib/labels.ts`, `packages/core/src/ai.ts`, `packages/core/src/warnings.ts` | Event and AI-suggestion wording |
-| Design system | `packages/ui-tokens/icu.css` (the design file's stylesheet + bundled fonts), `packages/ui-tokens/icons.tsx` (its icons, `Icon` and `Tile`) | Both apps import only `icu.css`; pages use its classes (`card`, `btn p/s/g/d`, `pill hi/md/lo/live`, `seg`, `t`, `dlg`, `toast`, …). There's no Tailwind in the pages any more. Libraries: **Sonner** (toasts, `notify()` in `dashboard/src/ui.tsx`), **Base UI** (create-session `Dialog`, account `Menu` in `AppShell.tsx`), **input-otp** (exam code boxes in the popup), styled by the additions at the end of `icu.css` |
+| Design system | `packages/ui-tokens/icu.css` (the design file's stylesheet; Satoshi loads from Fontshare), `packages/ui-tokens/icons.tsx` (its icons, `Icon` and `Tile`) | Both apps import only `icu.css`; pages use its classes (`card`, `btn p/s/g/d`, `pill hi/md/lo/live`, `seg`, `t`, `dlg`, `toast`, …). There's no Tailwind in the pages any more. Libraries: **Sonner** (toasts, `notify()` in `dashboard/src/ui.tsx`), **Base UI** (create-session `Dialog`, account `Menu` in `AppShell.tsx`), **input-otp** (exam code boxes in the popup), styled by the additions at the end of `icu.css` |
 
 ## Rules to keep
 

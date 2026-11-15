@@ -1,10 +1,12 @@
-/* Fonts, bundled so nothing loads from a CDN during an exam.
-   Satoshi (user's choice 2026-11-15, from the "intelly" inspiration): ITF Free Font License, fonts/LICENSE-Satoshi-FFL.txt.
-   It may be embedded in this app and extension, but the font files must not be redistributed publicly.
+/* Fonts. Satoshi (user's choice 2026-11-15, from the "intelly" inspiration) is served by Fontshare's own servers
+   (ITF Free Font License): the licence forbids putting the font files in a public repository, so this repo has none.
+   The https URLs are the ones Fontshare's API returns for "satoshi@1" (variable) and "satoshi@2" (variable italic);
+   they are written out because the API's protocol-relative URLs break on chrome-extension:// pages. Without a
+   connection the system font stack takes over.
    Satoshi is the only typeface, everywhere (user, 2026-11-15): titles upright as on the Overview, and codes and
    times use its tabular figures instead of a monospace font. */
-@font-face { font-family: 'Satoshi'; font-style: normal; font-weight: 300 900; font-display: swap; src: url('./fonts/Satoshi-Variable.woff2') format('woff2'); }
-@font-face { font-family: 'Satoshi'; font-style: italic; font-weight: 300 900; font-display: swap; src: url('./fonts/Satoshi-VariableItalic.woff2') format('woff2'); }
+@font-face { font-family: 'Satoshi'; font-style: normal; font-weight: 300 900; font-display: swap; src: url('https://cdn.fontshare.com/wf/NWBQYJIM7GCZ5XWD7D26ARB3VDY55ZRT/K63EV2KZIGKLE7RANQ2U42S6SVHU5RJ7/X6XYTKIVDUW7GZTZPZNN4EUM5KH54KHF.woff2') format('woff2'); }
+@font-face { font-family: 'Satoshi'; font-style: italic; font-weight: 300 900; font-display: swap; src: url('https://cdn.fontshare.com/wf/3JZIFUW7KLFSPLVCIUI2DLGNIER6IFCX/MMP4RUF5LYGUAZS3DCJC3GJ6F6SAGKSN/E3NEPGEAHYCHR37DSBXHV33XCYYRE2CY.woff2') format('woff2'); }
 
 /* ICU redesign (DSD v2): the design file's stylesheet, unchanged. */
 :root{--bg:#f6f3ee;--surface:#fffdf9;--sunken:#efeae3;--ink:#1d1a17;--muted:#5f5851;--line:#e6dfd6;--line-strong:#8a8178;--accent:#d9662e;--primary:#b4501e;--primary-h:#9c4416;--soft:#fbe4d8;--soft-ink:#8a3a10;

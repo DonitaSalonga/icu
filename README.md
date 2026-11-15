@@ -103,9 +103,3 @@ ICU warns students and flags what it sees, but it never ends an exam or decides 
 - Supabase's "leaked password protection" isn't enabled. It may require a paid plan (not verified).
 
 More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitations).
-
-## Licences
-
-All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). The icons are hand-drawn in `packages/ui-tokens/icons.tsx`, and the logo and student avatars were supplied by the project owner.
-
-**Satoshi** (`packages/ui-tokens/fonts`) is under the ITF Free Font License (`fonts/LICENSE-Satoshi-FFL.txt`). It may be embedded in this app and extension, but the font files must not be redistributed on their own, so keep this repository private (or remove the Satoshi files and fetch them from fontshare.com) if you publish it.

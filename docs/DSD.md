@@ -67,7 +67,7 @@ All text and background pairs must reach 4.5:1 contrast (3:1 for large text and 
 
 ### Type
 
-Two bundled font families, shipped as `woff2` files inside `packages/ui-tokens/fonts`. They're loaded with `@font-face` from the extension package and the dashboard build, never from a CDN, so there are no network calls during exams (R26). Both are under the SIL Open Font Licence 1.1; note this next to the MIT/0BSD dependency check in the README.
+Fonts (updated 2026-11-15): **Satoshi** is the only typeface. It loads from Fontshare's servers through `@font-face` rules in `packages/ui-tokens/icu.css`, because its licence (ITF Free Font License) forbids putting the font files in a public repository. ICU collects nothing through it; without a connection the system font stack takes over. (The original plan bundled Inter and JetBrains Mono as `woff2` files.)
 
 - **Sans:** **Inter** (variable, with italics) for all UI text. Fallback: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`.
 - **Mono:** **JetBrains Mono** for numbers in stat cards, codes, timestamps, URLs and segmented-control labels (the reference's "8.2M / 10M", "30D" look). Fallback: `ui-monospace, "SF Mono", Menlo, Consolas, monospace`.
