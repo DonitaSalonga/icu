@@ -1,24 +1,39 @@
-// Account (design "Dashboard · Account"): who is signed in, plus Sign out. Changes no data.
+// Account settings (feedback round 2026-11-15, inspired by a profile-settings page): who is signed in, plus Sign
+// out. It shows what the backend stores (profiles: name, email, role); nothing here edits data.
 import { useAuth } from '../auth';
 import { supabase } from '../supabase';
 import { Icon, initials } from '../ui';
 
 export function Account() {
   const { profile } = useAuth();
+  const name = profile?.full_name ?? '';
   return (
     <>
-      <div className="head"><div><h1 className="h1">Account</h1><p className="sub">Your examiner profile</p></div></div>
-      <section className="card" style={{ maxWidth: 640 }} aria-labelledby="pr">
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
-          <span className="av" style={{ width: 56, height: 56, fontSize: 18 }} aria-hidden="true">{initials(profile?.full_name ?? '')}</span>
-          <div><h2 id="pr">{profile?.full_name}</h2><p style={{ color: 'var(--muted)' }}>{profile?.email}</p></div>
-        </div>
-        <hr className="hr" />
-        <div className="row"><span style={{ color: 'var(--muted)' }}>Role</span><b>Admin</b></div>
-        <div className="row"><span style={{ color: 'var(--muted)' }}>Time zone</span><b>Asia/Manila</b></div>
-        <div className="row"><span style={{ color: 'var(--muted)' }}>Data kept for</span><b>30 days after each exam ends</b></div>
-        <div style={{ marginTop: 20 }}>
-          <button type="button" className="btn s" onClick={() => void supabase?.auth.signOut()}><Icon name="logout" size={18} /> Sign out</button>
+      <div className="head"><div><h1 className="h1">Account settings</h1><p className="sub">Your examiner profile</p></div></div>
+      <section className="card settings" aria-label="Account settings">
+        <nav className="subnav" aria-label="Account sections">
+          <a href="#profile" aria-current="page">My profile</a>
+          <button type="button" className="danger" onClick={() => void supabase?.auth.signOut()}><Icon name="logout" size={18} />&nbsp; Sign out</button>
+        </nav>
+        <div id="profile">
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>My profile</h2>
+          <div className="box" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <span className="av" style={{ width: 80, height: 80, fontSize: 26 }} aria-hidden="true">{initials(name)}</span>
+            <div>
+              <p style={{ fontSize: 22, fontWeight: 700 }}>{name}</p>
+              <p style={{ color: 'var(--muted)', marginTop: 2 }}>Admin · Examiner</p>
+              <p style={{ color: 'var(--muted)' }}>Asia/Manila</p>
+            </div>
+          </div>
+          <div className="box">
+            <h3>Personal information</h3>
+            <dl className="kv">
+              <div><dt>Full name</dt><dd>{name}</dd></div>
+              <div><dt>Email address</dt><dd>{profile?.email}</dd></div>
+              <div><dt>Role</dt><dd>Admin</dd></div>
+              <div><dt>Time zone</dt><dd>Asia/Manila</dd></div>
+            </dl>
+          </div>
         </div>
       </section>
     </>

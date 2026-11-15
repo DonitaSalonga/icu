@@ -48,7 +48,7 @@ test('T26: wrong-role accounts are turned away in each app', async ({ context, e
   await dash.getByLabel('Password').fill(TEST_PASSWORD);
   await dash.getByRole('button', { name: 'Sign in' }).click();
   await expect(dash.getByText('This is a student account. Use the Chrome extension.')).toBeVisible();
-  await expect(dash.getByRole('heading', { name: 'Overview' })).toHaveCount(0);
+  await expect(dash.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toHaveCount(0);
 });
 
 test('T27 + R15: student flow through the popup and notice; uninstall token works, cleared at End', async ({ context, extensionId }) => {

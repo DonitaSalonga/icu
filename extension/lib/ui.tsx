@@ -1,5 +1,5 @@
 // Shared pieces for extension pages, built from the ICU redesign (DSD v2) file's classes (packages/ui-tokens/icu.css).
-import { Tile } from '@icu/ui-tokens/icons';
+import { Logo } from '@icu/ui-tokens/icons';
 
 const TZ = 'Asia/Manila';
 
@@ -7,8 +7,7 @@ const TZ = 'Asia/Manila';
 export function PopupHeader() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 16px 12px' }}>
-      <Tile size={32} fontSize={12} />
-      <b style={{ fontSize: 19, letterSpacing: '-.01em' }}>ICU</b>
+      <Logo height={24} />
       <span style={{ color: 'var(--muted)' }}>I Caught You</span>
     </div>
   );

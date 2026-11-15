@@ -62,5 +62,5 @@ export async function login(page: Page) {
   await page.getByLabel('Email').fill(TEST_USERS.adminA.email);
   await page.getByLabel('Password').fill(TEST_PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible(); // Overview greets the admin
 }

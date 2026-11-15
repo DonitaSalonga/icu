@@ -1,17 +1,19 @@
 // Sessions list and Create session dialog (R4, R5; design "Dashboard · Sessions" and "Create session").
 import { useMemo, useRef, useState, type ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { describeExamSite, isValidExamSite, normalizeExamSite } from '@icu/core';
 import { useAdminData } from '../lib/admin-data';
 import { sessionStatus } from '../lib/data';
 import { errorText, supabase } from '../supabase';
-import { Alert, Dialog, Icon, notify, scheduleDot, Seg, StatusPill } from '../ui';
+import { Alert, Dialog, Icon, notify, scheduleDot, StatusPill } from '../ui';
 
 type Filter = 'all' | 'live' | 'upcoming' | 'ended';
 const STATUS_OF: Record<Filter, string | undefined> = { all: undefined, live: 'Active', upcoming: 'Upcoming', ended: 'Ended' };
+const FILTERS: { value: Filter; label: string }[] = [{ value: 'all', label: 'All sessions' }, { value: 'live', label: 'Live' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'ended', label: 'Ended' }];
 
 export function Sessions() {
   const { loading, error, sessions, attempts, reload } = useAdminData();
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -51,30 +53,35 @@ export function Sessions() {
       {error && <Alert>{error}</Alert>}
       <section className="card" aria-label="Sessions">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Seg<Filter> label="Session status" value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All' }, { value: 'live', label: 'Live' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'ended', label: 'Ended' }]} />
+          <div className="tabs" role="group" aria-label="Session status">
+            {FILTERS.map((f) => (
+              <button key={f.value} type="button" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</button>
+            ))}
+          </div>
           <div style={{ position: 'relative', flex: 1, maxWidth: 360, minWidth: 220 }}>
             <span style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }}><Icon name="search" size={18} /></span>
             <label htmlFor="q" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>Search sessions</label>
             <input id="q" className="in" style={{ paddingLeft: 42 }} placeholder="Search sessions" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
         </div>
-        <div className="tw">
-          <table className="t">
-            <thead><tr>{['Name', 'Exam platform', 'Schedule', 'Status', 'Candidates', 'High risk'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-            <tbody>
-              {shown.map((r) => (
-                <tr key={r.id}>
-                  <td><Link className="lk" to={`/sessions/${r.id}`}>{r.name}</Link><small>{r.description?.split('\n')[0] || 'No description'}</small></td>
-                  <td><span style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{r.url_patterns.map((p) => <span key={p} className="chip" title={describeExamSite(p)}>{p}</span>)}</span></td>
-                  <td className="num" style={{ whiteSpace: 'nowrap' }}>{scheduleDot(r)}</td>
-                  <td><StatusPill status={sessionStatus(r)} /></td>
-                  <td className="num">{r.candidates}</td>
-                  <td className="num">{r.high}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Row cards (inspiration: a course list); the whole row opens the session. Re-keyed per filter so rows animate in. */}
+        <ul className="rows" key={`${filter}|${query}`} aria-label="Exam sessions">
+          {shown.map((r, i) => (
+            <li key={r.id} className="rowcard" style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate(`/sessions/${r.id}`)}>
+              <span className={`rowicon ${['yellow', 'pink', 'sage', 'blue'][i % 4]}`}><Icon name="monitor" /></span>
+              <div className="rowmain">
+                <Link className="rt" to={`/sessions/${r.id}`} onClick={(e) => e.stopPropagation()}>{r.name}</Link>
+                <p>{r.url_patterns.join(', ')}{r.description ? ` · ${r.description.split('\n')[0]}` : ''}</p>
+              </div>
+              <span className="meta opt"><Icon name="clock" size={18} />{scheduleDot(r)}</span>
+              <span className="meta"><Icon name="users" size={18} />{r.candidates} candidate{r.candidates === 1 ? '' : 's'}</span>
+              <span className="meta opt"><Icon name="review" size={18} />{r.high} high risk</span>
+              <StatusPill status={sessionStatus(r)} />
+              {/* Visual call to action; the row click and the name link (keyboard) open the session. */}
+              <span className="btn k" aria-hidden="true">View session</span>
+            </li>
+          ))}
+        </ul>
         {loading && <div className="empty" role="status"><b>Loading…</b></div>}
         {!loading && rows.length === 0 && <div className="empty"><b>No sessions yet</b>Create one, then give students its code.</div>}
         {!loading && rows.length > 0 && shown.length === 0 && <div className="empty"><b>No sessions match</b>Try another filter or search.</div>}

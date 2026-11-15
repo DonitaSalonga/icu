@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { findGaps, scoreAttempt, type Gap, type Score } from '@icu/core';
 import type { IconName } from '@icu/ui-tokens/icons';
+import { avatarFor } from '@icu/ui-tokens/avatars';
 import { AiSuggestionCard } from '../components/AiSuggestion';
 import { useAdminData } from '../lib/admin-data';
 import { deleteAttemptData } from '../lib/deleteAttempt';
@@ -30,6 +31,7 @@ interface Shot {
 interface AttemptRow {
   id: string;
   status: 'joined' | 'active' | 'ended';
+  student_id: string;
   started_at: string | null;
   ended_at: string | null;
   verdict: string | null;
@@ -67,7 +69,7 @@ export function AttemptReview() {
       const db = supabase!;
       const [s, a, ev, hb, sh] = await Promise.all([
         db.from('exam_sessions').select(SESSION_COLUMNS).eq('id', id!).single(),
-        db.from('attempts').select('id, status, started_at, ended_at, verdict, verdict_note, verdict_at, data_deleted_at, student:profiles!attempts_student_id_fkey(full_name, email)').eq('id', attemptId!).single(),
+        db.from('attempts').select('id, status, student_id, started_at, ended_at, verdict, verdict_note, verdict_at, data_deleted_at, student:profiles!attempts_student_id_fkey(full_name, email)').eq('id', attemptId!).single(),
         db.from('events').select('id, type, occurred_at, details, screenshot_id').eq('attempt_id', attemptId!).order('occurred_at'),
         db.from('heartbeats').select('received_at').eq('attempt_id', attemptId!).order('received_at'),
         db.from('screenshots').select('id, storage_path, captured_at, reason').eq('attempt_id', attemptId!).order('captured_at'),
@@ -129,7 +131,10 @@ export function AttemptReview() {
     <>
       <div className="head">
         <div>
-          <h1 className="h1">{attempt.student?.full_name ?? 'Candidate'}</h1>
+          <h1 className="h1" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <img className="avatar" src={avatarFor(attempt.student_id)} alt="" style={{ width: 56, height: 56 }} />
+            {attempt.student?.full_name ?? 'Candidate'}
+          </h1>
           <p className="sub">
             <span>{attempt.student?.email}</span>
             <span>{attemptStatus(attempt, session)}</span>
@@ -168,7 +173,7 @@ export function AttemptReview() {
             {visible.length === 0 ? (
               <div className="empty"><b>No events recorded</b></div>
             ) : (
-              <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              <ol className="scrollbox tlbox" tabIndex={0} aria-label="Timeline events" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {visible.map((r) =>
                   r.kind === 'gap' ? (
                     <li key={`gap-${r.at}`} className="alertrow">
@@ -194,7 +199,7 @@ export function AttemptReview() {
             {shots.length === 0 ? (
               <div className="empty"><b>No screenshots</b></div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 16 }}>
+              <div className="scrollbox shotbox" tabIndex={0} aria-label="Screenshots" role="group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 16 }}>
                 {shots.map((s, i) => (
                   <button key={s.id} type="button" className="shot" aria-label={`Open screenshot at ${formatTime(s.captured_at)}`} onClick={() => setLightbox(i)}>
                     {s.url && <img src={s.url} loading="lazy" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}

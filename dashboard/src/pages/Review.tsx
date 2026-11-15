@@ -1,17 +1,19 @@
-// Needs review (design "Dashboard · Needs review"): every ended candidate without a verdict, across the admin's
-// sessions, highest risk first.
+// Needs review: every ended candidate without a verdict, across the admin's sessions, highest risk first.
+// Row cards with student avatars (feedback round 2026-11-15); the whole row opens the candidate.
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { RiskLevel } from '@icu/core';
+import { avatarFor } from '@icu/ui-tokens/avatars';
 import { AiBadge } from '../components/AiSuggestion';
 import { useAdminData } from '../lib/admin-data';
 import { loadAnalyses, needsReview, RISK_ORDER, type AiAnalysis } from '../lib/data';
-import { Alert, formatDateTime, RiskPill, Seg } from '../ui';
+import { Alert, formatShort, Icon, RiskPill, Seg } from '../ui';
 
 type Filter = 'all' | RiskLevel;
 
 export function Review() {
   const { loading, error, attempts } = useAdminData();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('all');
   const [ai, setAi] = useState<Map<string, AiAnalysis>>(new Map());
 
@@ -32,24 +34,24 @@ export function Review() {
       </div>
       {error && <Alert>{error}</Alert>}
       <section className="card" aria-label="Candidates to review">
-        {rows.length > 0 && (
-          <div className="tw">
-            <table className="t">
-              <thead><tr>{['Candidate', 'Session', 'Risk', 'AI suggestion', 'Ended'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-              <tbody>
-                {rows.map((a) => (
-                  <tr key={a.attempt_id}>
-                    <td><Link className="lk" to={`/sessions/${a.session.id}/attempts/${a.attempt_id}`}>{a.full_name}</Link><small>{a.email}</small></td>
-                    <td>{a.session.name}</td>
-                    <td><RiskPill level={a.risk.level} score={a.risk.score} /></td>
-                    <td><AiBadge analysis={ai.get(a.attempt_id)} /></td>
-                    <td className="num">{formatDateTime(a.ended_at ?? a.session.ends_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ul className="rows" key={filter} aria-label="Candidates to review">
+          {rows.map((a, i) => {
+            const to = `/sessions/${a.session.id}/attempts/${a.attempt_id}`;
+            return (
+              <li key={a.attempt_id} className="rowcard" style={{ animationDelay: `${i * 35}ms` }} onClick={() => navigate(to)}>
+                <img className="avatar" src={avatarFor(a.student_id)} alt="" />
+                <div className="rowmain">
+                  <Link className="rt" to={to} onClick={(e) => e.stopPropagation()}>{a.full_name}</Link>
+                  <p>{a.session.name} · {a.email}</p>
+                </div>
+                <RiskPill level={a.risk.level} score={a.risk.score} />
+                <span className="meta opt"><AiBadge analysis={ai.get(a.attempt_id)} /></span>
+                <span className="meta"><Icon name="clock" size={18} />{formatShort(a.ended_at ?? a.session.ends_at)}</span>
+                <span className="btn k" aria-hidden="true">Review</span>
+              </li>
+            );
+          })}
+        </ul>
         {loading && <div className="empty" role="status"><b>Loading…</b></div>}
         {!loading && all.length === 0 && <div className="empty"><b>You're all caught up</b>Ended candidates without a verdict show up here.</div>}
         {!loading && all.length > 0 && rows.length === 0 && <div className="empty"><b>Nothing at this risk level</b>Try another filter.</div>}

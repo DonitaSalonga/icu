@@ -14,7 +14,7 @@ const STYLE = `
     padding: 12px 16px; border-radius: 16px;
     background: #faefc5; color: #7a5200; border-left: 4px solid #7a5200;
     box-shadow: 0 6px 16px rgb(28 25 23 / 0.08);
-    font: 14px/20px 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font: 14px/20px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     transform: translate(-50%, 0); opacity: 1; transition: transform 200ms ease-out, opacity 200ms ease-out;
   }
   .bar.hidden { transform: translate(-50%, -140%); opacity: 0; pointer-events: none; transition: transform 150ms ease-in, opacity 150ms ease-in; }

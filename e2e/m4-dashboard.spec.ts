@@ -22,7 +22,7 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   await page.getByLabel(/Tell us about the exam/).fill('CCNA 1 final exam, 60 questions');
   await page.getByRole('dialog').getByRole('button', { name: 'Create session' }).click();
   await expect(page.getByText('Session created.')).toBeVisible(); // Sonner toast (polite live region)
-  await expect(page.getByRole('row', { name: /Created in E2E/ })).toContainText('docs.google.com/forms');
+  await expect(page.getByRole('listitem').filter({ hasText: 'Created in E2E' })).toContainText('docs.google.com/forms');
 
   // Clicking a session shows what the exam is (2026-11-15 feedback), and its code.
   await page.getByRole('link', { name: 'Created in E2E' }).click();

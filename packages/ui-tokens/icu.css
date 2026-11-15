@@ -1,13 +1,9 @@
-/* Fonts from the ICU redesign (DSD v2) file, Latin subsets only, bundled so nothing loads from a CDN during an exam.
-   Inter and JetBrains Mono are under the SIL Open Font License 1.1 (see fonts/LICENSE-*.txt). */
-/* latin-ext */
-@font-face { font-family: 'Inter'; font-style: italic; font-weight: 400 800; font-display: swap; src: url('./fonts/inter-italic-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-/* latin */
-@font-face { font-family: 'Inter'; font-style: italic; font-weight: 400 800; font-display: swap; src: url('./fonts/inter-italic-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-/* latin-ext */
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('./fonts/inter-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-/* latin */
-@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('./fonts/inter-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* Fonts, bundled so nothing loads from a CDN during an exam.
+   Satoshi (user's choice 2026-11-15, from the "intelly" inspiration): ITF Free Font License, fonts/LICENSE-Satoshi-FFL.txt.
+   It may be embedded in this app and extension, but the font files must not be redistributed publicly.
+   JetBrains Mono (codes and times): SIL Open Font License 1.1, fonts/LICENSE-JetBrainsMono.txt. */
+@font-face { font-family: 'Satoshi'; font-style: normal; font-weight: 300 900; font-display: swap; src: url('./fonts/Satoshi-Variable.woff2') format('woff2'); }
+@font-face { font-family: 'Satoshi'; font-style: italic; font-weight: 300 900; font-display: swap; src: url('./fonts/Satoshi-VariableItalic.woff2') format('woff2'); }
 /* latin-ext */
 @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/jetbrains-mono-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 /* latin */
@@ -22,7 +18,7 @@
 --hi-bg:#fbe0dd;--hi-fg:#a3231a;--md-bg:#fcefc4;--md-fg:#7a5300;--lo-bg:#dff0e3;--lo-fg:#1a6b34;
 --ease-out:cubic-bezier(.23,1,.32,1);--ease-drawer:cubic-bezier(.32,.72,0,1);--ease-io:cubic-bezier(.77,0,.175,1)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-optical-sizing:auto;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Satoshi,system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 button,input,textarea,select{font:inherit;color:inherit}
 a{color:var(--primary)}
 h1,h2,h3,p{margin:0}
@@ -95,7 +91,7 @@ h1,h2,h3,p{margin:0}
 .row .m{color:var(--muted);font-size:14px}
 .lk{font-weight:600}
 .seg{position:relative;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:4px;border-radius:14px;background:var(--sunken)}
-.seg button{position:relative;z-index:1;height:36px;padding:0 16px;border:0;background:transparent;border-radius:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);transition:color 160ms ease}
+.seg button{position:relative;z-index:1;height:36px;padding:0 16px;border:0;background:transparent;border-radius:10px;cursor:pointer;font-family:Satoshi,system-ui,sans-serif;font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);transition:color 160ms ease}
 .seg button.on{color:var(--primary);font-weight:500}
 .seg button:active{transform:scale(.96);transition:transform 100ms ease-out}
 .thumb{position:absolute;z-index:0;left:4px;top:4px;bottom:4px;border-radius:10px;background:var(--surface);box-shadow:0 1px 3px rgba(60,40,20,.14);transition:transform 300ms var(--ease-drawer)}
@@ -103,7 +99,7 @@ h1,h2,h3,p{margin:0}
 .p0{transform:translateX(0)}.p1{transform:translateX(100%)}.p2{transform:translateX(200%)}.p3{transform:translateX(300%)}
 .tw{overflow-x:auto;border-radius:12px}
 table.t{width:100%;border-collapse:collapse;font-size:15px}
-table.t th{padding:14px 16px;background:var(--sunken);text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+table.t th{padding:14px 16px;background:var(--sunken);text-align:left;font-family:Satoshi,system-ui,sans-serif;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 table.t td{padding:16px;border-bottom:1px solid var(--line);vertical-align:middle}
 table.t tr:last-child td{border-bottom:0}
 @media (hover:hover) and (pointer:fine){table.t tbody tr:hover td{background:rgba(239,234,227,.45)}}
@@ -182,7 +178,7 @@ button.pick{display:flex;flex-direction:column;align-items:flex-start;justify-co
 /* ---- Additions for the libraries (Sonner, Base UI, input-otp), styled from the design's tokens. ---- */
 
 /* Sonner toast: the design's "toast" look (dark pill with a check). */
-.icu-toast{display:flex;align-items:center;gap:10px;width:320px;padding:14px 16px;border-radius:14px;background:var(--ink);color:#fff;font:500 15px/1.4 Inter,system-ui,sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.icu-toast{display:flex;align-items:center;gap:10px;width:320px;padding:14px 16px;border-radius:14px;background:var(--ink);color:#fff;font:500 15px/1.4 Satoshi,system-ui,sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.25)}
 .icu-toast [data-icon]{display:flex}
 
 /* Base UI dialog: the design's scrim/dialog transitions on open and close. */
@@ -204,3 +200,85 @@ button.pick{display:flex;flex-direction:column;align-items:flex-start;justify-co
 .otp-slot.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,102,46,.28)}
 .otp-caret{width:1.5px;height:22px;background:var(--ink);animation:otp-blink 1s steps(2,start) infinite}
 @keyframes otp-blink{to{visibility:hidden}}
+
+/* ---- Feedback round (2026-11-15): Satoshi, logo, pastel Overview, row cards, avatars, page animations. ---- */
+:root{--p-yellow:#f3dc72;--p-pink:#efc3df;--p-sage:#bfc796;--p-blue:#bfd1ee;--on-pastel:#4a443e}
+
+/* The logo image; smaller in the collapsed sidebar. */
+.logo{user-select:none;-webkit-user-drag:none}
+@media (max-width:900px){.side .brand .logo{height:16px!important}}
+
+/* Switching pages, filters or popup screens fades the new content in. */
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.page{animation:pageIn 340ms var(--ease-out) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.rows>li{animation:rowIn 300ms var(--ease-out) both}
+
+/* Overview greeting and pastel stat cards (inspiration: "intelly"). */
+.eyebrow{color:var(--muted);font-weight:500;margin-bottom:4px}
+.greet{font-size:44px;line-height:1.05;font-weight:800;letter-spacing:-.035em}
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:20px;margin-bottom:24px}
+@media (max-width:900px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+.pcard{position:relative;overflow:hidden;border-radius:24px;padding:26px 28px;color:var(--ink);text-decoration:none;display:block;min-height:190px;transition:transform 160ms var(--ease-out),box-shadow 160ms ease}
+a.pcard:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(60,40,20,.12)}
+.pcard h2{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-bottom:14px}
+.pcard .big{font-size:52px;line-height:1;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.pcard .sub2{color:var(--on-pastel);font-size:14px;margin-top:10px;position:relative}
+.pcard .chipline{display:flex;flex-wrap:wrap;gap:22px;margin-top:14px;position:relative}
+.pcard .chipline b{display:block;font-size:18px}
+.pcard .chipline span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-pastel)}
+.pcard .trend{background:rgba(255,253,249,.6);color:var(--ink);position:relative}
+.pcard .shape{position:absolute;right:-18px;top:-18px;width:150px;height:150px;opacity:.1;pointer-events:none}
+.pcard.yellow{background:var(--p-yellow)}.pcard.pink{background:var(--p-pink)}.pcard.sage{background:var(--p-sage)}.pcard.blue{background:var(--p-blue)}
+.pcard .lk2{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-weight:700;color:var(--ink);text-decoration:underline;position:relative}
+
+/* List rows with an icon or avatar (Overview lists, Sessions, Needs review; inspiration: course list). */
+.rows{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.rowcard{display:flex;align-items:center;gap:20px;padding:14px 18px 14px 14px;border-radius:20px;background:var(--bg);border:1px solid var(--line);cursor:pointer;transition:background-color 140ms ease,box-shadow 160ms ease,transform 160ms var(--ease-out)}
+@media (hover:hover) and (pointer:fine){.rowcard:hover{background:var(--surface);box-shadow:0 8px 24px rgba(60,40,20,.08)}}
+.rowcard:active{transform:scale(.995)}
+.rowicon{flex:none;width:56px;height:56px;border-radius:16px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.rowicon.yellow{background:var(--p-yellow);border-color:transparent}.rowicon.pink{background:var(--p-pink);border-color:transparent}.rowicon.sage{background:var(--p-sage);border-color:transparent}.rowicon.blue{background:var(--p-blue);border-color:transparent}
+.avatar{flex:none;width:52px;height:52px;border-radius:99px;display:block;object-fit:cover}
+.avatar.sm{width:36px;height:36px}
+.rowmain{flex:1;min-width:0}
+.rowmain .rt{font-weight:700;font-size:16px;color:var(--ink);text-decoration:none}
+.rowmain .rt:hover{text-decoration:underline}
+.rowmain p{color:var(--muted);font-size:14px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{flex:none;display:flex;align-items:center;gap:8px;color:var(--ink);font-size:14px;font-weight:500;white-space:nowrap}
+.meta svg{color:var(--muted)}
+.btn.k{background:var(--ink);color:#fff;height:44px;border-radius:12px;padding:0 18px}
+@media (hover:hover) and (pointer:fine){.btn.k:hover{background:#3a332d}}
+@media (max-width:1100px){.rowcard .meta.opt{display:none}}
+@media (max-width:700px){.rowcard{flex-wrap:wrap}.rowcard .meta{display:none}}
+
+/* Text tabs (Sessions filter; inspiration: course list tabs). */
+.tabs{display:flex;flex-wrap:wrap;gap:28px}
+.tabs button{position:relative;padding:6px 0;border:0;background:none;cursor:pointer;font-size:16px;font-weight:700;color:var(--muted);transition:color 160ms ease}
+.tabs button[aria-pressed=true]{color:var(--ink)}
+.tabs button::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;border-radius:3px;background:var(--accent);transform:scaleX(0);transition:transform 260ms var(--ease-drawer)}
+.tabs button[aria-pressed=true]::after{transform:scaleX(1)}
+
+/* Clickable table rows (Session detail). */
+table.t tr.click{cursor:pointer}
+.who{display:flex;align-items:center;gap:12px}
+
+/* Candidate review: the timeline and screenshots scroll inside their cards, so the page stays short. */
+.scrollbox{overflow-y:auto;overscroll-behavior:contain;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.scrollbox::-webkit-scrollbar{width:8px}.scrollbox::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+.tlbox{max-height:430px}
+.shotbox{max-height:300px}
+
+/* Account settings (inspiration: profile settings). */
+.settings{display:grid;grid-template-columns:200px minmax(0,1fr);gap:32px;padding:24px}
+@media (max-width:800px){.settings{grid-template-columns:minmax(0,1fr)}}
+.subnav{display:flex;flex-direction:column;gap:6px;padding-right:24px;border-right:1px solid var(--line)}
+@media (max-width:800px){.subnav{border-right:0;padding-right:0;flex-direction:row}}
+.subnav a,.subnav button{display:flex;align-items:center;height:42px;padding:0 16px;border-radius:12px;border:0;background:none;font-weight:600;color:var(--muted);text-decoration:none;cursor:pointer;text-align:left}
+.subnav [aria-current=page]{background:var(--soft);color:var(--soft-ink)}
+.subnav .danger{color:var(--hi-fg)}
+.box{border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:20px}
+.box h3{font-size:18px;font-weight:700;margin-bottom:16px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px 32px}
+.kv dt{color:var(--muted);font-size:14px;margin-bottom:4px}
+.kv dd{margin:0;font-weight:600}

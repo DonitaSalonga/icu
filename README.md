@@ -115,6 +115,6 @@ More detail is in [docs/IDEA.md § Known limitations](docs/IDEA.md#known-limitat
 
 ## Licences
 
-All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). The bundled Inter and JetBrains Mono fonts (`packages/ui-tokens/fonts`) are under the SIL Open Font License 1.1.
+All production dependencies are MIT or 0BSD (checked 2026-11-14; sonner, @base-ui/react and input-otp added 2026-11-15, all MIT). Fonts in `packages/ui-tokens/fonts`: **Satoshi** is under the ITF Free Font License (fonts/LICENSE-Satoshi-FFL.txt): it may be embedded in this app and extension, but the font files must not be redistributed publicly, so keep this repository private (or remove the Satoshi files and fetch them from fontshare.com) if you publish it. JetBrains Mono is under the SIL Open Font License 1.1.
 
 Bundled fonts (not npm dependencies) are under the SIL Open Font Licence 1.1: Inter and JetBrains Mono, in `packages/ui-tokens/fonts` with their licence texts. The icons are hand-drawn in `packages/ui-tokens/icons.tsx`.

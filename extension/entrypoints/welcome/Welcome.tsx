@@ -1,6 +1,6 @@
 // First-run welcome page (design "Extension · Welcome"), opened once after install by the background script.
 import { useEffect, useState } from 'react';
-import { Icon, Tile } from '@icu/ui-tokens/icons';
+import { Icon, Logo } from '@icu/ui-tokens/icons';
 
 export function Welcome() {
   const [pinned, setPinned] = useState(false);
@@ -19,7 +19,7 @@ export function Welcome() {
   return (
     <div style={{ width: 900, maxWidth: '100%', minHeight: 800, margin: '0 auto', padding: '72px 56px', background: 'var(--bg)' }}>
       <main className="rise">
-        <div style={{ marginBottom: 24 }}><Tile size={48} fontSize={19} /></div>
+        <div style={{ marginBottom: 24 }}><Logo height={44} /></div>
         <h1 className="h1" style={{ fontSize: 52, marginBottom: 12 }}>Welcome to ICU</h1>
         <p style={{ color: 'var(--muted)', fontSize: 18, marginBottom: 36 }}>Three quick steps and you're ready to join your exam.</p>
         <section className="card" style={{ borderRadius: 28, marginBottom: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>

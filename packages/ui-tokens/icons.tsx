@@ -1,6 +1,7 @@
 // Icons from the ICU redesign (DSD v2) file, shared by the dashboard and the extension. Exact paths, 1.8 px
 // stroke. Always decorative: the icon sits next to a text label, so it is aria-hidden.
 import type { CSSProperties, ReactNode } from 'react';
+import logoUrl from './logo.png';
 
 const SHAPES = {
   overview: (
@@ -52,6 +53,19 @@ const SHAPES = {
   student: <path d="M2 9l10-5 10 5-10 5L2 9zM6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5" />,
   shield: <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM8.5 12l2.5 2.5L16 9.5" />,
   pin: <path d="M9 3h6l-1 6 3 3H7l3-3-1-6zM12 12v9" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2.2.7 3.5 2.4 3.5 5.2" />
+    </>
+  ),
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof SHAPES;
@@ -64,10 +78,7 @@ export function Icon({ name, size = 20, style }: { name: IconName; size?: number
   );
 }
 
-/**
- * The ICU tile: white bold "ICU" on the accent orange. It is the logo, so the letters are drawn by CSS
- * (icu.css, .tile[data-logo]) rather than as page text; WCAG 1.4.3 exempts logotypes from contrast minimums.
- */
-export function Tile({ size, fontSize }: { size: number; fontSize: number }) {
-  return <span className="tile" data-logo="ICU" aria-hidden="true" style={{ width: size, height: size, fontSize }} />;
+/** The ICU logo (user-supplied artwork, 2026-11-15): "ICU" with the C drawn as an eye. Height sets the size. */
+export function Logo({ height, alt = 'ICU' }: { height: number; alt?: string }) {
+  return <img className="logo" src={logoUrl} alt={alt} height={height} style={{ height, width: 'auto', display: 'block', flex: 'none' }} />;
 }

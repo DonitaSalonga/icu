@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, matchPath, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from '@base-ui/react/menu';
-import { Icon, Tile, type IconName } from '@icu/ui-tokens/icons';
+import { Icon, Logo, type IconName } from '@icu/ui-tokens/icons';
 import { useAuth } from '../auth';
 import { useAdminData } from '../lib/admin-data';
 import { supabase } from '../supabase';
@@ -66,8 +66,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app">
       <aside className="side">
         <Link className="brand" to="/overview">
-          <Tile size={40} fontSize={19} />
-          <span><b>ICU</b><span>I Caught You</span></span>
+          <Logo height={30} />
+          <span><span>I Caught You</span></span>
         </Link>
         <nav aria-label="Main">
           {NAV.map((n) => (
@@ -110,7 +110,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <main ref={main} className="main" onScroll={(e) => { const s = e.currentTarget.scrollTop > 4; if (s !== scrolled) setScrolled(s); }}>
         <div className={`top ${scrolled ? 'sc' : ''}`}><Breadcrumbs /></div>
-        <div className="content">{children}</div>
+        {/* Switching pages fades the new page in (".page"). */}
+        <div key={pathname} className="content page">{children}</div>
       </main>
     </div>
   );

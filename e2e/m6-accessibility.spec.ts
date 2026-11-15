@@ -96,17 +96,17 @@ test('T41: dashboard screens and dialogs have no serious axe violations', async 
   await page.keyboard.press('Escape');
   await page.goto(`${DASH}/sessions`);
   await page.getByRole('heading', { name: 'Sessions' }).waitFor();
-  await page.locator('tbody tr').first().waitFor();
+  await page.getByRole('list', { name: 'Exam sessions' }).getByRole('listitem').first().waitFor();
   await scan(page, 'dashboard: sessions');
   await page.getByRole('button', { name: 'Create session' }).first().click();
   await scan(page, 'dashboard: create-session dialog');
   await page.keyboard.press('Escape');
   await page.goto(`${DASH}/review`);
   await page.getByRole('heading', { name: 'Needs review' }).first().waitFor();
-  await page.locator('tbody tr').first().waitFor();
+  await page.getByRole('list', { name: 'Candidates to review' }).getByRole('listitem').first().waitFor();
   await scan(page, 'dashboard: needs review');
   await page.goto(`${DASH}/account`);
-  await page.getByRole('heading', { name: 'Account', level: 1 }).waitFor();
+  await page.getByRole('heading', { name: 'Account settings', level: 1 }).waitFor();
   await scan(page, 'dashboard: account');
   await page.goto(`${DASH}/sessions/${session.id}`);
   await page.locator('tbody tr').first().waitFor();
@@ -129,7 +129,7 @@ test('T41: keyboard-only — chooser, login, create session, dialog Esc returns 
   await page.keyboard.press('Tab');
   await page.keyboard.type(TEST_PASSWORD);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
 
   // The sidebar is reachable by keyboard: Tab to Sessions, press Enter.
   await tabTo(page, /^\s*Sessions/);

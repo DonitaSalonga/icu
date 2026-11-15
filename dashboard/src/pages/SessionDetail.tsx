@@ -1,6 +1,7 @@
 // Session detail (R19, R34; design "Dashboard · Session detail"): stats, candidates (High first) and exam info.
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { avatarFor } from '@icu/ui-tokens/avatars';
 import { describeExamSite } from '@icu/core';
 import { attemptStatus, isEnded, loadSummaries, RISK_ORDER, SESSION_COLUMNS, sessionStatus, type ScoredAttempt, type SessionRow } from '../lib/data';
 import { errorText, supabase } from '../supabase';
@@ -8,6 +9,7 @@ import { Alert, formatShort, Icon, RiskPill, scheduleFull, StatusPill } from '..
 
 export function SessionDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [session, setSession] = useState<SessionRow>();
   const [rows, setRows] = useState<ScoredAttempt[]>();
   const [error, setError] = useState<string>();
@@ -70,8 +72,13 @@ export function SessionDetail() {
                 <thead><tr>{['Candidate', 'Status', 'Started', 'Warnings', 'Risk'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
                 <tbody>
                   {sorted.map((a) => (
-                    <tr key={a.attempt_id}>
-                      <td><Link className="lk" to={`/sessions/${session.id}/attempts/${a.attempt_id}`}>{a.full_name}</Link><small>{a.email}</small></td>
+                    <tr key={a.attempt_id} className="click" onClick={() => navigate(`/sessions/${session.id}/attempts/${a.attempt_id}`)}>
+                      <td>
+                        <span className="who">
+                          <img className="avatar sm" src={avatarFor(a.student_id)} alt="" />
+                          <span><Link className="lk" to={`/sessions/${session.id}/attempts/${a.attempt_id}`} onClick={(e) => e.stopPropagation()}>{a.full_name}</Link><small>{a.email}</small></span>
+                        </span>
+                      </td>
                       <td>{attemptStatus(a, session)}</td>
                       <td className="num">{a.started_at ? formatShort(a.started_at) : '—'}</td>
                       <td className="num mono">{a.warnings} of {session.warning_limit}</td>

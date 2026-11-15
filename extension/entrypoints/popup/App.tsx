@@ -47,6 +47,8 @@ export function App() {
   return (
     <div style={{ width: 360, minHeight: 600, overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
       <PopupHeader />
+      {/* Each screen fades in when it changes (".page"). */}
+      <div key={!auth ? 'loading' : !auth.signedIn ? 'out' : auth.role === 'admin' ? 'admin' : status?.state ?? 'idle'} className="page">
       {!auth ? (
         <p className="hint" style={{ padding: '0 16px' }}>Loading…</p>
       ) : !auth.configured ? (
@@ -62,6 +64,7 @@ export function App() {
       ) : (
         <StudentHome status={status} run={run} error={error} />
       )}
+      </div>
     </div>
   );
 }
@@ -78,7 +81,7 @@ function Signedout({ run, error }: { run: Run; error?: string }) {
 
   if (!student) {
     return (
-      <div style={{ padding: '8px 16px 0' }}>
+      <div className="page" style={{ padding: '8px 16px 0' }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', marginBottom: 16 }}>Sign up or sign in as</h1>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <button type="button" className="card pick" style={{ padding: 16, borderRadius: 20 }} onClick={() => setStudent(true)}>
@@ -114,7 +117,7 @@ function Signedout({ run, error }: { run: Run; error?: string }) {
   const shown = local ?? error;
 
   return (
-    <form className="card" style={{ margin: '4px 16px', padding: 22, borderRadius: 20 }} onSubmit={(e) => void submit(e)} noValidate>
+    <form key={create ? 'create' : 'signin'} className="card page" style={{ margin: '4px 16px', padding: 22, borderRadius: 20 }} onSubmit={(e) => void submit(e)} noValidate>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 14 }}>{create ? 'Create a student account' : 'Student sign in'}</h1>
       {create && <div className="field"><label htmlFor="n">Full name</label><input id="n" className="in" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} autoComplete="name" /></div>}
       <div className="field"><label htmlFor="e">Email</label><input id="e" className="in" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
