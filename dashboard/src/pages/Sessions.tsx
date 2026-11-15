@@ -227,13 +227,12 @@ function CreateSessionDialog({ open, onClose, onCreated }: { open: boolean; onCl
           <PlatformInput value={platforms} onChange={setPlatforms} error={errors.platforms} />
         </div>
         <div className="flex flex-col gap-1 md:col-span-2">
-          <label htmlFor="s-about" className="text-sm font-semibold">About this exam <span className="font-normal text-muted">(optional)</span></label>
+          <label htmlFor="s-about" className="text-sm font-semibold">Tell us about the exam <span className="font-normal text-muted">(optional)</span></label>
           <textarea
             id="s-about"
             className="rounded-sm border border-border-strong p-2 text-sm"
             rows={2}
             maxLength={500}
-            placeholder="e.g. CCNA 1 final exam, 60 questions, 1 hour"
             value={about}
             onChange={(e) => setAbout(e.target.value)}
             aria-describedby="s-about-hint"

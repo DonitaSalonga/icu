@@ -16,7 +16,7 @@ test('T39: create a session; triage by risk; review timeline, filters, breakdown
   await expect(page.getByText('Will monitor docs.google.com/forms pages')).toBeVisible();
   await page.getByLabel('Exam platform').press('Enter');
   await expect(page.getByRole('list', { name: 'Exam platforms' })).toContainText('docs.google.com/forms');
-  await page.getByLabel(/About this exam/).fill('CCNA 1 final exam, 60 questions');
+  await page.getByLabel(/Tell us about the exam/).fill('CCNA 1 final exam, 60 questions');
   await page.getByRole('dialog').getByRole('button', { name: 'Create session' }).click();
   const status = page.getByRole('status').filter({ hasText: 'Created in E2E' });
   await expect(status).toBeVisible();

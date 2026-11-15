@@ -7,7 +7,7 @@ export type AttemptState = 'idle' | 'joined' | 'active' | 'ended';
 export interface SessionSummary {
   id: string;
   name: string;
-  /** "About this exam", optional (2026-11-15). */
+  /** "Tell us about the exam", optional (2026-11-15). */
   description?: string | null;
   admin_name: string;
   admin_email: string;

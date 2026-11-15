@@ -114,7 +114,7 @@ function SessionInfo({ session }: { session: SessionRow }) {
     <section aria-labelledby="exam-info" className="rounded-md border border-border p-4 text-sm">
       <h2 id="exam-info" className="mb-2 font-semibold">Exam info</h2>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-[max-content_1fr]">
-        <dt className="text-muted">About this exam</dt>
+        <dt className="text-muted">About the exam</dt>
         <dd className="whitespace-pre-line">{session.description ?? <span className="text-muted">No description.</span>}</dd>
         <dt className="text-muted">Exam platform</dt>
         <dd>

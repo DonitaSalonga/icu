@@ -24,6 +24,12 @@ import { getSupabase } from './supabase';
 
 const withLock = createLock();
 const ALARM_HEARTBEAT_MIN_GAP_MS = 20_000;
+/** A switched-to tab is drawn on screen after a few hundred ms; screenshots wait this long. */
+const TAB_RENDER_MS = 600;
+const FULLSCREEN_RETRY_MS = 1500;
+const MAX_FULLSCREEN_TRIES = 4;
+const WINDOW_RECHECK_MS = [500, 1500];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const ALARM_NOT_DETECTED = 'icu-not-detected';
 
 const isExamUrl = (attempt: StoredAttempt, url: string | undefined) =>
@@ -152,16 +158,29 @@ async function visibleSite(): Promise<string | undefined> {
   }
 }
 
-async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}): Promise<void> {
-  const attempt = await activeAttempt();
+interface RecordOptions {
+  /** When the event happened, if earlier than now (server-corrected ms). */
+  at?: number;
+  /** A screenshot already taken for this event (e.g. the tab-switch capture). */
+  screenshotId?: string;
+  /** Wait this long before a warning screenshot, so a window the student switched to is on screen. */
+  settleMs?: number;
+}
+
+async function recordEventLocked(type: EventType, details: Record<string, unknown> = {}, opts: RecordOptions = {}): Promise<void> {
+  let attempt = await activeAttempt();
   if (!attempt) return;
-  const at = serverNow(attempt);
+  const at = opts.at ?? serverNow(attempt);
 
   // Warning-triggering events get a screenshot; events within 3 s share one (R16).
-  let screenshotId: string | undefined;
-  if (WARNING_TYPES.includes(type)) {
-    const capture = decideCapture(attempt.shot ?? {}, at, await visibleSite());
-    screenshotId = capture.kind === 'attach' ? capture.shotId : await takeScreenshotLocked(attempt, 'violation', at);
+  let screenshotId = opts.screenshotId;
+  if (!screenshotId && WARNING_TYPES.includes(type)) {
+    if (opts.settleMs) {
+      await sleep(opts.settleMs);
+      attempt = (await activeAttempt()) ?? attempt;
+    }
+    const capture = decideCapture(attempt.shot ?? {}, serverNow(attempt), await visibleSite());
+    screenshotId = capture.kind === 'attach' ? capture.shotId : await takeScreenshotLocked(attempt, 'violation', serverNow(attempt));
   }
   await enqueueEvent(attempt, type, details, at, screenshotId);
 
@@ -191,8 +210,27 @@ export function recordEvent(type: EventType, details: Record<string, unknown> = 
  */
 async function requestFullscreenLocked(attempt: StoredAttempt): Promise<void> {
   if (attempt.fullscreen_requested || attempt.exam_window_id === undefined) return;
-  await updateAttempt({ fullscreen_requested: true });
+  await updateAttempt({ fullscreen_requested: true, fullscreen_tries: 1 });
   await browser.windows.update(attempt.exam_window_id, { state: 'fullscreen' }).catch((e) => console.warn('[icu] fullscreen failed', e));
+  setTimeout(() => void ensureFullscreen(), FULLSCREEN_RETRY_MS);
+}
+
+/**
+ * macOS can ignore the fullscreen request (e.g. right after the screen-share picker closes). Until the
+ * exam window has been seen in fullscreen once, ask again, a few times. After that, leaving fullscreen
+ * is the student's choice and is recorded as a warning instead.
+ */
+function ensureFullscreen(): Promise<void> {
+  return withLock(async () => {
+    const attempt = await activeAttempt();
+    if (!attempt?.fullscreen_requested || attempt.fullscreen_seen || attempt.exam_window_id === undefined) return;
+    await checkWindowStateLocked(attempt.exam_window_id);
+    const now = await activeAttempt();
+    if (!now || now.fullscreen_seen || (now.fullscreen_tries ?? 0) >= MAX_FULLSCREEN_TRIES) return;
+    await updateAttempt({ fullscreen_tries: (now.fullscreen_tries ?? 0) + 1 });
+    await browser.windows.update(attempt.exam_window_id, { state: 'fullscreen' }).catch((e) => console.warn('[icu] fullscreen retry failed', e));
+    setTimeout(() => void ensureFullscreen(), FULLSCREEN_RETRY_MS);
+  });
 }
 
 async function bindExamTabLocked(): Promise<void> {
@@ -278,18 +316,25 @@ export function onNotDetectedAlarm(): Promise<void> {
   });
 }
 
-/** R13: browser-window fullscreen changes of the exam window. */
+async function checkWindowStateLocked(windowId: number): Promise<void> {
+  const attempt = await activeAttempt();
+  if (!attempt || windowId !== attempt.exam_window_id) return;
+  const win = await browser.windows.get(windowId).catch(() => undefined);
+  if (!win?.state || win.state === attempt.window_state) return;
+  const was = attempt.window_state;
+  await updateAttempt({ window_state: win.state, ...(win.state === 'fullscreen' ? { fullscreen_seen: true } : {}) });
+  if (win.state === 'fullscreen') await recordEventLocked('fullscreen_enter');
+  else if (was === 'fullscreen') await recordEventLocked('fullscreen_exit');
+}
+
+/**
+ * R13: browser-window fullscreen changes of the exam window. On macOS Chrome can report the change
+ * before the fullscreen animation ends, so the state is checked again shortly after; heartbeats also
+ * check it every 15 s, so a missed change is still recorded.
+ */
 export function onWindowStateMaybeChanged(windowId: number): Promise<void> {
-  return withLock(async () => {
-    const attempt = await activeAttempt();
-    if (!attempt || windowId !== attempt.exam_window_id) return;
-    const win = await browser.windows.get(windowId).catch(() => undefined);
-    if (!win?.state || win.state === attempt.window_state) return;
-    const was = attempt.window_state;
-    await updateAttempt({ window_state: win.state });
-    if (win.state === 'fullscreen') await recordEventLocked('fullscreen_enter');
-    else if (was === 'fullscreen') await recordEventLocked('fullscreen_exit');
-  });
+  for (const ms of WINDOW_RECHECK_MS) setTimeout(() => void withLock(() => checkWindowStateLocked(windowId)), ms);
+  return withLock(() => checkWindowStateLocked(windowId));
 }
 
 // ---------------------------------------------------------------------------
@@ -339,21 +384,34 @@ export function onTabRemoved(tabId: number): Promise<void> {
   });
 }
 
-/** R10: leaving and returning to the exam tab within its window. */
+/**
+ * R10, R16: leaving and returning to the exam tab within its window. Every tab switch also gets its own
+ * screenshot, taken once the new tab is on screen (grabbing at once showed the previous tab), and the
+ * switch's event carries it. The site-visit capture for the new tab then reuses it.
+ */
 export function onTabActivated(tabId: number, windowId: number): Promise<void> {
   return withLock(async () => {
     const attempt = await activeAttempt();
-    if (!attempt || attempt.exam_tab_id === undefined || windowId !== attempt.exam_window_id) return;
     // Looking at the ICU monitoring tab itself isn't leaving the exam.
-    if (tabId === attempt.monitor_tab_id) return;
-    if (tabId !== attempt.exam_tab_id && attempt.hidden_at === undefined) {
-      await updateAttempt({ hidden_at: serverNow(attempt) });
-      await recordEventLocked('exam_tab_hidden');
-    } else if (tabId === attempt.exam_tab_id && attempt.hidden_at !== undefined) {
-      const away_ms = serverNow(attempt) - attempt.hidden_at;
-      await updateAttempt({ hidden_at: undefined });
-      await recordEventLocked('exam_tab_visible', { away_ms });
+    if (!attempt || tabId === attempt.monitor_tab_id) return;
+    const at = serverNow(attempt);
+    let event: { type: EventType; details: Record<string, unknown> } | undefined;
+    if (attempt.exam_tab_id !== undefined && windowId === attempt.exam_window_id) {
+      if (tabId !== attempt.exam_tab_id && attempt.hidden_at === undefined) {
+        await updateAttempt({ hidden_at: at });
+        event = { type: 'exam_tab_hidden', details: {} };
+      } else if (tabId === attempt.exam_tab_id && attempt.hidden_at !== undefined) {
+        await updateAttempt({ hidden_at: undefined });
+        event = { type: 'exam_tab_visible', details: { away_ms: at - attempt.hidden_at } };
+      }
     }
+    await sleep(TAB_RENDER_MS);
+    const now = await activeAttempt();
+    if (!now) return;
+    const tab = await browser.tabs.get(tabId).catch(() => undefined);
+    const screenshotId = tab?.active ? await takeScreenshotLocked(now, 'tab_switch', serverNow(now), windowId) : undefined;
+    if (event) await recordEventLocked(event.type, event.details, { at, screenshotId });
+    else void flush();
   });
 }
 
@@ -430,7 +488,7 @@ export function onWindowFocusChanged(windowId: number): Promise<void> {
     }
     if (popupPorts > 0 || attempt.blurred_at !== undefined) return;
     await updateAttempt({ blurred_at: serverNow(attempt) });
-    await recordEventLocked('window_blur');
+    await recordEventLocked('window_blur', {}, { at: serverNow(attempt), settleMs: TAB_RENDER_MS });
   });
 }
 
@@ -452,6 +510,9 @@ export async function heartbeat(source: 'content' | 'alarm', senderTabId?: numbe
     const tab = await browser.tabs.get(attempt.exam_tab_id).catch(() => undefined);
     if (!tab) return;
   }
+  // Safety net for fullscreen changes Chrome reported too early or not at all (R13).
+  if (attempt.exam_window_id !== undefined) void withLock(() => checkWindowStateLocked(attempt.exam_window_id!));
+  if (attempt.fullscreen_requested && !attempt.fullscreen_seen) void ensureFullscreen();
   const { error } = await getSupabase().from('heartbeats').insert({ attempt_id: attempt.attempt_id, source });
   if (error) {
     console.warn('[icu] heartbeat failed', error.message);

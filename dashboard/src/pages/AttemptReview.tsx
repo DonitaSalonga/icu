@@ -21,7 +21,7 @@ interface Shot {
   id: string;
   storage_path: string;
   captured_at: string;
-  reason: 'interval' | 'violation' | 'site_visit';
+  reason: 'interval' | 'violation' | 'site_visit' | 'tab_switch';
   url?: string;
 }
 
@@ -40,8 +40,8 @@ interface AttemptRow {
 type TimelineRow = { kind: 'event'; at: number; event: EventRow } | { kind: 'gap'; at: number; gap: Gap };
 
 const SIGNED_URL_SECONDS = 3600;
-const REASON_SHORT = { interval: 'interval', violation: 'on warning', site_visit: 'site visit' } as const;
-const REASON_LONG = { interval: 'Taken on the 60-second interval', violation: 'Taken on a warning', site_visit: 'Taken when another website was on screen' } as const;
+const REASON_SHORT = { interval: 'interval', violation: 'on warning', site_visit: 'site visit', tab_switch: 'tab switch' } as const;
+const REASON_LONG = { interval: 'Taken on the 60-second interval', violation: 'Taken on a warning', site_visit: 'Taken when another website was on screen', tab_switch: 'Taken when the student switched tabs' } as const;
 
 export function AttemptReview() {
   const { id, attemptId } = useParams();

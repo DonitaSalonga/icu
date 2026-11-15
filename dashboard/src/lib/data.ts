@@ -6,7 +6,7 @@ export interface SessionRow {
   id: string;
   name: string;
   code: string;
-  /** "About this exam", optional (2026-11-15). */
+  /** "Tell us about the exam", optional (2026-11-15). */
   description: string | null;
   url_patterns: string[];
   starts_at: string;

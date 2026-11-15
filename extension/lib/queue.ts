@@ -23,7 +23,7 @@ export interface QueuedShot {
   attempt_id: string;
   session_id: string;
   captured_at: string;
-  reason: 'interval' | 'violation' | 'site_visit';
+  reason: 'interval' | 'violation' | 'site_visit' | 'tab_switch';
   bytes: number;
   /** The site the screenshot shows (host + path only). */
   visible_host?: string;

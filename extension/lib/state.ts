@@ -23,6 +23,9 @@ export interface StoredAttempt {
   /** Last known state of the exam window, for fullscreen enter/exit (R13). */
   window_state?: string;
   fullscreen_requested?: boolean;
+  /** The exam window has been seen in fullscreen; until then ICU retries the request (macOS can ignore it). */
+  fullscreen_seen?: boolean;
+  fullscreen_tries?: number;
   not_detected_recorded?: boolean;
   warnings?: WarningState;
   /** Screenshot coalescing (R16). */

@@ -90,6 +90,10 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | T58 | R33, R16 | E2E (auto-selects "Entire screen") | Start by sharing; paste; wait out the cool-down; close the monitoring tab; share again on `notice.html?reshare=1` | A screenshot is taken from the share; `screen_share_stopped` with its warning; `screen_sharing` false, then `screen_share_started` and true |
 | T59 | R33 | E2E | Session with platform `localhost`; navigate the exam tab to another platform page; open a second platform tab | `exam_page_changed` (no warning), `url_visited` for the second tab, warning only for leaving the exam tab, no `navigated_off_exam` |
 | T60 | R34, R13 | E2E | Open the exam page, join, Continue (popup path), share and start; switch to the ICU monitoring tab; click "Go to my exam"; End | The exam tab is active with fullscreen requested; no `exam_tab_hidden`, `fullscreen_exit`, `warning_shown` or `url_visited` |
+| T62 | R35, R16 | E2E | Start; open another site; return to the exam; switch to the other tab again | `exam_tab_hidden`, `exam_tab_visible` and the second `exam_tab_hidden` each carry their own `tab_switch` screenshot showing the tab switched to, captured ≥ 400 ms after the event; the `url_visited` reuses the first; no `screenshot_failed` |
+| T63 | R35, R16 | E2E (tab capture after closing the share) | Colour the exam red and another tab blue; wait out the cool-down; switch | The `exam_tab_hidden` screenshot is blue, not red |
+| T64 | R35, R13 | E2E | After `fullscreen_enter`, set the stored window state to `normal` (a missed report); wait for a heartbeat; leave fullscreen | A second `fullscreen_enter` from the heartbeat check, then `fullscreen_exit` with a warning |
+| T65 | R35, R13 | E2E | After Start, mark fullscreen as never seen and set the window to normal (an ignored request) | ICU asks again; the window becomes fullscreen; no `fullscreen_exit` |
 | T61 | R34, R9 | E2E | Share and start with no exam page open, then open it | Monitoring tab says "Now open your exam in this browser." and no fullscreen; on opening, the page binds, comes to the front, fullscreen is requested; then "Go to my exam" shows; no warnings |
 | T52 | R32 | Unit | `buildAnalysisState` on a seeded attempt; on 400+ events | Ordered mm:ss timeline with site, away_s, screenshot_shows and gaps; no names, emails, UUIDs or absolute times in the state; capped at 200 rows keeping important events; exactly one Choice question |
 | T53 | R32 | Unit | Compare option keys and gap rules | Model question keys = dashboard label keys = `SUGGESTIONS`; `gapsFor` equals `findGaps` |
@@ -160,4 +164,5 @@ Status: draft for user review. None of these tests exist yet; they are written d
 | R31 | T48 (plus the existence of T1–T24 as the automated suite) |
 | R32 | T52, T53, T54, T55 |
 | R33 | T1 (platform matching), T12 (platform entries accepted), T57, T58, T59 |
+| R35 | T62, T63, T64, T65, T39 (label) |
 | R34 | T12 (about text saved, trimmed, returned on join, 500-character limit), T39 (about box, platform column, Exam info panel), T41, T60, T61 |
